@@ -1,0 +1,436 @@
+\SweaveOpts{keep.source=TRUE, prefix.string=./figures/CS3-, eps=FALSE}
+\chapter{Case Study 3: Using MARSS models to identify spatial population structure and covariance}
+\label{chap:CSpopstruc}
+\chaptermark{Using MARSS models to identify spatial population structure and covariance}
+<<RUNFIRST, echo=F, include.source=F>>=
+require(MARSS)
+options(prompt=" ", continue=" ")
+@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{The problem}
+\index{MARSS model!multivariate example}In this case study, we use time series of observations from nine sites along the west coast to examine large-scale spatial structure in harbor seals \citep{Jeffriesetal2003}.  Harbor seals are distributed along the west coast of the U.S. from California to Washington.  The populations in Oregon and Washington have been surveyed for over 25 years at a number of haul-out sites (Figure \ref{fig:CS3.fig1}).  In general, these populations have been increasing steadily since the 1972 Marine Mammal Protection Act. It remains unknown whether they are at carrying capacity.  
+
+For management purposes, two stocks are recognized; the coastal stock consists of four sites (Northern/Southern Oregon, Coastal Estuaries, Olympic Peninsula), and the inland WA stock consists of the remaining five sites (Figure \ref{fig:CS3.fig1}).  Subtle differences exist in the demographics across sites (e.g. pupping dates), however mtDNA analyses and tagging studies have suggested that these sites may be structured on a much larger scale.  Harbor seals are known for strong site fidelity, but at the same time travel large distances to forage.
+%~~~~~~~~~~~~~~~~~~~~~~~~~
+\begin{figure}[totalheight=0.8\textheight]
+\begin{center}
+\includegraphics{"../figures/CAORWA"}
+\end{center}
+\caption{Map of spatial distribution of 9 harbor seal sites in Washington and Oregon.}
+\label{fig:CS3.fig1}
+\end{figure}
+%~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Our goal for this case study is to address the following questions about spatial structure: 1) Does population abundance data support the existing management boundaries, or are there alternative groupings that receive more support? and 2) Does the Hood Canal site represent a distinct subpopulation?  Type \texttt{show.doc(MARSS, Case\_study\_3.R)} to open a file with the \R code to get you started on the analyses in this chapter.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{How many distinct subpopulations?}  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+We will analyze the support for five hypotheses about the population structure.  These do not represent all possible structures but instead represent those that are considered most biologically plausible given the geography and the behavior of harbor seals.
+\begin{description}
+\item [Hypothesis 1] Sites are grouped by stock ($m = 2$), unique process variances
+\item [Hypothesis 2] Sites are grouped by stock ($m = 2$), same process variance
+\item [Hypothesis 3] Sites are grouped by state ($m = 2$), unique process variances 
+\item [Hypothesis 4] Sites are grouped by state ($m = 2$), same process variance
+\item [Hypothesis 5] All sites are part of the same panmictic population ($m = 1$)
+\end{description}
+
+Aerial survey methodology has been relatively constant across time and space, and we will assume that all sites have identical and independent observation error variance.
+
+\subsection{Specify the design, $\ZZ$, matrices}
+Write down the $\ZZ$ matrices for the hypotheses. Hint: Hypothesis 1 and 2 have the same $\ZZ$ matrix, Hypothesis 3 and 4 have the same $\ZZ$ matrix and Hypothesis 5 is a column of 1s.
+\bigskip
+\bigskip
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{tabular}{r cc c cc c c}
+ & \multicolumn{2}{c}{H 1 and 2} & & \multicolumn{2}{c}{H 3 and 4} & & H 5\\
+ & \multicolumn{2}{c}{$\ZZ$}  & & \multicolumn{2}{c}{$\ZZ$} & & $\ZZ$ \\
+ &  subpop & subpop &  &  subpop & subpop  & & subpop\\
+ &  1 & 2 & & 1 & 2 & & 1 \\
+$
+\begin{array}{r}
+    \texttt{Coastal Estuaries} \\
+    \texttt{Olympic Peninsula} \\
+    \texttt{Str. Juan de Fuca} \\
+    \texttt{San Juan Islands} \\
+    \texttt{Eastern Bays} \\
+    \texttt{Puget Sound} \\
+    \texttt{Hood Canal} \\
+    \texttt{OR North Coast} \\
+    \texttt{OR South Coast} \end{array} 
+ $
+ &
+ $
+ \left[ \begin{array}{l}
+    \;\;\;\;\;\;\; \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \end{array}\right.
+$
+&
+$
+ \left. \begin{array}{r}
+    \;\;\;\;\;\;\; \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \end{array}\right] 
+$
+& &
+ $
+ \left[ \begin{array}{l}
+    \;\;\;\;\;\;\; \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \end{array}\right.
+$
+& 
+$
+ \left. \begin{array}{r}
+    \;\;\;\;\;\;\; \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \end{array}\right] 
+$
+& &
+ $
+ \left[ \begin{array}{l}
+    \;\;\;\;\;\;\; \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \end{array}\right]
+$
+\end{tabular} 
+\bigskip
+\bigskip
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Next you need to specify the constraints argument so that \verb@MARSS@ knows the structure of your $\ZZ$'s.  The $\ZZ$ constraint will
+be a vector of factors, i.e. it will have the form \verb@factor(c(....))@.
+\begin{itemize}
+\item{Hypothesis 1 and 2: \verb@Z.constraint=@}
+\item{Hypothesis 3 and 4: \verb@Z.constraint=@}
+\item{Hypothesis 5: \verb@Z.constraint=@}
+\end{itemize} 
+\subsection{Specify the grouping arguments}
+For this case study, we will assume that subpopulations share the same growth rate.  What should \texttt{U.constraint} be for each hypothesis? To specify shared $u$ parameters,  \texttt{U.constraint} is set as a length $m$ vector of factors  and specifies which subpopulations share their $u$ parameter.  Written in \emph{R} it takes the form \verb@factor(c(#,#,...))@
+\begin{itemize}
+\item{Hypothesis 1-4: \verb@U.constraint=@}
+\item{Hypothesis 5: \verb@U.constraint=@}
+\end{itemize}
+
+What about \texttt{Q.constraint}? To specify a diagonal $\QQ$ matrix with shared values along the diagonal, \texttt{Q.constraint} is set as a length $m$ vector of factors.  The vector specifies which $x_i$'s share their process variance parameter.  Look at each hypothesis (above) and write down the corresponding \verb@Q.constraint@.
+\begin{itemize}
+\item Hypothesis 1: \verb@Q.constraint=@
+\item Hypothesis 2: \verb@Q.constraint=@
+\item Hypothesis 3: \verb@Q.constraint=@
+\item Hypothesis 4: \verb@Q.constraint=@
+\item Hypothesis 5: \verb@Q.constraint=@
+\end{itemize}
+Lastly, specify \verb@R.constraint@. As we mentioned above, we will assume that the observation errors are independent and the observation variance is the same across sites.  You can specify this constraint either as a text string or as a $n$ length vector of factors.
+\begin{itemize}
+\item{Hypothesis 1-5: \verb@R.constraint=@}
+\end{itemize}
+\subsection{Fit models and summarize results}
+Fit each model for each hypothesis to the seal data (look at the script \texttt{Case\_Study\_3.R} for the code to load the data).  Each call to \texttt{MARSS()} will look like
+
+<<label=kemcall, eval=FALSE, keep.source=TRUE>>=
+kem = MARSS(sealData, constraint=list(Z = Z.constraint,
+  Q = Q.constraint, R = R.constraint, U = U.constraint))
+@
+Fill in the following table, by fitting the five state-space models---for the five hypotheses---to the harbor seal data (using \texttt{MARSS()}).  Use the \texttt{Case\_Study\_3.R} script so you do not have to type in all the commands.
+\bigskip
+\bigskip
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|}
+	\hline
+     &  pop. growth   &   process  & obs. & $K$   & log-     &   \\
+H &  rate    &   variance  & variance & \verb@kem$num.@  & like.     & AIC  \\
+  &  \verb@kem$par$U@    &   \verb@kem$par$Q@  & \verb@kem$par$R@ & \verb@params@ & \verb@kem$logLik@ & \verb@kem$AIC@  \\	
+\hline
+& &   &  &    &   &\\
+1&  &   &  &    &   &\\
+& &   &  &    &   &\\
+\hline
+&  &   &  &    &   &\\
+2&  &   &  &    &   &\\
+&  &   &  &    &   &\\
+	\hline
+&  &   &  &    &   &\\
+3&  &   &  &    &   &\\
+&  &   &  &    &   &\\
+\hline
+&  &   &  &    &   &\\
+4&   &   &  &    &   &\\
+&   &   &  &    &   &\\
+\hline
+&   &   &  &    &   &\\
+5&    &   &  &    &   &\\
+&    &   &  &    &   &\\
+\hline
+\end{tabular}
+\end{center}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\bigskip
+
+\subsection{Interpret results for question 1}
+What do these results indicate about the process error grouping and spatial grouping?  A lower AIC means a more parsimonious model (highest likelihood given the number of parameters).  A difference of 10 between AICs is large, and means the model with the higher AIC is unsupported relative to the model with lower AIC.
+
+Extra analysis (if you have time):  Do your results change if you assume that observation errors are independent but have unique variances?  The nine sites have different numbers of haul-outs and so the observation variances might be different.  Repeat the analysis with unique observation variances for each site (this means changing \verb@R.constraint@).  You can also try the analysis with temporally co-varying subpopulations (good and bad years correlated) by setting \verb@Q.constraint="unconstrained"@ or \verb@Q.constraint="equalvarcov"@.
+
+\section{Is Hood Canal separate?}
+The Hood Canal site may represent a distinct population, and has recently been subjected to a number of catastrophic events (hypoxic events, possibly leading to reduced prey availability, and several killer whale predation events, removing up to 50\% of animals per occurrence).  Build four models, assuming that each site (other than Hood Canal) is assigned to its current management stock, but Hood Canal is a different subpopulation ($m=3$).  Again, assume that observation error variance is identical and independent across sites.
+
+\begin{description}
+\item [Hypothesis 1] Subpopulations have the same process variance and growth rate
+\item [Hypothesis 2] Each subpopulation has a unique process variance and growth rate
+\item [Hypothesis 3] Hood Canal has the same process variance but different growth rate
+\item [Hypothesis 4] Hood Canal has unique process variance and unique growth rate
+\end{description}
+\subsection{Specify the $\ZZ$ matrix and \texttt{Z.constraint}}
+The $\ZZ$ matrix for each hypothesis is the same. The coastal subpopulation consists of 4 sites (Northern/Southern Oregon, Coastal Estuaries, Olympic Peninsula), the Hood Canal subpopulation is the Hood Canal site, and the inland WA subpopulation consists of the remaining 4 sites.  Thus $m=3$ and $\ZZ$ is a $9 \times 3$ matrix:
+
+\bigskip
+\bigskip  
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{center}
+\begin{tabular}{r ccc}
+ &  subpop & subpop & subpop \\
+ &  1 & 2 & 3 \\
+$
+\begin{array}{r}
+    \texttt{Coastal Estuaries} \\
+    \texttt{Olympic Peninsula} \\
+    \texttt{Str. Juan de Fuca} \\
+    \texttt{San Juan Islands} \\
+    \texttt{Eastern Bays} \\
+    \texttt{Puget Sound} \\
+    \texttt{Hood Canal} \\
+    \texttt{OR North Coast} \\
+    \texttt{OR South Coast} \end{array} 
+ $
+ &
+ $
+ \left[ \begin{array}{l}
+    \;\;\;\;\;\;\; \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \end{array}\right.
+$
+&
+$
+ \left. \begin{array}{c}
+    \;\;\;\;\;\;\; \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \end{array}\right.
+$
+&
+$
+ \left. \begin{array}{r}
+    \;\;\;\;\;\;\; \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \\
+    \end{array}\right]
+$ 
+\end{tabular}
+\end{center}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\bigskip
+\bigskip
+
+\noindent Then write down \texttt{Z.constraint} for this $\ZZ$: \texttt{factor(c(...))}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Specify which parameters are shared across which subpopulations}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\texttt{U.groups} specifies which $u$ are shared across subpopulations. Look at the hypothesis descriptions above which will specify whether subpopulations share their population growth rate or have unique population growth rates.
+\begin{itemize}
+\item{Hypothesis 1: \verb@U.constraint=@}
+\item{Hypothesis 2: \verb@U.constraint=@}
+\item{Hypothesis 3: \verb@U.constraint=@}
+\item{Hypothesis 4: \verb@U.constraint=@}
+\end{itemize}
+\verb@U.constraint@ will be a length $m$ vector of factors.
+Once you have more than two subpopulations, it can get hard to keep straight which \verb@U.constraint@  goes to which subpopulation.  It is best to sketch your $\ZZ$ matrix (which tells you which site in the rows corresponds to which subpopulation in the columns).  Then remember that the elements of \verb@U.constraint@ correspond one-to-one with the columns of $\ZZ$: 
+
+\verb@U.constraint=factor(c(col 1 Z, col 2 Z, col 3 Z, ..))@.
+
+Specify \texttt{Q.groups} showing which subpopulations share their process variance parameter.  
+\begin{itemize}
+\item{Hypothesis 1: \verb@Q.constraint=@}
+\item{Hypothesis 2: \verb@Q.constraint=@}
+\item{Hypothesis 3: \verb@Q.constraint=@}
+\item{Hypothesis 4: \verb@Q.constraint=@}
+\end{itemize}
+\verb@Q.constraint@ will be a length $m$ vector of factors.
+\texttt{R.constraint} is the same as for Question 1; the observation variances are the same for each site.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Fit the models and summarize results}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+Fit each model for each hypothesis to the seal data.  Each call to \texttt{MARSS()} will look like
+<<label=kemcall2, eval=FALSE, keep.source=TRUE>>=
+kem = MARSS(sealData, constraint=list(Z = Z.constraint,
+  Q = Q.constraint, R = R.constraint, U = U.constraint))
+@
+
+\bigskip
+\bigskip
+
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\begin{center}
+\begin{tabular}{|c|c|c|c|c|c|c|}
+	\hline
+     &  pop. growth   &  &  & $K$   & log-like     &   \\
+H &  rate    &   proc. variance  & obs. variance & \verb@kem$num.@   & \verb@kem$@     & AIC  \\
+  &  \verb@kem$par$U@    &   \verb@kem$par$Q@  & \verb@kem$par$R@ & \verb@params@ & \verb@logLik@ & \verb@kem$AIC@  \\	
+\hline
+& &   &  &    &   &\\
+1&  &   &  &    &   &\\
+& &   &  &    &   &\\
+\hline
+&  &   &  &    &   &\\
+2&  &   &  &    &   &\\
+&  &   &  &    &   &\\
+	\hline
+&  &   &  &    &   &\\
+3&  &   &  &    &   &\\
+&  &   &  &    &   &\\
+\hline
+&  &   &  &    &   &\\
+4&   &   &  &    &   &\\
+&   &   &  &    &   &\\
+\hline
+\end{tabular}
+\end{center}
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\bigskip
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Interpret results for Question 2}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+How do the residuals for the Hood Canal site compare from these models relative to the best model from Question 1?  Hint:  If you have the vector of estimated population states (\verb@Xpred = t(kem$states@)) and the data (\texttt{Xobs = sealData}), the residuals for site $i$ can be plotted in \emph{R} as:
+<<plotresiduals,eval=F, fig=F, keep.source=T>>= 
+Xpred = t(kem$states)
+Xobs = sealData
+plot(Xpred[, Z.constraint[i]] - Xobs[,i],
+      ylab="Predicted-Observed Data")
+@
+In \R, if you have a matrix \verb@Y[1:numYrs, 1:n]@, you can extract column $j$ by writing \verb@Yj = Y[,j]@.
+
+Relative to the previous models from Question 1, do these scenarios have better or worse AIC scores (smaller AIC is better)?  If you were to provide advice to managers, would you recommend that the Hood Canal population is a source or sink?  What implications does this have for population persistence?
+
+<<Reset, echo=F>>=
+options(prompt="> ", continue="+ ")
+@
+
+\exbegin{Code for Case Study 3}
+\newline
+Type \texttt{show.doc(MARSS, Case\_study\_3.R)} to open a file in R with all the example code.
+<<label=Cs3_code, echo=F, results=hide, fig=F>>=
+# Read in the data
+# The data are logged already
+sealData = t(harborSealnomiss)
+head(sealData) #look at the first 6 lines
+rownames(sealData) #look at the column names (site names)
+
+#rename columns
+years = sealData[1,] #first row is years
+sealData=sealData[2:dim(sealData)[1],] #rows 2:10 are the data
+# make plots of the time series (year is in first column)
+par(mfrow=c(3,3))
+for(i in 1:9) {
+    plot(years, sealData[i,], xlab="Year", ylab="", main=names(sealData)[i])
+}
+
+# The following is an example to show you how to build and run a model
+# for one of the hypotheses
+# Hypothesis 5 build a simple panmictic model - 1 subpop, 1 R, 1 Q, 1 U
+###############################################################
+   Q.constraint="unconstrained" #could be left out since Q scalar
+   R.constraint="diagonal and equal"
+   U.constraint="unconstrained" #could be left out since U scalar
+   Z.constraint=factor(rep(1,9)) #repeat 1 nine times
+
+kem = MARSS(sealData, constraint=list(Z=Z.constraint, Q=Q.constraint, R=R.constraint, U=U.constraint))
+
+# the parameter estimates
+kem$par$U
+diag(kem$par$Q) #since 0s are on the off-diagonals, we only need to see the diagonal
+diag(kem$par$R)
+#num parameters, loglike, AIC (or use kem$AICc if you wish)
+c(kem$num.params, kem$logLik, kem$AIC)
+
+# plot the data versus predicted population states
+Xpred = t(kem$states)
+Xobs = sealData
+par(mfrow=c(3,3))
+for(i in 1:9) {
+    plot(years, Xobs[i,], ylab="", main=rownames(sealData)[i] )
+    lines(years, Xpred[,Z.constraint[i]]+kem$par$A[i], ylab="", lwd=2, col=2 )
+}                                                            
+mtext("Predicted (line) and Observed (points)", side=2, outer=T, line=-2)
+
+# plot the residuals
+Xpred = t(kem$states)
+Xobs = sealData
+par(mfrow=c(3,3))
+for(i in 1:9) {
+    plot(years, Xpred[,Z.constraint[i]] - Xobs[i,], ylab="Predicted-Observed Data", main=rownames(sealData)[i] )
+}
+@
+\vskip 10pt
+\exend
+

@@ -1,0 +1,32 @@
+RM = rm -f
+
+all:	sweave stangle makeRfiles pdf
+
+sweave: 
+	R CMD Sweave Manual.xRnw
+	 
+stangle: 
+	R CMD Stangle Manual.xRnw
+	$(RM) Manual.xRnw.R
+
+makeRfiles:
+	cat ./figures/CS1--Cs1_Exercise*.R > Case_study_1.R
+	cat ./figures/CS2--Cs2_Exercise*.R > Case_study_2.R
+	cat ./figures/CS3--Cs3_code.R > Case_study_3.R
+	cat ./figures/CS5--Cs5_code.R > Case_study_5.R
+
+pdf:	
+	cat Manual.xRnw.tex > Manual.tex
+	rm Manual.xRnw.tex
+	texi2dvi --pdf Manual.tex
+	rm Manual.tex
+	make clean
+
+clean:
+	$(RM) *.log *.aux *.ilg *.ind *.idx *.blg *.bbl *.out *.Rout *.toc *.lof *.lot Rplots.ps Rplots.pdf
+	$(RM) *.tex
+	$(RM) ./figures/*.R
+	$(RM) ./tex/*.aux
+	$(RM) ./figures/*.tex
+	$(RM) ./figures/CS*.pdf
+	

@@ -1,0 +1,10 @@
+%\VignetteIndexEntry{Dummy File}
+\documentclass[12pt]{article}
+\title{\Dummy File}
+\begin{document}
+All the files for producing the user guide are included in the inst/doc directory.  However we have renamed the Makefiles to xxMakefile so that CRAN doesn't remake the user guide.  It takes awhile and the results might be unpredictable.  If you want to rebuild from source and remake the user guide, then remove the xx from the Makefile name for your system (Makefile for unix and Makefile.win for pc).
+
+Dummy.Rnw is included so that the builder runs the Makefile (or Makefile.win) in inst/doc when we build the package.  
+
+\end{document}
+

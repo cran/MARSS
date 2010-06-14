@@ -1,0 +1,44 @@
+
+## export functions
+export(
+  as.marssm,
+  checkPopWrap,
+  CSEGriskfigure,
+  CSEGtmufigure,
+  find.degenerate,
+  is.marssm,
+  is.marssMLE,
+  marssm,
+  MARSS,
+  MARSSaic,
+  MARSSapplynames,
+  MARSSboot,
+  MARSScheckdims,
+  MARSScheckpar,
+  MARSShessian,
+  MARSSinits,
+  MARSSinnovationsboot,
+  MARSSkem,
+  MARSSkemcheck,
+  MARSSkf,
+  MARSSmcinit,
+  MARSSoptim,
+  MARSSparamCIs,
+  MARSSsimulate,
+  MARSSvectorizeparam,
+  popWrap,
+  show.doc
+)
+
+## register S3 methods
+S3method(print, marssm)
+S3method(summary, marssm)
+S3method(print, marssMLE)
+S3method(summary, marssMLE)
+
+## Imports
+importFrom(MASS, mvrnorm)
+importFrom(mvtnorm, rmvnorm)
+importFrom(nlme, fdHess)
+
+
