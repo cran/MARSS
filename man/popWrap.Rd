@@ -80,7 +80,6 @@ If arguments \code{inits}, \code{constraint}, or \code{control} are not provided
 \examples{
   dat = t(harborSeal)
   dat = dat[2:nrow(dat),]
-  aa = MARSS:::allowed$kem
-  wrapperObj = popWrap(dat, allowed=aa, method="kem")
+  wrapperObj = popWrap(dat, allowed=MARSS:::allowed$kem, method="kem")
 }
 

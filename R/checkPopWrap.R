@@ -16,24 +16,41 @@ checkPopWrap = function(wrapperObj, wrapper.el, allowed, silent=FALSE)
 #Check that wrapper passed in and all wrapper elements are present
   if(!(class(wrapperObj)=="popWrap")) stop("checkPopWrap: Object class is not popWrap.", call.=FALSE)
   el = wrapper.el
-  if( !all(el %in% names(wrapperObj)) ) 
-    stop(paste("checkPopWrap: Element", el[!(el %in% names(wrapperObj))], "is missing from object."), call.=FALSE)
-
+  if( !all(el %in% names(wrapperObj)) ){ 
+     msg=paste(" Element", el[!(el %in% names(wrapperObj))], "is missing from object.\n")
+     cat("\n","Errors were caught in checkPopWrap \n", msg, sep="")
+     stop("Stopped in checkPopWrap() due to specification problem(s).\n", call.=FALSE)
+    }
 #Check constraints (b497)
   constraint = wrapperObj$constraint
-  if (is.null(constraint)) { #previous line should have caught this
-    stop("checkPopWrap: Constraint should not be NULL here. Look in popWrap for problem.", call.=FALSE)
+  if (is.null(constraint)){ #previous line should have caught this
+     cat("\n","Errors were caught in checkPopWrap \n", " Constraint should not be NULL here. Look in popWrap for problem.\n", sep="")
+     stop("Stopped in checkPopWrap() due to specification problem(s).\n", call.=FALSE)
   }
   else {
-    if (!is.list(constraint)) stop("checkPopWrap: Constraint must be passed in as a list.", call.=FALSE)
-    if( !all(names(constraint) %in% model.elem.w.V0 ) )
-      stop("checkPopWrap: Incorrect element name(s) in constraint list (something misspelled?).", call.=FALSE)
-    if( !all(model.elem %in% names(constraint)) ) 
-      stop("checkPopWrap: constraint name missing.  This should have been caught in popWrap.", call.=FALSE)
+    if (!is.list(constraint)){
+      msg=" Constraint must be passed in as a list.\n"
+      cat("\n","Errors were caught in checkPopWrap \n", msg, sep="")
+      stop("Stopped in checkPopWrap() due to specification problem(s).\n", call.=FALSE)
+    }
+    if( !all(names(constraint) %in% model.elem.w.V0 ) ){
+      msg=" Incorrect element name(s) in constraint list (something misspelled?).\n"
+      cat("\n","Errors were caught in checkPopWrap \n", msg, sep="")
+      stop("Stopped in checkPopWrap() due to specification problem(s).\n", call.=FALSE)
+      }
+    if( !all(model.elem %in% names(constraint)) ){ 
+      msg=" A constraint name is missing.  This should have been caught in popWrap.\n"
+      cat("\n","Errors were caught in checkPopWrap \n", msg, sep="")
+      stop("Stopped in checkPopWrap() due to specification problem(s).\n", call.=FALSE)
+      }
   }
   
 #check that constraint list doesn't have any duplicate names
-  if(any(duplicated(names(constraint)))) stop("checkPopWrap: some of the constraint names are duplicated.", call.=FALSE)
+  if(any(duplicated(names(constraint)))){
+      msg=" Some of the constraint names are duplicated.\n"
+      cat("\n","Errors were caught in checkPopWrap \n", msg, sep="")
+      stop("Stopped in checkPopWrap() due to specification problem(s).\n", call.=FALSE)
+   }
 
 #Series of checks on the model specification
 problem = FALSE
@@ -62,7 +79,18 @@ msg=NULL
       problem=TRUE
       msg = c(msg, paste(" Constraint$",el," is not allowed to be a matrix.\n", sep=""))
       }     
-  } # end for (el in model.elem)
+    #if matrix then no NAs if character or list; this would be caught in is.marssm but would be hard for user to understand problem
+    if(is.matrix(wrapperObj$constraint[[el]]) && (el %in% allowed$matrices)){
+      if( is.character(wrapperObj$constraint[[el]]) && any(is.na(wrapperObj$constraint[[el]])) ){
+        problem=TRUE
+        msg = c(msg, paste(" Constraint$",el," is a character matrix. No NAs allowed in this case.\n", sep=""))
+        }
+      if( is.list(wrapperObj$constraint[[el]]) && any(is.na(wrapperObj$constraint[[el]])) ){
+        problem=TRUE
+        msg = c(msg, paste(" Constraint$",el," is a list matrix. No NAs allowed in this case.\n", sep=""))
+        }
+      } # is matrix  
+    } # end for (el in model.elem)
 
   ## if fixed, free elements passed in, make sure they are matrix (otherwise as.marssm() will break) 
   for(mat in c("fixed","free")) {
@@ -96,11 +124,17 @@ msg=NULL
           
 #check that data is numeric data
 # bug 582
-  if( !(is.matrix(wrapperObj$data)|| is.vector(wrapperObj$data)) ) {
+  if( !(is.matrix(wrapperObj$data) || is.vector(wrapperObj$data)) ) {
     problem=TRUE
     msg = c(msg, " Data must be a matrix or vector (not a data frame).\n")
   }
   if(!is.numeric(wrapperObj$data)) {problem=TRUE; msg = c(msg, " Data must be numeric.\n")}
+
+#check that miss.value is numeric or NA
+  if( !(length(wrapperObj$miss.value)==1) || !(is.na(wrapperObj$miss.value) || is.numeric(wrapperObj$miss.value))){
+    problem=TRUE
+    msg = c(msg, " miss.value must be length 1 and numeric (or NA).\n")
+  }
 
 #check m; as.marssm() needs this
   if(!is.numeric(wrapperObj$m)) {
@@ -111,7 +145,7 @@ msg=NULL
 
 #If there are errors, then don't proceed with the rest of the checks
   if(problem)  {
-          cat("\n","Errors were caught in checkPopWrap \n", msg,"\n", sep="")
+          cat("\n","Errors were caught in checkPopWrap \n", msg, sep="")
           stop("Stopped in checkPopWrap() due to specification problem(s).\n", call.=FALSE)
         }
 
@@ -128,7 +162,7 @@ msg=NULL
     if( is.factor(constraint[[el]]) ) {
       if(length(constraint[[el]]) != correct.factor.len[[el]]) {
           problem=TRUE
-          msg = c(msg, paste(" The constraint factor for ", el, " is not the right length. See help file.\n", sep=""))
+          msg = c(msg, paste(" The constraint$", el, " is being passed as a factor and should be length ", correct.factor.len[[el]], " based on data dims and Z. It's not. See help file.\n", sep=""))
           }
       if(NA.in.fac <- NA %in% constraint[[el]]) {
           problem=TRUE
@@ -146,7 +180,7 @@ msg=NULL
 
 #If there are errors in the factors
   if(problem)  {
-          cat("\n","Errors were caught in checkPopWrap \n", msg,"\n", sep="")
+          cat("\n","Errors were caught in checkPopWrap \n", msg, sep="")
           stop("Stopped in checkPopWrap() due to problem(s) with factors in constraint list.\n", call.=FALSE)
         }
 
@@ -154,7 +188,11 @@ msg=NULL
   inits = wrapperObj$inits
  
   # check that inits list doesn't have any duplicate names
-  if(any(duplicated(names(inits)))) stop("Stopped in checkPopWrap: some of the inits names are duplicated.\n", call.=FALSE)
+  if(any(duplicated(names(inits)))){
+     msg = " Some of the inits names are duplicated.\n"
+     cat("\n","Errors were caught in checkPopWrap \n", msg, sep="")
+     stop("Stopped in checkPopWrap() due to problem(s) with inits.\n", call.=FALSE)
+  }
 
   problem = FALSE
   msg=NULL
@@ -198,7 +236,7 @@ msg=NULL
     if(any(dim.init)) {
       msg = c(msg, paste("Dimension problem: initial value", elem[dim.init], "\n"))
     }
-    cat("\n","Errors were caught in checkPopWrap \n", msg,"\n", sep="") 
+    cat("\n","Errors were caught in checkPopWrap \n", msg, sep="") 
     stop("Stopped in checkPopWrap() due to problem(s) with inits.\n", call.=FALSE)
   }
   

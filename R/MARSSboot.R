@@ -26,26 +26,35 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
   # silent controls whether a progress bar is shown
   
   ###### Error-checking on the arguments
+  msg=NULL
   if(!is.numeric(nboot))
-    stop("MARSSboot: incorrect function arg. nboot must be numeric")
-  if(any(nboot != trunc(nboot), nboot < 0, length(nboot)!=1) ) 
-     stop("MARSSboot: incorrect function arg. nboot must be a positive non-zero integer")
+    msg=c(msg, " Incorrect function arg. nboot must be numeric.\n")
+  if(is.numeric(nboot) && any(nboot != trunc(nboot), nboot < 0, length(nboot)!=1) ) 
+    msg=c(msg, " Incorrect function arg. nboot must be a positive non-zero integer.\n")
   if(FALSE %in% (output %in% c("all","data","parameters"))) 
-      stop("MARSSboot: incorrect function arg. output must be either all, data, parameters (in quotes)")
+    msg=c(msg," Incorrect function arg. output must be either all, data, parameters (in quotes).\n")
   if(FALSE %in% (sim %in% c("parametric","innovations"))) 
-      stop("MARSSboot: incorrect function arg. sim must be either parametric or innovations (see help file)")
+    msg=c(msg, " Incorrect function arg. sim must be either parametric or innovations (see help file).\n")
   if(FALSE %in% (param.gen %in% c("KalmanEM", "hessian"))) 
-      stop("MARSSboot: incorrect function arg. est.method must be either KalmanEM or hessian (see help file)")
+    msg=c(msg, " Incorrect function arg. est.method must be either KalmanEM or hessian (see help file).\n")
   if(FALSE %in% (silent %in% c(TRUE, FALSE))) 
-      stop("MARSSboot: incorrect function arg. silent must be TRUE or FALSE")
-
+    msg=c(msg, " Incorrect function arg. silent must be TRUE or FALSE")
+  if(!is.null(msg)){
+    cat("\n","Errors were caught in MARSSboot \n", msg, sep="") 
+    stop("Stopped in MARSSboot() due to problem(s) with function arguments.\n", call.=FALSE)
+  }
+  
   #mle.object$control is control args for estimation routine
   #control here is just if you want to change the control values in mle.object$control
   #code replaces mle.object$control element with the one in the passed in control obj
   if (!is.null(control)) {
-    if(!is.list(control)) stop("MARSSboot: incorrect MARSSbootstrap arg. control must be a list.")
+    if(!is.list(control)){
+      msg=  " Incorrect MARSSbootstrap arg. control must be a list.\n"
+      cat("\n","Errors were caught in MARSSboot \n", msg, sep="") 
+      stop("Stopped in MARSSboot() due to problem(s) with function arguments.\n", call.=FALSE)
+    }
     EM.null = NULL
-    en = c("minit","maxit","abstol","iter.V0")
+    en = c("minit","maxit","abstol","iter.V0","min.iter.conv.test", "conv.test.deltaT", "conv.test.slope.tol")
     for (el in en) {
       null.flag = ( is.null(control[[el]]) )
  
@@ -57,8 +66,9 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
     }  
     problem <- any(EM.null)
     if (problem) {
-      if (!silent) cat("MARSSboot: Invalid control", en[EM.null], "\n")
-      stop("MARSSboot: incorrect MARSSbootstrap arg -> control")
+      msg=paste(" Invalid control", en[EM.null], "\n")
+      cat("\n","Errors were caught in MARSSboot \n", msg, sep="") 
+      stop("Stopped in MARSSboot() due to problem(s) with control argument.\n", call.=FALSE)
     }
   ##  trace must be set to (0) FALSE otherwise too much memory would be consumed
     MLEobj$control$trace = 0
@@ -68,28 +78,38 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
   # Check for marssMLE properness; check that MLEobj$model$data exists and MLEobj$model$miss.value exists
   tmp = is.marssMLE(MLEobj)
   if(!isTRUE(tmp)) {
-    if(!silent) print(tmp)
-    stop("MARSSboot: MLE object is incomplete or inconsistent.")
+    if(!silent) cat(tmp)
+    stop("Stopped in MARSSboot() due to MLE object incomplete or inconsistent.\n", call.=FALSE)
   }
   # Check that it has par added on
-  if(is.null(MLEobj$par)) stop("MARSSboot: MLE object is missing parameter estimates") 
-
+  if(is.null(MLEobj$par)){
+      msg=" MLE object is missing parameter estimates.\n"
+      cat("\n","Errors were caught in MARSSboot \n", msg, sep="") 
+      stop("Stopped in MARSSboot() due to problem(s) with MLE object.\n", call.=FALSE)
+  }
+  
   if(output=="all") output=c("data","parameters")
   
   # Check that if param.gen=hessian, the user hasn't set output to just "data"
   if(all(param.gen=="hessian", "data" %in% output))  {
     if(!MLEobj$control$silent) warning("MARSSboot: when param.gen=hessian, no boot.data are output")
     output = output[output!="data"]
-    if(length(output)==0) stop("MARSSboot: when param.gen=hessian, output arg must be set to parameters")
+    if(length(output)==0){
+      msg="  When param.gen=hessian, output arg must be set to parameters.\n"
+      cat("\n","Errors were caught in MARSSboot \n", msg, sep="") 
+      stop("Stopped in MARSSboot() due to problem(s) with function arguments.\n", call.=FALSE)
+    }
     }
   if(param.gen=="hessian") sim = "none"
 
   #A little renamimg for code readability
   model=MLEobj$model 
   ##### Now check for any inconsistency in the passed in arguments
-  if( (model$miss.value %in% model$data) & sim=="innovations") 
-    stop("MARSSboot: innovations bootstrapping uses the innovations resampling and can only be done if there are no missing values in the data")
-
+  if( (model$miss.value %in% model$data) & sim=="innovations"){ 
+      msg="  Innovations bootstrapping uses the innovations resampling and can only be done if there are no missing values in the data.\n"
+      cat("\n","Errors were caught in MARSSboot \n", msg, sep="") 
+      stop("Stopped in MARSSboot() due to problem(s) with function arguments.\n", call.=FALSE)
+  }
   ##### Set holders for output
   boot.params=NA; boot.data=NA  #dummy values 
   # these are the arrays for output
@@ -106,7 +126,7 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
     if(!silent) cat("MARSSboot: Computing the Hessian.  This might take awhile.\n")
     MLEobj = MARSShessian(MLEobj)  #adds the hessian; parSigma; and parMean matrix onto the mle.model object
     if(is.null(MLEobj$parSigma))  #if solve(hessian) didn't work in emHessian() then it sets parSigma to NULL
-      stop("MARSSboot: Hessian could not be inverted to estimate the parameter var-cov matrix")
+      stop("Stopped in MARSSboot() because Hessian could not be inverted to estimate the parameter var-cov matrix", call.=FALSE)
   }
 		 
   ##### Set up the progress bar

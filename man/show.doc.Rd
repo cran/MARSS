@@ -2,7 +2,7 @@
 \alias{show.doc}
 \title{ Documentation Utility }
 \description{
-  Utility in the \code{\link{MARSS-package}} to open documentation for R packages.  This is used to open files and show the directory of the \code{doc} directory of a package.   This is similar to but a bit more flexible than the R utility \code{\link{RShowDoc}}.
+  Utility in the \code{\link{MARSS-package}} to open documentation for R packages.  This is used to open files and show the directory of the \code{doc} directory of a package.   This is similar but a bit more flexible than that R utility \code{\link{RShowDoc}}.
 }
 \usage{
 show.doc(pkg, filename, dir="doc")

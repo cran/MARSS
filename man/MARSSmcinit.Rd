@@ -38,7 +38,8 @@ Center, 2725 Montlake Blvd E., Seattle, WA 98112   type \code{show.doc(MARSS, ma
 
 \seealso{ \code{\link{MARSSkem}} \code{\link{marssMLE}} \code{\link{MARSS}} }
 \examples{
-  \dontrun{
+\dontrun{ 
+  #Note doing a Monte-Carlo search takes a long, long time
   dat = t(harborSeal)
   dat = dat[2:nrow(dat),]
   fit1=MARSS(dat, control=list(MCInit=TRUE))
@@ -51,7 +52,7 @@ Center, 2725 Montlake Blvd E., Seattle, WA 98112   type \code{show.doc(MARSS, ma
   #Show the inits that were used
   fit2$start
   #ignore the values for Z,B, and V0; those parameters are fixed
-  }
+}
   }
 
 

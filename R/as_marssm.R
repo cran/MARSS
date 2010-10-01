@@ -6,7 +6,7 @@ as.marssm <- function(wrapperObj)
 {
   ## Check object passed in
   if (class(wrapperObj) != "popWrap") 
-    stop("Argument to as.marssm() must be a popWrap object.")
+    stop("Stopped in as.marssm() because argument to as.marssm() must be a popWrap object.\n", call.=FALSE)
 
   if(is.null(wrapperObj$fixed)) fixed = list()
   else fixed = wrapperObj$fixed
@@ -83,9 +83,23 @@ as.marssm <- function(wrapperObj)
     if(el %in% c("Q","R","B")) fixed[[el]] = makediag(1,nrow=model.dims[[el]][1])
   }
   if(is.matrix(constraint[[el]])) {
-      fixed[[el]] = constraint[[el]]
-      free[[el]] = array(1:length(fixed[[el]]),dim=dim(fixed[[el]]))
-      free[[el]][!is.na(fixed[[el]])] = NA
+      if(is.numeric(constraint[[el]])){
+        fixed[[el]] = constraint[[el]]
+        free[[el]] = array(NA,dim=dim(fixed[[el]]))
+        if(sum(is.na(fixed[[el]]))!=0) free[[el]][is.na(fixed[[el]])] = 1:sum(is.na(fixed[[el]]))
+      }
+      if(is.character(constraint[[el]])){
+        free[[el]] = constraint[[el]]
+        fixed[[el]] = array(NA,dim=dim(free[[el]]))
+      }
+      if(is.list(constraint[[el]])){
+        mat = constraint[[el]]
+        dim.mat = dim(mat)
+        free[[el]] = array(NA,dim=dim.mat)
+        free[array(sapply(mat,is.character),dim=dim.mat)]=unlist(mat[array(sapply(mat,is.character),dim=dim.mat)])
+        fixed[[el]] = array(NA,dim=dim.mat)
+        fixed[array(sapply(mat,is.numeric),dim=dim.mat)]=unlist(mat[array(sapply(mat,is.numeric),dim=dim.mat)])
+      }
       }
 
   } # end for(el in model.elem)
@@ -100,12 +114,12 @@ as.marssm <- function(wrapperObj)
     }
   }   
     
-  ## Create free matrices when not passed in (b509)
+  ## Create free matrices when not passed in (b509) but fixed is passed in
   el = model.elem
   nofree = el[!(el %in% names(free)) & (el %in% names(fixed))]
   for (i in nofree) { #any NAs will be estimated separately
-      free[[i]] = array(1:length(fixed[[i]]),dim=dim(fixed[[i]]))
-      free[[i]][!is.na(fixed[[i]])] = NA
+      free[[i]] = array(NA,dim=dim(fixed[[i]]))
+      if(sum(is.na(fixed[[i]]))!=0) free[[i]][is.na(fixed[[i]])] = 1:sum(is.na(fixed[[i]]))
     }
     
   ## Create fixed matrices when not passed in and no NAs in free (b509)

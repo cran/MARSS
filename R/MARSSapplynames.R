@@ -1,7 +1,8 @@
 MARSSapplynames=function(obj, Y.names=NA, X.names=NA, x0.names=NA, V0.names=NA, U.names=NA, A.names=NA, R.names=NA, Q.names=NA, B.names=NA, Z.names=NA, rows=TRUE, cols=TRUE){
 ## Helper function to put names on the elements in an object
   theclass="marssMLE"
-  if(!(class(obj) %in% c("marssMLE", "marssm"))) stop("MARSSapplynames: this function is for marssMLE and marssm objects only")
+  if(!(class(obj) %in% c("marssMLE", "marssm")))
+     stop("Stopped in MARSSapplynames() because this function is for marssMLE and marssm objects only.\n", call.=FALSE)
   if(class(obj)=="marssm") {obj = list(model=obj); theclass="marssm" }
   y = obj$model$data
   n = dim(y)[1]; m = dim(as.matrix(obj$model$fixed$Q))[1]

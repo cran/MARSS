@@ -1,5 +1,5 @@
 ###################################################
-### chunk number 116: Cs5_code
+### chunk number 114: Cs5_code
 ###################################################
 ###############################################################
 #    GCDF FUNCTION
@@ -43,7 +43,7 @@ dat = t(dat)
 Q.constraint="diagonal and unequal"
 R.constraint="diagonal and unequal"
 U.constraint="unequal"
-Z.constraint=factor(c(1,2)) #1 observation time series for each x time series
+Z.constraint="identity" 
 
 # Fit a random walk model for lon/lat to the lon/lat data
 kem = MARSS(dat, constraint=list(Z = Z.constraint, 
@@ -66,7 +66,8 @@ lines(pred.lon, pred.lat,col="red", lwd=2)
 # add the good location data
 goodturtles = loggerhead
 gooddat = goodturtles[which(goodturtles$turtle==turtlename),5:6]
-points(gooddat[,1], gooddat[,2],col="black", lwd=2)
+points(gooddat[,1], gooddat[,2],col="black", lwd=2, pch=3, cex=1.1)
+legend("bottomright",c("bad locations", "estimated true location", "good location data"),pch=c(1,-1,3),lty=c(-1,1,-1),col=c("blue","red","black"),bty=F)
 
 # add the proposed fishery areas
 lines(c(-77,-78,-78,-77,-77),c(33.5,33.5,32.5,32.5,33.5),

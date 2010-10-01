@@ -12,8 +12,11 @@ marssm <- function(data=NULL, fixed, free, miss.value=-99)
     n = dim(data)[1]
     TT = dim(data)[2]
     M <- array(0, dim=c(n, n, TT))  
-    for(i in 1:TT) 
-      M[,,i] <- makediag(ifelse(data[,i]!=miss.value, 1, 0), nrow=n)
+    for(i in 1:TT){ 
+      if(is.na(miss.value)){ tmp = !is.na(data[,i])
+      }else { tmp= data[,i]!=miss.value }
+      M[,,i] <- makediag(ifelse(tmp,1,0), nrow=n) #ifelse turns T/F into 1/0
+      }
   }
 
   ## Make free character to avoid problems with unique(), table(), etc.

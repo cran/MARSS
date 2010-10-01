@@ -33,8 +33,8 @@ Center, 2725 Montlake Blvd E., Seattle, WA 98112; this is the user manual access
  }
 \examples{
   dat = t(harborSealWA)
-  dat = dat[2:nrow(dat),]
-  kem = MARSS(dat, constraint=list(Z=factor(c(1,1,1,1,1)), 
+  dat = dat[2:4,]
+  kem = MARSS(dat, constraint=list(Z=factor(c(1,1,1)), 
      R="diagonal and unequal"))
   kem.with.CIs.from.hessian = MARSSparamCIs(kem)
   kem.with.CIs.from.hessian

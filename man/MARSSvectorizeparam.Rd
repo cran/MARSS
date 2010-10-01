@@ -25,8 +25,9 @@ MARSSvectorizeparam(MLEobj, parvec = NA)
 \seealso{ \code{\link{marssMLE}} }
 \examples{
   dat = t(harborSealWA)
-  dat = dat[2:nrow(dat),]
+  dat = dat[2:3,]
   kem = MARSS(dat)
   paramvec = MARSSvectorizeparam(kem)
+  paramvec
 }
 

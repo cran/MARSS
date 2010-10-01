@@ -5,7 +5,9 @@
 Multivariate Autoregressive State-Space Model Estimation
 }
 \description{
-The MARSS package fits constrained and unconstrained multivariate autoregressive time-series models to multivariate time series data.  The MARSS model is
+The MARSS package fits constrained and unconstrained multivariate autoregressive time-series models to multivariate time series data.  To open the manual from the command line, type \code{show.doc(MARSS, manual)}.  To open an overview page with package information, type \code{show.doc(MARSS, index)}.    
+
+The MARSS model is
 \describe{
 \item{x(t+1) = B x(t) + U + w(t), where w(t) ~ MVN(0,Q)}{}
 \item{y(t) = Z x(t) + A + v(t), where v(t) ~ MVN(0,R)}{}
@@ -27,14 +29,6 @@ The parameters, hidden state processes (x), and observations (y) are matrices:
 The package functions estimate the parameters U, Q, A, R, and x0 using a Kalman-EM algorithm (primarily but see \code{\link{MARSSoptim}}).  Parameters may be constrained to have shared elements (elements which are constrained to have the same value) or fixed elements (with the other elements estimated).  The states and smoothed state estimates are provided via a Kalman filter and smoother.  Bootstrapping, confidence interval estimation, bias estimation, model selection and simulation functions are provided.   The main user interface to the package is the top-level function \code{\link{MARSS}}.  
 }
 \details{
-\tabular{ll}{
-Package: \tab MARSS\cr
-Type: \tab Package\cr
-Version: \tab 1.0\cr
-Date: \tab 2010-07-01\cr
-License: \tab GPL 2.0\cr
-LazyLoad: \tab yes\cr
-}
 Important MARSS functions:
 \describe{
       \item{\code{\link{MARSS}}}{ Top-level function for specifying and fitting MARSS models. } 

@@ -39,7 +39,7 @@ MARSSsimulate(parList, tSteps = 100, nsim = 1, silent = TRUE,
 \examples{
   #do a parametric bootstrap.  
   #Same length as original data and same location of missing data
-  d = harborSeal[,2:ncol(harborSeal)]
+  d = harborSeal[,2:4]
   dat = t(d)
   MLEobj = MARSS(dat)
   sim.obj = MARSSsimulate(parList=MLEobj$par, tSteps=dim(d)[1], nsim=10)

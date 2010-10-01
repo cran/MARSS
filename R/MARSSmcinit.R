@@ -15,8 +15,8 @@ MARSSmcinit = function(MLEobj) {
   y = MLEobj$model$data
   ## M matrix for handling missing values
   M = MLEobj$model$M
-  # Clear out missing values in data; M is set up so that these values will be ignored
-  y[which(y == MLEobj$model$miss.value)] = 0
+  #Make sure the missing vals in y are zeroed out
+  for(i in 1:dim(y)[2]){ y[!as.logical(takediag(M[,,i])),i]=0 }
 
   m = dim(MLEobj$model$fixed$Z)[2]
   n = dim(y)[1]
@@ -40,10 +40,11 @@ MARSSmcinit = function(MLEobj) {
         dim.param = dim.tmp[[el]]
         bounds.param = bounds.tmp[[el]]
         tmp = table(free.tmp[[el]])
-        free.levels = as.numeric(names(tmp))
+        free.levels = names(tmp)
         numGroups <- length(free.levels)
-        Ztmp <- matrix(0, dim.param[1]*dim.param[2], numGroups)  # matrix to allow shared measurement errs
-        for(i in free.levels) Ztmp[which(as.vector(free.tmp[[el]])==i), i] <- 1
+        Ztmp <- matrix(0, dim.param[1]*dim.param[2], numGroups)  # matrix to allow shared values
+        for(i in free.levels) 
+          Ztmp[which(as.vector(free.tmp[[el]])==i), which(free.levels==i)] <- 1
 	if (el %in% c("Q", "R")) {
           element.random = array(exp(runif(numGroups, bounds.param[1], bounds.param[2])), dim=c(numGroups,1))
 	}

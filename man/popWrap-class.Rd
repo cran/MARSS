@@ -8,6 +8,7 @@
 autoregressive state-space models in the package \code{\link{MARSS-package}}.}
 \author{ 
   Kellie Wills, NOAA, Seattle, USA.  
+
   kellie(dot)wills(at)noaa(dot)gov
 }
 \keyword{classes}

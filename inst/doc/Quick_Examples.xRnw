@@ -9,7 +9,7 @@ options(prompt=" ", continue=" ", width=60)
 @
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 Here we show a series of short examples using the MARSS package functions.  Chapters \ref{chap:CSpva}--\ref{chap:CStracks} give case studies which walk through detailed multi-level analyses.  
-The examples in this chapter use the Washington harbor seal dataset (\verb@?harborSealWA@), which has five observation time series. First set up the data:
+The examples in this chapter use the Washington harbor seal dataset (\verb@?harborSealWA@), which has five observation time series. First set up the data to make time go across the columns and to remove the year column:
 <<enterdata, include.source=F, keep.source=T>>=
 dat = t(harborSealWA)
 dat = dat[2:nrow(dat),] #remove the year row
@@ -32,10 +32,12 @@ This is the default model for the \verb@MARSS()@ function.  In this case, $n=m$,
 + \begin{bmatrix}w_{1,t}\\ w_{2,t}\\ w_{3,t}\\ w_{4,t}\\ w_{5,t}\end{bmatrix},
  \textrm{ } \ww_t \sim \MVN\begin{pmatrix}0,\begin{bmatrix}r&0&0&0&0\\0&r&0&0&0\\0&0&r&0&0\\0&0&0&r&0\\0&0&0&0&r\end{bmatrix} \end{pmatrix}  \\
 \end{gather*}
-To fit this model, use \verb@MARSS()@\index{functions!MARSS}.  The function will output the basic model structure and the time to convergence.  Notice that the output warns you that although the solution converged, there were too few iterations to get good diagnostics.  To double check the convergence diagnostics, you can force a minimum number of iterations by adding \verb@control=list(minit=100)@ to the call.
+To fit this model, use \verb@MARSS()@\index{functions!MARSS}.  The function will output the basic model structure and the time to convergence.  Notice that the output warns you that the convergence tolerance is high.  You can set it lower by passing in \verb@control=list(conv.test.slope.tol=0.1)@.
 <<model-default, include.source=FALSE, keep.source=TRUE>>=
 kemfit = MARSS(dat)
 @
+\verb@MARSS()@ is automatically creating parameter names (since you did not tell it the names). To see exactly where each parameter element (e.g. \verb@Q.2@) appears in its parameter matrix, type \verb@summary(kemfit$model)@.
+
 The default method is the Kalman-EM algorithm (\verb@method="kem"@).  You can use a quasi-Newton method\index{estimation!quasi-Newton} (BFGS) 
 by setting \verb@method="BFGS"@\index{estimation!BFGS}.  The quasi-Newton method can be a bit fragile.  In fact, the BFGS method will generate numerical errors for this example.  
 <<model-bfgs, include.source=FALSE>>=
@@ -45,7 +47,7 @@ If you wanted to use the Kalman-EM fit as the initial conditions\index{initial c
 << model-bfgs2, keep.source=TRUE, results=hide >>=
 kemfit.bfgs2 = MARSS(dat, method="BFGS", inits=kemfit$par)
 @
-Output not shown, but it also generates numerical errors.
+Output not shown, but this examples also happens to generate numerical errors.
 
 \subsection{Five correlated hidden state processes}
 This is the same model except that the hidden states have temporally correlated process errors.  Mathematically, this is the model:
@@ -66,13 +68,13 @@ This is the same model except that the hidden states have temporally correlated 
 + \begin{bmatrix}w_{1,t}\\ w_{2,t}\\ w_{3,t}\\ w_{4,t}\\ w_{5,t}\end{bmatrix}, 
  \textrm{ } \ww_t \sim \MVN\begin{pmatrix} 0,\begin{bmatrix}r&0&0&0&0\\0&r&0&0&0\\0&0&r&0&0\\0&0&0&r&0\\0&0&0&0&r\end{bmatrix} \end{pmatrix}  \\
 \end{gather*}
-To fit, use \verb@MARSS()@\index{functions!MARSS} with the constraint argument set.  The output is not shown.  Type \verb@print(kemfit)@ to see the fit.
+To fit, use \verb@MARSS()@\index{functions!MARSS} with the constraint argument set.  The output is not shown but it will appear if you type this on the R command line.
 <<model-corr1, keep.source=TRUE, results=hide>>=
 kemfit = MARSS(dat, constraint=list(Q="unconstrained"))
 @
 
 \subsection{Five equally correlated hidden state processes}
-Again this is the same model except that now there is only one process error variance and one process error covariance.  Mathematically, the model is:
+This is the same model except that now there is only one process error variance and one process error covariance.  Mathematically, the model is:
 \begin{gather*}
 \begin{bmatrix}x_{1,t}\\x_{2,t}\\x_{3,t}\\x_{4,t}\\x_{5,t}\end{bmatrix}
 = \begin{bmatrix}x_{1,t-1}\\x_{2,t-1}\\x_{3,t-1}\\x_{4,t-1}\\x_{5,t-1}\end{bmatrix}
@@ -88,8 +90,8 @@ Again this is the same model except that now there is only one process error var
 + \begin{bmatrix}w_{1,t}\\ w_{2,t}\\ w_{3,t}\\ w_{4,t}\\ w_{5,t}\end{bmatrix},
  \textrm{  } \ww_t \sim \MVN\begin{pmatrix} 0,\begin{bmatrix}r&0&0&0&0\\0&r&0&0&0\\0&0&r&0&0\\0&0&0&r&0\\0&0&0&0&r\end{bmatrix} \end{pmatrix}  \\
 \end{gather*}
-To fit, use
-<<model-corr2, include.source=F, keep.source=T>>=
+To fit, use the following code (output not shown):
+<<model-corr2, include.source=F, keep.source=T, results=hide>>=
 kemfit = MARSS(dat, constraint=list(Q="equalvarcov"))
 @
 
@@ -110,8 +112,8 @@ but the hidden trajectories 1-3 share their $u$ and $q$ parameters, while hidden
 + \begin{bmatrix}w_{1,t}\\ w_{2,t}\\ w_{3,t}\\ w_{4,t}\\ w_{5,t}\end{bmatrix},
  \textrm{ } \ww_t \sim \MVN\begin{pmatrix} 0,\begin{bmatrix}r&0&0&0&0\\0&r&0&0&0\\0&0&r&0&0\\0&0&0&r&0\\0&0&0&0&r\end{bmatrix} \end{pmatrix}  \\
 \end{gather*}
-To fit use:\index{functions!MARSS}
-<<model-u-NS, keep.source=TRUE>>=
+To fit use the following code (output not shown):\index{functions!MARSS}
+<<model-u-NS, keep.source=TRUE, results=hide>>=
 regions=factor(c("N","N","N","S","S"))
 kemfit = MARSS(dat, constraint=list(U=regions, Q=regions))
 @
@@ -133,8 +135,8 @@ Here we fit the same model but with a known observation error variance.  This is
 \\
 \ww_t \sim \MVN\begin{pmatrix} 0,\begin{bmatrix}0.01&0&0&0&0\\0&0.01&0&0&0\\0&0&0.01&0&0\\0&0&0&0.01&0\\0&0&0&0&0.01\end{bmatrix} \end{pmatrix} \\
 \end{gather*}
-To fit this model:\index{functions!MARSS}
-<<model-u-NS-fixR, keep.source=TRUE>>=
+To fit this model, use the following code (output not shown):\index{functions!MARSS}
+<<model-u-NS-fixR, keep.source=TRUE, results=hide>>=
 regions=factor(c("N","N","N","S","S"))
 kemfit = MARSS(dat, constraint=list(U=regions, Q=regions,
           R=diag(0.01,5)))
@@ -143,28 +145,27 @@ kemfit = MARSS(dat, constraint=list(U=regions, Q=regions,
 \subsection{One hidden state and five i.i.d. observation time series}
 Instead of five hidden state trajectories, we specify that there is only one and all the observations are of that one trajectory. Mathematically, the model is:
 \begin{gather*}
-x_{t}= x_{t-1} + u + e_{t}, \text{ } v_t \sim \N(0,q)  \\  \\
+x_{t}= x_{t-1} + u + v_{t}, \text{ } v_t \sim \N(0,q)  \\  \\
 \begin{bmatrix}y_{1,t}\\y_{2,t}\\y_{3,t}\\y_{4,t}\\y_{5,t}\end{bmatrix}
 = \begin{bmatrix}1\\1\\1\\1\\1\end{bmatrix}
-x_{t} + \begin{bmatrix}0\\a_1\\a_2\\a_3\\a_4\end{bmatrix}
+x_{t} + \begin{bmatrix}0\\a_2\\a_3\\a_4\\a_5\end{bmatrix}
 + \begin{bmatrix}w_{1,t}\\ w_{2,t}\\ w_{3,t}\\ w_{4,t}\\ w_{5,t}\end{bmatrix},
  \textrm{ } \ww_t \sim \MVN\begin{pmatrix}0,\begin{bmatrix}r&0&0&0&0\\0&r&0&0&0\\0&0&r&0&0\\0&0&0&r&0\\0&0&0&0&r\end{bmatrix} \end{pmatrix}  \\
 \end{gather*}
-Note the default constraint for R is ``diagonal and equal'' so we can leave this off when specifying the \verb@constraint@ argument.  This model is fit with the control argument \verb@minit@ to force the algorithm to run for 100 iteration; this allows good convergence diagnostics to be computed.
+Note the default constraint for R is ``diagonal and equal'' so we can leave this off when specifying the \verb@constraint@ argument.  To fit, use this code (output not shown):
 <<model-pan1, keep.source=TRUE>>=
 kemfit =
-   MARSS(dat, constraint=list(Z=factor(c(1,1,1,1,1))),
-    control=list(minit=100))
+   MARSS(dat, constraint=list(Z=factor(c(1,1,1,1,1))))
 @
 
 \subsection{One hidden state and five independent observation time series with different variances}
 Mathematically, this model is:
 \begin{gather*}
-x_{t}= x_{t-1} + u + e_{t}, \text{ } v_t \sim \N(0,q)  \\
+x_{t}= x_{t-1} + u + v_{t}, \text{ } v_t \sim \N(0,q)  \\
 \\
 \begin{bmatrix}y_{1,t}\\y_{2,t}\\y_{3,t}\\y_{4,t}\\y_{5,t}\end{bmatrix}
 = \begin{bmatrix}1\\1\\1\\1\\1\end{bmatrix}
-x_{t} + \begin{bmatrix}0\\a_1\\a_2\\a_3\\a_4\end{bmatrix}
+x_{t} + \begin{bmatrix}0\\a_2\\a_3\\a_4\\a_5\end{bmatrix}
 + \begin{bmatrix}w_{1,t}\\ w_{2,t}\\ w_{3,t}\\ w_{4,t}\\ w_{5,t}\end{bmatrix}, 
  \textrm{ } \ww_t \sim \MVN\begin{pmatrix} 0,\begin{bmatrix}r_1&0&0&0&0\\0&r_2&0&0&0\\0&0&r_3&0&0\\0&0&0&r_4&0\\0&0&0&0&r_5\end{bmatrix} \end{pmatrix}  \\
 \end{gather*}
@@ -172,7 +173,7 @@ To fit this model:  \index{functions!MARSS}
 <<model-pan2, keep.source=TRUE>>=
 kemfit = 
    MARSS(dat, constraint=list(Z=factor(c(1,1,1,1,1)),
-   R="diagonal and unequal"),control=list(minit=100))
+   R="diagonal and unequal"))
 @
 
 \subsection{Two hidden state processes}
@@ -188,30 +189,30 @@ Here we fit a model with two hidden states (north and south) where observation t
 \begin{bmatrix}y_{1,t}\\y_{2,t}\\y_{3,t}\\y_{4,t}\\y_{5,t}\end{bmatrix}
 = \begin{bmatrix}1&0\\1&0\\1&0\\0&1\\0&1\end{bmatrix}
 \begin{bmatrix}x_{n,t}\\x_{s,t}\end{bmatrix}
-+ \begin{bmatrix}0\\a_1\\a_2\\0\\a_3\end{bmatrix}
++ \begin{bmatrix}0\\a_2\\a_3\\0\\a_5\end{bmatrix}
 + \begin{bmatrix}w_{1,t}\\ w_{2,t}\\ w_{3,t}\\ w_{4,t}\\ w_{5,t}\end{bmatrix}, 
  \textrm{ } \ww_t \sim \MVN\begin{pmatrix}0,\begin{bmatrix}r&0&0&0&0\\0&r&0&0&0\\0&0&r&0&0\\0&0&0&r&0\\0&0&0&0&r\end{bmatrix} \end{pmatrix}  \\
 \end{gather*}
-To fit the model:
-<<model-two1, keep.source=TRUE>>=
+To fit the model, use the following code (output not shown):
+<<model-two1, keep.source=TRUE, results=hide>>=
 kemfit = 
    MARSS(dat, constraint=list(Z=factor(c("N","N","N","S","S")),
    Q="diagonal and equal",U="equal"))
 @
 
 \section{Printing and summarizing models and model fits}
-The package includes print functions for marssm objects (model objects) and marssMLE objects (fitted models).\index{functions!summary}\index{MARSS model!summary}
+The package includes print functions for marssm objects (model objects) and marssMLE objects (fitted models).\index{functions!summary}\index{MARSS model!print}
 <<model-print, results=hide>>=
 print(kemfit)
 print(kemfit$model)
 @
 This will print the basic information on model structure and model fit that you have seen in the previous examples.
 
-The package also includes a summary function for models.
+The package also includes a summary function for models.\index{MARSS model!summary}
 <<model-summary, results=hide>>=
 summary(kemfit$model)
 @
-Output is not shown because it is verbose, but it prints each matrix with the fixed elements denoted with their values and the free elements denoted by ``g\#'', meaning ``group \#''.  Each shared element is a group.  For example, a model with a diagonal $\QQ$ matrix with one variance would be printed as a diagonal matrix with ``g1'' on all the diagonal elements.
+Output is not shown because it is verbose, but it prints each matrix with the fixed elements denoted with their values and the free elements denoted by their names.  This is very helpful for confirming exactly what model structure you are fitting to the data.
 
 \section{Confidence intervals on a fitted model}
 The function \verb@MARSSparamCIs()@\index{functions!MARSSparamCIs} is used to compute confidence intervals.  The function can compute approximate confidence intervals using a numerically estimated Hessian matrix (\verb@method="hessian"@) or via parametric (\verb@method="parametric"@)   or non-parametric (\verb@method="innovations"@)  bootstrapping.
@@ -253,20 +254,20 @@ kf$logLik
 @
 
 \section{Determine which variance elements have not converged}
-If your data are short relative to the number of parameters you are estimating, then you are liable to find that one of the diagonal variance elements is degenerate (is zero).  Try the following:
+If your data are short relative to the number of parameters you are estimating, then you are liable to find that one the parameter elements is degenerate (is zero).  Try the following:
 <<like.kem.degen, include.source=F, keep.source=T>>=
 dat.short = dat[,1:10]
 kem.degen = MARSS(dat.short, silent=2)
 @
 
-This will print a short warning that one of the variance elements has not converged (silent=2 means brief messages).  Type \verb@cat(kem.degen$errors)@ to see the warnings. It may be that your tolerance is too high and if you just ran a few more iterations the variances will converge.  So first try setting \verb@control$minit@ high and see if the warning goes away.  Setting \verb@minit@ forces a minimum number of iterations.  200 should be enough.
-<<like.kem200, include.source=F, keep.source=T>>=
-kem.200 = MARSS(dat.short, control=list(minit=200), silent=2)
-@
-
-The problem still does not go away.  Type \verb@cat(kem.200$errors)@ to see which parameter(s) 
+This will print a short warning that the maximum number of iterations was reached before convergence (silent=2 means brief messages).  Type \verb@cat(kem.200$errors)@ to see which parameter(s) 
 is not converging or you can use \verb@find.degenerate()@ to plot the log parameter value against the log iteration number to figure out
- which parameter is not converged (Figure \ref{fig:degenerate}).  Use \verb@kem.200@ because this plot needs at least 100 iterations to look good.
+ which parameter is not converged (Figure \ref{fig:degenerate}).  Use \verb@kem.200@ because this plot needs at least 100 iterations to look good.  It might be that your tolerance is too high and if you just ran a few more iterations the variances will converge.  So first try setting \verb@control$maxit@ higher.
+<<like.kem200, include.source=F, keep.source=TRUE>>=
+kem.200 = MARSS(dat.short, control=list(maxit=1000), silent=2)
+@
+The problem still will not go away.
+
 %~~~~~~~~~~~~~~~~~~~~~~~~~
 \begin{figure}[htp]
 \begin{center}
@@ -274,19 +275,19 @@ is not converging or you can use \verb@find.degenerate()@ to plot the log parame
 find.degenerate(kem.200)
 @
 \end{center}
-\caption{A diagnostic plot showing which diagonal variance elements are not converging.  This is a log-log plot of iteration versus the log of the variance estimate.  It should be flat.  Diagonal parameter elements that are not flat are shown in red.}
+\caption{A diagnostic plot showing which diagonal variance elements are not converging.  This is a log-log plot of iteration versus the log of the variance estimate.  It should be flat.}
 \label{fig:degenerate}
 \end{figure}
 %~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We can try a few solutions.  First perhaps we are just trying to estimate too many variances.  We can try using only one variance value in $\QQ$ and one $u$ value in $\UU$:
+We can try a few other solutions.  First perhaps we are just trying to estimate too many variances.  We can try using only one variance value in $\QQ$ and one $u$ value in $\uu$:
 <<like.kem200, include.source=F, keep.source=T>>=
 kem.small=MARSS(dat.short,constraint=list(Q="diagonal and equal",
-   U="equal"),control=list(minit=200),silent=2)
+   U="equal"),silent=2)
 @
-No, we still get the degenerate warning. There are simply not enough data to estimate both process and observation variances.  
+No, we still get the convergence warning. There are simply not enough data to estimate both process and observation variances.  
 
-If we just want the likelihood, could be set $\QQ$ to a diagonal matrix with very, very small values on the diagonal? No.  For the EM algorithm, you cannot set $\QQ$ to a fixed small value because then $\UU$ would converge very, very slowly simply because of the nature of the $\UU$ update equations.  However, you can try a quasi-Newton method with $\QQ$ fixed small\footnote{It won't work so well with $\RR$ however because the likelihood surface becomes spiky for $\pipi$}.  Here we use one $\QQ$ variance and fix it small.
+If we just want the likelihood, could we set $\QQ$ to a fixed diagonal matrix with very, very small values on the diagonal? No.  For the EM algorithm, you cannot set $\QQ$ to a fixed small value because then $\uu$ would converge very, very slowly simply because of the nature of the $\uu$ update equations.  However, you can try a quasi-Newton method with $\QQ$ fixed small\footnote{It won't work so well with $\RR$ however because the likelihood surface becomes spiky for the $\pipi$ parameter (the initial $\xx$ values) and $\pipi$ will be poorly estimated leading to a poor likelihood value.}.  Here we use one $\QQ$ variance and fix it small.
 <<like.bfgs.degen, keep.source=TRUE>>=
 kem.bfgs.degen=MARSS(dat.short,constraint=list(
    Q=diag(1E-12,5),U="equal"),method="BFGS")
@@ -299,16 +300,16 @@ kem.bfgs.degen=MARSS(dat.short,constraint=list(
 Note that this gets us close to the correct likelihood, but is not quite right since really the degenerate diagonal elements should equal 0, but you cannot set them to zero because the likelihood calculation in the function \verb@MARSSkf()@ would throw an error.
 
 \section{Bootstrap parameter estimates}
-You can easily produce bootstrap parameter estimates from a fitted model using \verb@MARSSsimulate()@\index{functions!MARSSsimulate}: 
+You can easily produce bootstrap parameter estimates from a fitted model using \verb@MARSSboot()@\index{functions!MARSSboot}: 
 <<boot, keep.source=TRUE>>=
 boot.params = MARSSboot(kemfit, 
      nboot=20, output="parameters", sim="parametric")$boot.params
 @
-Use \verb@silent=TRUE@ to stop the progress bar from printing. The function will also produce parameter set generated using a Hessian matrix (\verb@sim="hessian"@) or a non-parametric bootstrap (\verb@sim="innovations"@).
+Use \verb@silent=TRUE@ to stop the progress bar from printing. The function will also produce parameter sets generated using a Hessian matrix (\verb@sim="hessian"@) or a non-parametric bootstrap (\verb@sim="innovations"@).
 
-\section{Data simulation}
+\section{Data simulation}\index{simulation}
 \subsection{Simulated data from a fitted MARSS model}
-You can easily simulate data from a fitted model using \verb@MARSSsimulate()@\index{functions!MARSSsimulate}. 
+You can easily simulate data from a fitted model using \verb@MARSSsimulate()@\index{functions!MARSSsimulate}\index{simulation!MARSSsimulate function}. 
 <<sim, include.source=F, keep.source=T>>=
 sim.data=MARSSsimulate(kemfit$par, nsim=2, tSteps=100)$sim.data
 @
@@ -322,7 +323,7 @@ MARSSkf(sim.data[,,2], kem.sim.1$par, miss.value = -99)$logLik
 @
 There are no missing values in our simulated data, but we still need to pass \verb@miss.value@ into \verb@MARSSkf()@.
 \subsection{Simulated data from a user-built MARSS model}
-This shows you how to build up a model from scratch and simulate from that using \verb@MARSSsimulate()@\index{functions!MARSSsimulate}.  
+This shows you how to build up a model from scratch and simulate from that using \verb@MARSSsimulate()@\index{functions!MARSSsimulate}\index{simulation!MARSSsimulate function}.  
 <<sim-pp, keep.source=TRUE>>=
 nsim = 20              # number of simulations
 burn = 10              # length of burn in period
@@ -371,10 +372,10 @@ pairs(par.sim)
 \end{figure}
 %~~~~~~~~~~~~~~~~~~~~~~~~~
 
-We could also use \verb@MARSSboot()@\index{functions!MARSSboot}\index{bootstrap!MARSSboot function} to do this.  However, \verb@MARSSboot()@ is designed to take a marssMLE object\index{objects!marssMLE} (such as would be returned from \verb@MARSSkem()@).  To use \verb@MARSSboot()@, we would need to make a marssMLE object which has information on initial conditions and maximization options.  
+We could also use \verb@MARSSboot()@\index{functions!MARSSboot}\index{bootstrap!MARSSboot function} to do this.  However, \verb@MARSSboot()@ is designed to take a marssMLE object\index{objects!marssMLE} (such as would be returned from \verb@MARSS()@).  
 
 \section{Bootstrap AIC} 
-The function \verb@MARSSaic()@\index{model selection!MARSSaic function}\index{functions!MARSSaic} computes a bootstrap AIC\index{model selection!bootstrap AICbp} for model selection purposes.  Use \verb@output="AICbp"@\index{model selection!bootstrap AICbb} to produce a parameter bootstrap\index{model selection!bootstrap AIC, AICbp}.  Use \verb@output="AICbb"@\index{model selection!bootstrap AICbb} to produce a non-parameter bootstrap\index{model selection!bootstrap AIC, AICbb} AIC.
+The function \verb@MARSSaic()@\index{model selection!MARSSaic function}\index{functions!MARSSaic} computes a bootstrap AIC for model selection purposes.  Use \verb@output="AICbp"@ to produce a parameter bootstrap\index{model selection!bootstrap AIC, AICbp}.  Use \verb@output="AICbb"@ to produce a non-parameter bootstrap\index{model selection!bootstrap AIC, AICbb} AIC.
 <<AICb, keep.source=TRUE>>= 
 kemfit.with.AICb = MARSSaic(kemfit, output = "AICbp", 
    Options = list(nboot = 10, silent=TRUE))

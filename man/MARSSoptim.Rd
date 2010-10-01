@@ -70,6 +70,8 @@ bfgsfit = MARSS(dat, constraint=list(Z=factor(c(1,1,1,1,1))),
    method="BFGS")
 
 #fit a model with Kalman-EM and then use that fit as the start for BFGS
+#when BFGS throws numerical errors, sometimes a close initial condition will 
+#fix the problem
 kemfit = MARSS(dat, constraint=list(Z=factor(c(1,1,1,1,1))))
 bfgsfit = MARSS(dat, constraint=list(Z=factor(c(1,1,1,1,1))), 
    inits=kemfit$par, method="BFGS")

@@ -1,0 +1,24 @@
+%\VignetteIndexEntry{Changes between vrs 1.0 and 1.1}
+\documentclass[12pt]{article}
+\title{Change log}
+\begin{document}
+\section{Changes between versions 1.0 and 1.1}
+Bugs and issues:
+\begin{description}
+    \item[error printing formatting issues]Cleaned up and standardized the error message printing across all files.
+    \item[allow NA and NaN to be used for miss.value]In vrs 1.0, the code would crash if you tried to use miss.value=NA or NaN.
+    \item[bug in MARSSmcinit]MCMC init function would crash for anything except the default model.
+    \item[ungraceful exiting when minit > maxit]This was not being caught in is.marss().
+    \item[ungraceful exiting when method=BFGS threw error]This was actually a formatting issue. I had the try() error appended to the errors element of the output.  I removed the try() output from the errors messages.
+    \item[Add more info to ?MARSS and help(``MARSS-package'')]Changed MARSS.Rd and MARSS-package to have reference to manual, index, and MARSS-package help page.
+    \item[Change convergence test]In the convergence diagnostics test, we check that the slope of logLik vs (log iteration num) is close to zero.  This is a standard convergence test.  But Shumway and Stoffers code uses a delta logLik test which checks that the logLik.new-logLik.old is less than some absolute (user specified) tolerance.  This turns out to be a bad convergence test because the log-log plot (described above) can still have a fairly clear slope.  I switched over to using the log-log test as the default test, but I allow the user to specify a abstol (delta logLik) if they want that instead.  This change slows down model fitting considerably but model fits that are actually converged.
+    \item[fix to is.design() function]A design matrix must have more or equal rows than columns.
+    \item[R was changing dims on some matrices in MARSSkf]R has a flaw in terms of how it behaves when you subscript a matrix and the new matrix has a dimension length of 1 for one (or more dimensions).  For example, if a=array(0,dim=c(1,2,4)), then a[,,1] is no longer a matrix but instead is a vector and dim(a[,,1]) is NULL.  This can cause all sorts of mysterious bugs.  Sometimes adding drop=FALSE will prevent this unpleasant behavior.  If b=matrix(0,2,2), dim(b[,1,drop=FALSE]) is c(2,1) while dim(b[,1]) is NULL.  drop=FALSE works great with 2-dimensional matrices, but with 3-dimensional matrices it doesn't work.  If a=array(0,dim=c(1,2,4)), dim(a[,,1,drop=FALSE]) is c(1,2,1) instead of c(1,2) which is what you want if a[,,1] is what is going to appear in some matrix operation. This problem came up in the Kt[, , t] \%*\% innov[, t] line in MARSSkf.  Normally Kt[,,t] is square and a square matrix or a scalar is returned, but if Kt[,,t] happened to be something like dim=c(1,3,20) then Kt[,,t] returned a VECTOR of length 3.  In this case, Kt[, , t] \%*\% innov[, t] crashed the code.  I had to use a kluge to force R to keep the dimensions after subscripting. This bug only occurred in models where Z is not a design matrix.
+    \item[formatting issues in summary(marssm object)]The naming of elements in the model matrices did not match summary(marssMLE object).
+    \item[allow list matrices]In version 2.0, the standard way to specify model parameters with fixed and free values will be with a list matrix.  a=matrix(list(0,``a'',1,``a'')) for example.  I changed checkpopWrap() and as\_marssm() to allow this although the documentation will be updated when 2.0 is released as this will mean a fairly major revision to the manual to emphasize the list matrices over the text shortcuts.  The use of factor() will be de-emphasized although that feature will remain.
+    \item[added function MARSSoptions()]This allows you to change the defaults for the MARSS() function.  See ?MARSSoptions.
+    \item[added function MARSSLLprofile()]This allows you to plot some basic log-likelihood profiles.  See ?MARSSLLprofile.
+    \item[typos in manual]Made some updates to the text in the user guide per comments from our August 2010 workshop.
+\end{description}
+
+\end{document}

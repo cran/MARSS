@@ -48,6 +48,6 @@ Holmes, E. E. and E. J. Ward. 2010. Analysis of multivariate time-series using t
 \seealso{ \code{\link{MARSSboot}} \code{\link{marssMLE}} \code{\link{CSEGtmufigure}} }
 \examples{
 d = harborSeal[,1:2]
-kem = CSEGriskfigure(d)
+kem = CSEGriskfigure(d,  datalogged = TRUE)
 }
 \keyword{ hplot }

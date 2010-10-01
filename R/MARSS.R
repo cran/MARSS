@@ -21,7 +21,11 @@ MARSS = function(y,
   ## wrapperObj is an object of class "popWrap":
   ## list(data, m, inits, constraint, fixed, free, miss.value, control)
 
-  if(!(method %in% allowed.methods)) stop(paste(method, "is not among the allowed methods. See ?MARSS."))
+  if(!(method %in% allowed.methods)){
+    msg=paste(" ", method, "is not among the allowed methods. See ?MARSS.\n")
+    cat("\n","Errors were caught in MARSS \n", msg, sep="") 
+    stop("Stopped in MARSS() due to problem(s) with required arguments.\n", call.=FALSE)
+  }
   
   this.method.allows = allowed[[method]]
   
@@ -37,8 +41,8 @@ MARSS = function(y,
   ## Check that the model is ok
   tmp = is.marssm(modelObj)
     if(!isTRUE(tmp)) {
-      if( !silent || silent==2 ) cat(tmp,"\n")
-      stop("MARSS: marss model object is incomplete or inconsistent.\n", call.=FALSE)
+      if( !silent || silent==2 ) cat(tmp) 
+      stop("Stopped in MARSS() due to problem(s) with model specification.\n", call.=FALSE)
     }
 
     X.names=NA
@@ -69,9 +73,11 @@ MARSS = function(y,
     ## then checks dimensions of initial value matrices.
     tmp = is.marssMLE(MLEobj)
     if(!isTRUE(tmp)) {
-      if( !silent || silent==2 ) cat(tmp,"\n")
-      cat("Stopped in MARSS: marssMLE object is incomplete or inconsistent.\n")
-      cat("The incomplete/inconsistent MLE object is being returned. \n")
+      if( !silent ) {
+        cat(tmp)
+        cat(" The incomplete/inconsistent MLE object is being returned.\n")
+        }
+      cat("Error: Stopped in MARSS() due to marssMLE object incomplete or inconsistent.\n\n")
       MLEobj$convergence=2
       return(MLEobj)
     }
@@ -93,7 +99,7 @@ MARSS = function(y,
       if(MLEobj$convergence%in%c(0,1)) {
         MLEobj = MARSSaic(MLEobj)
         if(!silent){ print(MLEobj) }
-        }else if(MLEobj$convergence%in%c(10) && method %in% kem.methods){
+        }else if(MLEobj$convergence%in%c(3,10,11) && method %in% kem.methods){
           MLEobj = MARSSaic(MLEobj)
           if(!silent ){ print(MLEobj) }
         }else if(!silent) cat(MLEobj$errors)  #stopped with errors

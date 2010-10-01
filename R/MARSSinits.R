@@ -4,7 +4,7 @@
 
 MARSSinits <- function(modelObj, inits=list(B=1, U=0, Q=0.05, A=0, R=0.05, x0=-99, V0=10))
 {
-if(!is.list(inits)) stop("MARSSinits: inits must be a list")
+if(!is.list(inits)) stop("Stopped in MARSSinits() because inits must be a list.\n", call.=FALSE)
 default = list(B=1, U=0, Q=0.05, A=0, R=0.05, x0=-99, V0=10)
 for(elem in names(default)){
   if(is.null(inits[[elem]])) inits[[elem]]=default[[elem]]
@@ -17,14 +17,16 @@ for(elem in names(default)){
   D=as.design(modelObj$fixed$x0, modelObj$free$x0)$D  #need this many places
   if(identical(unname(inits$x0),-99) & !is.fixed(modelObj$fixed$x0) ) {
       if(!is.design(modelObj$fixed$Z))
-        stop("MARSSinits: because Z is not a design matrix, you'll need to specify inits$x0.  See help file.")
+        stop("Stopped in MARSSinits(). Because Z is not a design matrix, you'll need to specify inits$x0.  See help file.\n", call.=FALSE )
     tmp.Z.mat=modelObj$fixed$Z
     inits$x0 = array(0,dim=c(m,1))
     # do a simple linear regression, estimating the predicted value using the y that x will be scaled to (in case multiple y per x)
     for(i in 1:m) {
       this.index = min(which(tmp.Z.mat[,i]==1))
       y.obs = y[this.index,]
-      y.obs[which(y.obs==miss.value)] = NA
+      if(is.na(miss.value)){
+        y.obs[ is.na(y.obs) ] = NA 
+      }else { y.obs[ y.obs==miss.value ] = NA }
       inits$x0[i,1] = lm(y.obs~seq(1:dim(y)[2]))$fitted.values[1]
     }
     #use average if there are shared values
@@ -42,7 +44,7 @@ for(elem in names(default)){
     }      
       
   if(!is.matrix(inits$V0)  || dim(inits$V0)[1]!=m || dim(inits$V0)[2]!=m) #there was a problem
-     stop("MARSSinits: inits$V0 is not a mxm matrix.  See help file.")
+     stop("Stopped in MARSSinits() because inits$V0 is not a mxm matrix.  See help file.\n", call.=FALSE)
   if(!is.fixed(modelObj$fixed$x0) && !all( (!(D%*%t(D)))*inits$V0==0 ))
      warning("The initial V0 looks wrong (look at start$V0). A wrong init V0 will mean a wrong logLik value.")
   for(elem in c("A","U","Z")) {
@@ -63,12 +65,12 @@ for(elem in names(default)){
     inits[[elem]][!is.na(modelObj$fixed[[elem]])]= modelObj$fixed[[elem]][!is.na(modelObj$fixed[[elem]])]
     }
     if(!is.matrix(inits[[elem]])) #there was a problem.  
-     stop(paste("MARSSinits: inits$",elem," is not a matrix.  See help file.",sep=""))
+     stop(paste("Stopped in MARSSinits() because inits$",elem," is not a matrix.  See help file.\n",sep=""), call.=FALSE)
     }
          
   if(is.null(inits$Z) || inits$Z == -99) {
     if(!is.fixed(modelObj$fixed$Z)) {
-      stop("MARSSinits: because you are estimating parts of Z, you'll need to specify inits$Z.  See help file.")
+      stop("Stoppped in MARSSinits(). Because you are estimating parts of Z, you'll need to specify inits$Z.  See help file.\n", call.=FALSE)
     }
     else inits$Z = modelObj$fixed$Z #Z is fixed
   }

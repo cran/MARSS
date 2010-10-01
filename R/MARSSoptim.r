@@ -11,13 +11,14 @@ MARSSoptim = function(MLEobj) {
   model.el.w.V0 = names(MLEobj$model$free)
   tmp = is.marssMLE(MLEobj)
   if(!isTRUE(tmp)) {
-      stop("MARSSoptim: marssMLE object is incomplete or inconsistent.\n", call.=FALSE)
+      cat(tmp)
+      stop("Stopped in MARSSoptim() because marssMLE object is incomplete or inconsistent.\n", call.=FALSE)
     }
   tmp = describe.marssm(MLEobj$model)  
   for(elem in c("Q","R")){
     varcov.type = substr(tmp[[elem]],1,6)
     if( !is.fixed(MLEobj$model$fixed[[elem]]) && varcov.type!="diagon" && varcov.type!="scalar") {
-       stop(paste("MARSSoptim: if estimated, ",elem," must be diagonal.\n", sep=""), call.=FALSE)  }
+       stop(paste("Stopped in MARSSoptim(). If estimated, ",elem," must be diagonal.\n", sep=""), call.=FALSE)  }
   }
   
   ## attach would be risky here since user might have one of these variables in their workspace    
@@ -41,12 +42,12 @@ MARSSoptim = function(MLEobj) {
   }else upper=control$upper
   
   ## Disallow V0 estimation
-  if(!is.fixed(fixed$V0)) stop("MARSSoptim: V0 cannot be estimated.\n", call.=FALSE)
+  if(!is.fixed(fixed$V0)) stop("Stopped in MARSSoptim(). V0 cannot be estimated.\n", call.=FALSE)
        
   # If V0 is fixed to be zero, then the Newton algorithms are run with a diag V0 set large.  At end, the kalman filter is rerun with 
   if(!is.fixed(fixed$x0)){
    if(!identical(unname(fixed$V0), array(0,dim=c(m,m)))){ 
-      stop("MARSSoptim: if x0 is estimated, V0 must be 0.  See discussion regarding initial conditions in manual.\n",call.=FALSE)
+      stop("Stopped in MARSSoptim(). If x0 is estimated, V0 must be 0.  See discussion regarding initial conditions in manual.\n",call.=FALSE)
    }else{
         D=as.design(fixed$x0, free$x0)$D  #need this many places
         V0 = control$iter.V0 * D%*%t(D) #if some x0 are shared, they need V0 with 100% correlation
@@ -67,7 +68,7 @@ MARSSoptim = function(MLEobj) {
   # will return the inits only for the estimated parameters and diag elements of Q and R will be logged
   pars = MARSSvectorizeparam(tmp.MLEobj) 
   optim.output = try(optim(pars, neglogLik, MLEobj=tmp.MLEobj, method = MLEobj$method, lower = lower, upper = upper, control = optim.control, hessian = FALSE), silent=TRUE  )
-  if(class(optim.output)=="try-error") optim.output = list(convergence=53, message=c("MARSSkf returned errors.  Sometimes better initial conditions will solve this.\n",optim.output[1]))
+  if(class(optim.output)=="try-error") optim.output = list(convergence=53, message=c(" MARSSkf() call used to compute log likelihood encountered numerical problems\n and could not return logLik. Sometimes better initial conditions helps.\n"))
   MLEobj.return=list(); class(MLEobj.return) = "marssMLE"
   MLEobj.return$iter.record=optim.output$message
   MLEobj.return$control=MLEobj$control
@@ -89,16 +90,20 @@ MARSSoptim = function(MLEobj) {
       }else{
       if(optim.output$convergence==10) optim.output$message=c("degeneracy of the Nelder-Mead simplex\n",optim.output$message)
       optim.output$counts = NULL      
-      if( !control$silent || control$silent==2 ) cat("Stopped with errors: No parameter estimates returned. See $errors in output for details.\n")
+      if( !control$silent ) cat("MARSSoptim() stopped with errors. No parameter estimates returned.\n")
+      if( control$silent==2 ) cat("MARSSoptim() stopped with errors. No parameter estimates returned. See $errors in output for details.\n")
+ 
       MLEobj.return$par = NULL
       MLEobj.return$errors = optim.output$message
       kf = NULL
       }
   
-  MLEobj.return$kf = kf
-  MLEobj.return$states = kf$xtT
-  MLEobj.return$numIter = optim.output$counts[1]
-  MLEobj.return$logLik = kf$logLik
+  if(!is.null(kf)){
+    MLEobj.return$kf = kf
+    MLEobj.return$states = kf$xtT
+    MLEobj.return$numIter = optim.output$counts[1]
+    MLEobj.return$logLik = kf$logLik
+  }
   MLEobj.return$method = MLEobj$method
   
   ## Add AIC and AICc to the object

@@ -43,7 +43,7 @@ MARSSvectorizeparam = function(MLEobj, parvec=NA) {
       parlen = parlen + mx
       maxvec = c(maxvec, mx)
     }
-    if(length(parvec) != parlen) stop("Length of param vector does not match # of free params")
+    if(length(parvec) != parlen) stop("Stopped in MARSSvectorizeparam(). Length of param vector does not match # of free params.\n", call.=FALSE)
     names(maxvec) = en
     
     ## Fill in values, matrix by matrix
@@ -66,7 +66,7 @@ MARSSvectorizeparam = function(MLEobj, parvec=NA) {
 	}
 	## check name match
         if(!all(num.names %in% this.free)) 
-	  stop(paste("parvec names don't match model$free names in parameter", elem))      
+	  stop(paste("Stopped in MARSSvectorizeparam(). parvec names don't match model$free names in parameter", elem,"\n"),call.=FALSE)      
         ## Remove "used" values from parvec
         parvec = parvec[(mx+1):length(parvec)]
 

@@ -6,11 +6,11 @@
 ########################################################################################################################
 MARSSinnovationsboot = function(MLEobj, nboot=1000, minIndx=3 ) {
    if(MLEobj$model$miss.value %in% MLEobj$model$data) 
-      stop("MARSSinnovationsboot: This algorithm resamples from the innovations and doesn't allow missing values")
+      stop("Stopped in MARSSinnovationsboot() because this algorithm resamples from the innovations and doesn't allow missing values.\n", call.=FALSE)
 
    # The following need to be present in model: parameter estimates + Sigma, Kt, Innov; the latter 3 are part of $kf
    if(any(is.null(MLEobj$par), is.null(MLEobj$kf), is.null(MLEobj$model$data)))
-      stop("MARSSinnovationsboot: The passed in marssMLE object is missing something (par, data, or kf)")
+      stop("Stopped in MARSSinnovationsboot(). The passed in marssMLE object is missing something (par, data, or kf).\n", call.=FALSE)
    
    ## Rename things for code readability
    model=MLEobj$model

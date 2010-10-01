@@ -1,0 +1,13 @@
+%\VignetteIndexEntry{User Manual} 
+%\VignettePackage{MARSS}
+\documentclass{article}
+
+\usepackage{pdfpages}
+
+\begin{document}
+
+\newpage
+
+\includepdf[fitpaper=true, pages=-]{Manual.pdf}
+
+\end{document} 

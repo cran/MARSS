@@ -1,16 +1,16 @@
 
 alldefaults = list()
 alldefaults$kem = alldefaults$kemdev = list(
-      inits=list(B=1, U=0, Q=0.05, A=0, R=0.05, x0=-99, V0=10),
+      inits=list(B=1, U=0, Q=0.05, Z=1, A=0, R=0.05, x0=-99, V0=10),
       constraint=list(Z="identity", A="scaling", R="diagonal and equal", B="identity", U="unconstrained", Q="diagonal and unequal", x0="unconstrained", V0="zero"),
       miss.value=-99,  
-      control=list(minit=15, maxit=5000, abstol=0.01, iter.V0=10, trace=0,
-safe=FALSE, MCInit=FALSE, numInits = 500, numInitSteps = 10,
+      control=list(minit=15, maxit=500, abstol=NULL, iter.V0=10, trace=0,
+safe=FALSE, MCInit=FALSE, numInits = 500, numInitSteps = 10, min.iter.conv.test=15, conv.test.deltaT=9, conv.test.slope.tol= 0.5,
 boundsInits=list(B=c(0,1), U=c(-1,1), logQ = c(log(1.0e-05),log(1.0)),
 Z=c(0,1), A=c(-1,1), logR = c(log(1.0e-05),log(1.0)) ) )
 )
 alldefaults$BFGS = list(
-      inits=list(B=1, U=0, Q=0.05, A=0, R=0.05, x0=-99, V0=10),
+      inits=list(B=1, U=0, Q=0.05, Z=1, A=0, R=0.05, x0=-99, V0=10),
       constraint=list(Z="identity", A="scaling", R="diagonal and equal", B="identity", U="unconstrained", Q="diagonal and unequal", x0="unconstrained", V0="zero"),
       miss.value=-99,  
       control=list(maxit=5000, iter.V0=10, MCInit=FALSE, numInits = 500, numInitSteps = 10,

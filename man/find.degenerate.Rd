@@ -37,8 +37,8 @@ possible to compute the likelihood, but the code in \code{\link{MARSSkf}} will t
   dat = t(harborSealnomiss)
   #shorten the data set to 10 yrs in order to produce a degenerate solution
   #in this case there is not enough data to estimate all the Q variances
-  dat = dat[2:nrow(dat),1:10]
-  #force 200 interations to get a nice log(param):log(iteration) plot
-  MLEobj = MARSS(dat, control=list(minit=200))
+  dat = dat[2:4,1:10]
+  #For example sake, it's stopped at 50 interations as it could go on for a long time trying to converge
+  MLEobj = MARSS(dat, control=list(maxit=50))
   find.degenerate(MLEobj)
 }

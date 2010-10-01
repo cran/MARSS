@@ -1,5 +1,5 @@
 ###################################################
-### chunk number 44: Cs1_Exercise1
+### chunk number 43: Cs1_Exercise1
 ###################################################
 par(mfrow=c(3,3))
 sim.u = -0.05 
@@ -30,13 +30,13 @@ legend("topright", c("Observed","True"),
 
 
 ###################################################
-### chunk number 54: Cs1_Exercise2
+### chunk number 53: Cs1_Exercise2
 ###################################################
 sim.u = -0.05   # growth rate
 sim.Q = 0.01    # process error variance
 sim.R = 0.05    # non-process error variance
 nYr= 30         # number of years of data to generate
-fracmiss = 0.1  # fraction of years that are missing
+fracmiss = 0.0  # fraction of years that are missing
 init = 7        # log of initial pop abundance (~1100 individuals)
 nsim = 9
 years = seq(1:nYr)  # col of years
@@ -55,8 +55,11 @@ for(i in 1:nsim){
     replace = FALSE) 
   y.ts[i,missYears]=-99
 
-  #Kalman-EM estimates
-  kem = MARSS(y.ts[i,], silent=TRUE)
+  #Kalman-EM estimates 
+  #So that this code runs fast, we're using a rough convergence test (abstol)
+  #change that line to  kem = MARSS(y.ts[i,], silent=TRUE)
+  #for a better (albeit much slower) convergence test
+  kem = MARSS(y.ts[i,], silent=TRUE, control=list(abstol=0.01))
   params[i,c(1,3,4)] = c(kem$par$U,kem$par$Q,kem$par$R)
 	
   #Dennis et al 1991 estimates
@@ -77,7 +80,7 @@ params[nsim+2,]=c(sim.u,sim.u,sim.Q,sim.R,sim.Q)
 
 
 ###################################################
-### chunk number 58: Cs1_Exercise3
+### chunk number 57: Cs1_Exercise3
 ###################################################
 #Needs Exercise 2 to be run first
 par(mfrow=c(3,3))
@@ -90,8 +93,10 @@ for(j in c(10,1:8)){
   u=params[j,1];   Q=params[j,3]
   p.ever = ifelse(u<=0,1,exp(-2*u*xd/Q)) 
   for (i in 1:100){      
-    kal.ex[i]=p.ever*pnorm((-xd+abs(u)*tyrs[i])/sqrt(Q*tyrs[i]))+
-      exp(2*xd*abs(u)/Q)*pnorm((-xd-abs(u)* tyrs[i])/sqrt(Q*tyrs[i]))
+    if(is.finite(exp(2*xd*abs(u)/Q))){
+	     sec.part = exp(2*xd*abs(u)/Q)*pnorm((-xd-abs(u)* tyrs[i])/sqrt(Q*tyrs[i]))
+    }else sec.part=0      
+    kal.ex[i]=p.ever*pnorm((-xd+abs(u)*tyrs[i])/sqrt(Q*tyrs[i]))+sec.part
   } # end i loop
 
   #Dennis et al 1991 parameter estimates
@@ -123,14 +128,14 @@ legend("bottomright",c("True","Dennis","KalmanEM"),pch=c(1,-1,-1),
 
 
 ###################################################
-### chunk number 60: Cs1_Exercise4
+### chunk number 59: Cs1_Exercise4
 ###################################################
 par(mfrow=c(1,1))
 CSEGtmufigure(N=30, u=-0.05, s2p=0.01)
 
 
 ###################################################
-### chunk number 64: Cs1_Exercise5
+### chunk number 63: Cs1_Exercise5
 ###################################################
 #If you have your data in a tab delimited file with a header
 #This is how you would read it in using file.choose() 

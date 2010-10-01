@@ -57,6 +57,7 @@ is.marssMLE(MLEobj)
 
 \author{ 
   Kellie Wills, NOAA, Seattle, USA.  
+
   kellie(dot)wills(at)noaa(dot)gov
 }
 \seealso{ 

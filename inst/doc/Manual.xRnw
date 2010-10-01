@@ -1,4 +1,4 @@
-\input{./tex/headerfile}
+\input{tex/headerfile}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \usepackage{Sweave}
@@ -19,6 +19,7 @@ options(width=60)
 
 \author{E. E. Holmes and E. J. Ward}
 \title{Analysis of multivariate time-series using the MARSS package}
+\subtitle{version 1.1}
 \maketitle
 \include{./tex/dedic}
 

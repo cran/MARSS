@@ -1,5 +1,5 @@
 ###################################################
-### chunk number 77: Cs2_Exercise1
+### chunk number 76: Cs2_Exercise1
 ###################################################
 #Read in data
 dat=t(harborSealWA) #Transpose since MARSS needs time ACROSS columns
@@ -31,7 +31,7 @@ kem1$AIC
 
 
 ###################################################
-### chunk number 83: Cs2_Exercise2
+### chunk number 82: Cs2_Exercise2
 ###################################################
 #fit model
 Z.constraint = factor(c(1,1,1,1,1))
@@ -62,7 +62,7 @@ par(mfrow=c(1,1))
 
 
 ###################################################
-### chunk number 88: Cs2_Exercise3
+### chunk number 87: Cs2_Exercise3
 ###################################################
 #fit model
 Z.constraint = factor(c(1,1,2,2,2))
@@ -87,7 +87,7 @@ par(mfrow=c(1,1))
 
 
 ###################################################
-### chunk number 89: Cs2_Exercise4
+### chunk number 88: Cs2_Exercise4
 ###################################################
 Z.constraint=factor(c(1,2,3,4,5))
 U.constraint="equal"
@@ -98,7 +98,7 @@ kem=MARSS(dat, constraint=list(Z=Z.constraint,
 
 
 ###################################################
-### chunk number 93: Cs2_Exercises5_7
+### chunk number 92: Cs2_Exercises5_7
 ###################################################
 #Exercise 5
 Z.constraint=factor(c(1,1,2,2,2))
@@ -110,7 +110,7 @@ kem = MARSS(dat, constraint=list(Z=Z.constraint, U=U.constraint, Q=Q.constraint,
 #Exercise 6
 Z.constraint=factor(c(1,1,1,1,2))
 U.constraint="unequal"
-Q.constraint="diagonal and unequal"
+Q.constraint="equalvarcov"
 R.constraint="diagonal and unequal"
 kem = MARSS(dat, constraint=list(Z=Z.constraint, U=U.constraint, Q=Q.constraint, R=R.constraint) )
 

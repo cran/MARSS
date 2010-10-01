@@ -17,7 +17,9 @@ Objects of class \code{\link{marssMLE}} may be built from scatch but are easier 
   \describe{
       \item{\code{MLEobj$control$minit}}{ Minimum number of EM iterations. You can use this to force the algorithm to do a certain number of iterations.  This is helpful if your soln is not converging.} 
       \item{\code{MLEobj$control$maxit}}{ Maximum number of EM iterations. } 
-      \item{\code{MLEobj$control$abstol}}{ Tolerance for log-likelihood change.  If log-likelihood changes less than this amount relative to the previous iteration, the EM algorithm exits. } 
+      \item{\code{MLEobj$control$min.iter.conv.test}}{ The minimum number of iterations before the log-log convergence test will be computed.  If \code{control$maxit} is set less than this, then convergence will not be computed (and the algorithm will just run for maxit iterations). } 
+      \item{\code{MLEobj$control$conv.test.deltaT}}{ The number of iterations to use in the log-log convergence test.  This defaults to 9. } 
+      \item{\code{MLEobj$control$abstol}}{ Tolerance for log-likelihood change for the delta logLik convergence test.  If log-likelihood changes less than this amount relative to the previous iteration, the EM algorithm exits. This is normally (default) set to NULL and the log-log convergence test is used instead.} 
       \item{\code{MLEobj$control$iter.V0}}{ This is the value to which V0 will be set during the EM algorithm (!=0). See Details.}
       \item{\code{MLEobj$control$trace}}{ A positive integer. If not 0, a record will be created of each variable over all EM iterations and detailed warning messages (if appropriate) will be printed. }
       \item{\code{MLEobj$control$safe}}{ If TRUE, \code{MARSSkem} will rerun \code{\link{MARSSkf}} after each individual parameter update rather than only after all parameters are updated.  The latter is slower and unnecessary for many models, but in some cases, the safer and slower algorithm is needed because the ML parameter matrices have high condition numbers. }
@@ -36,11 +38,16 @@ Objects of class \code{\link{marssMLE}} may be built from scatch but are easier 
   \item{numIter}{Number of iterations needed for convergence.}
   \item{convergence}{ Did estimation converge successfully? 
     \describe{
-      \item{convergence=0}{Converged in less than \code{MLEobj$control$maxit} iterations and no evidence of degenerate solution.}  
-      \item{convergence=1}{Maximum number of iterations \code{MLEobj$control$maxit} was reached before \code{MLEobj$control$abstol} condition was satisfied.} 
-      \item{convergence=10}{Some of the variance elements appear to be degenerate.  The \code{MLEobj$control$abstol} condition was satisfied 
-          before the maximum number of iterations \code{MLEobj$control$maxit} was reached, but some of the variance elements appear to still be changing. } 
-      \item{convergence=52}{The algorithm was abandoned due to numerical errors.  Usually this means one of the variances either went to zero or to all elements being equal.  Try setting \code{control$trace=1} to view a detailed error report.}  
+      \item{convergence=0}{Converged in less than \code{MLEobj$control$maxit} iterations and no evidence of degenerate solution using the log-log plot test.}  
+      \item{convergence=1}{Maximum number of iterations \code{MLEobj$control$maxit} was reached before \code{MLEobj$control$abstol} condition was satisfied. This value can only be output if \code{MLEobj$control$abstol} is passed in.  If the default log-log convergence test is being used, convergence=10 is returned when maxit is reached.}
+      \item{convergence=2}{No convergence diagnostic were computed because there are problems with the MLE object.}  
+      \item{convergence=3}{No convergence diagnostic were computed because \code{MLEobj$control$maxit} was set to less than \code{control$min.iter.conv.test}.  This is not an error.}  
+      \item{convergence=10}{Some of the parameter estimates did not converge (based on the log-log plot test) before \code{MLEobj$control$maxit} was reached. This is not an error per se. Degenerate solutions are fine but the MARSS algorithm will not compute the proper likelihood for a degenerate solution. }
+      \item{convergence=11}{Some of the parameter estimates did not converge (based on the log-log plot test) even though \code{MLEobj$control$abstol} was reached. This value can only be output if \code{MLEobj$control$abstol} is passed in. Try not setting \code{MLEobj$control$abstol} so that the log-log convergence test is used instead.  If it takes too long, try making  \code{MLEobj$control$maxit} smaller (like 500). }
+      \item{convergence=12}{\code{MLEobj$control$abstol} was reached but the log-log plot test returned NAs.  This is an odd error and you should set \code{control$trace=TRUE} and look at the outputted \code{$iter.record} to see what is wrong. This value can only be output if \code{MLEobj$control$abstol} is passed in. }
+      \item{convergence=52}{The algorithm was abandoned due to numerical errors.  Usually this means one of the variances either went to zero or to all elements being equal.  This is not an error per se.  Most likely it means that your model is not very good for your data (too inflexible or too many parameters).  Try setting \code{control$trace=1} to view a detailed error report.}
+      \item{convergence=62}{The algorithm was abandoned due to errors in the log-log convergence test.  You should not get this error (it is included for debugging purposes to catch improper arguments passed into the log-log convergence test).  If you get it, try passing in \code{control$abstol} to use delta logLik as the convergence test.}
+      \item{convergence=72}{Other convergence errors.  This is included for debugging purposes to catch misc. errors.  If you get it, try passing in \code{control$abstol} to use delta logLik as the convergence test.}        
       }
   }
   \item{logLik}{Log-likelihood.}
@@ -90,19 +97,18 @@ state-space (MARSS) models.  type \code{show.doc(MARSS, Holmes2010)} to see.
   dat = t(harborSeal)
   dat = dat[2:nrow(dat),] 
   #you can use MARSS to construct a proper marssMLE object.
-  MLEobj = MARSS(dat, fit=FALSE) 
+  MLEobj = MARSS(dat, constraint=list(Q="diagonal and equal", U="equal"), fit=FALSE) 
+  #Use MARSS to do the fit.
   kemfit = MARSSkem(MLEobj)
-  \dontrun{
   #see what a Newton method would find; 
   # wrapped in try because it tends to throw numerical errors
   bfgsfit=kemfit; bfgsfit$method="BFGS"
   bfgsfit = try(MARSSoptim(bfgsfit))
   #look for degenerate estimates
-  #Use MARSS to do the fit
-  kemfit2 = MARSS(dat, control=list(minit=100)) 
   #this will make a plot that will show if the vars converged.
-  find.degenerate(kemfit2) 
-  }
+  #plot should be flat; if not try setting minit higher or using
+  #higher conv.test.slope.tol
+  find.degenerate(kemfit)
 }
 
 

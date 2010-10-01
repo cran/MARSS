@@ -4,7 +4,8 @@
 #   Called by is.marssMLE(), MARSSsimulate()
 #######################################################################################################
 MARSScheckpar <- function(parList, n, m)
-{    ## Set up element names
+{
+    ## Set up element names
     en = c("Z", "A", "R", "B", "U", "Q", "x0", "V0")
     ## Correct dimensions for reporting
     correct.dim1 = c(n,n,n,m,m,m,m,m)
@@ -30,19 +31,22 @@ MARSScheckpar <- function(parList, n, m)
 
     if (problem) { 
       if(any(param.null)) {
-      	msg = c(msg, "MARSScheckpar: Missing or non-numeric parameter", en[param.null])
+      	msg = c(msg, paste("Missing or non-numeric parameter ", en[param.null], ".\n", sep=""))
       }
       if(any(dim.param)) {
-      	msg = c(msg, "MARSScheckpar: Dimension problem: parameter", en[dim.param], "Dims should be", correct.dim1[dim.param], "x", correct.dim2[dim.param])
+      	msg = c( msg, paste("Dims of parameter ", en[dim.param], " do not match Z dims. Dims should be ", correct.dim1[dim.param], " x ", correct.dim2[dim.param]," based on Z dims.\n", sep="") )
       }
     }
 
     #check that Q and R are proper var-cov matrices
     if (!(all.equal(parList$Q, t(parList$Q)) && all(eigen(parList$Q)$values >= 0))) 
-            msg = c(msg, "MARSScheckpar: Q is not a valid variance matrix")
+            msg = c(msg, "Q is not a valid variance matrix.\n")
     if (!(all.equal(parList$R, t(parList$R)) && all(eigen(parList$R)$values >= 0))) 
-            msg = c(msg, "MARSScheckpar: R is not a valid variance matrix")
+            msg = c(msg, "R is not a valid variance matrix.\n")
 
-    if(length(msg) == 0) return(TRUE)
-    else return(msg)
+if(length(msg) == 0){ return(TRUE)
+}else {
+  msg=c("\nErrors were caught in MARSScheckpar()\n", msg)
+  return(msg)
+}
 } 

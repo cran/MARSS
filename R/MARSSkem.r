@@ -4,12 +4,13 @@
 #   Maximization using an EM algorithm with Kalman filter
 #######################################################################################################
 MARSSkem = function(MLEobj) {
-# This function does not check if user specified a legal or solveable model.
+# This is a core function and does not check if user specified a legal or solveable model. 
 # free and fixed are list of constraint matrices.  Values that are not fixed must be designated NA in 'fixed'; 
 # Values that are not free must be designated NA in 'free'
+# y is MLEobj$model$data with the missing values replace by 0
 
   #Check that model is allowed given the EM algorithm constaints; returns some info on the model structure
-  constr.type=MARSSkemcheck(MLEobj$model)
+  constr.type=MARSSkemcheck(MLEobj$model, method=MLEobj$method)
   #set up holders for warning messages
   msg=NULL; stop.msg=NULL; msg.kem=NULL; msg.kf=NULL; msg.conv=NULL #error messages
   
@@ -49,7 +50,7 @@ MARSSkem = function(MLEobj) {
   # If V0 is fixed to be zero, then the EM algorithm is run with a diag V0 set large.  At end, the kalman filter is rerun with 
   if(!is.fixed(fixed$x0)){
    if(!identical(unname(fixed$V0), array(0,dim=c(m,m)))){ 
-      stop("MARSSkem: if x0 is estimated, V0 must be 0.  See discussion regarding initial conditions in manual.\n",call.=FALSE)
+      stop("Stopped in MARSSkem(). If x0 is estimated, V0 must be 0.  See discussion regarding initial conditions in manual.\n",call.=FALSE)
    }else{
         D=as.design(fixed$x0, free$x0)$D  #need this many places
         V0 = control$iter.V0 * D%*%t(D) #if some x0 are shared, they need V0 with 100% correlation
@@ -59,16 +60,22 @@ MARSSkem = function(MLEobj) {
 
   ## M is the matrix for handling missing values
   M = MLEobj$model$M
-  for(i in 1:dim(y)[2]) y[,i]=M[,,i]%*%y[,i]  #make sure the missing y's are set to zero    
+  #Make sure the missing vals in y are zeroed out
+  for(i in 1:dim(y)[2]){ y[!as.logical(takediag(M[,,i])),i]=0 }
 
   ## Set up variable for debuging and diagnostics
     debugMLEobj=MLEobj
     debugMLEobj$par=list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )
     iter.record=list(par=NULL,logLik=NULL)  
+
   ################# The main EM loop which will run until tol reached or max.iter reached
   #######################################################################################   
-  cvg <- 1 + control$abstol
-  cvg2 <- 1 + control$abstol
+  
+  #set up the convergence flags
+  conv.test=list(convergence=72, messages="No convergence test performed.\n")   # 2 means no info yet; 0 means converged
+  cvg = ifelse(is.null(control$abstol), 1, 1 + control$abstol )
+  cvg2 = ifelse(is.null(control$abstol), 1, 1 + control$abstol )
+  loglike.new = NA #start with no value
 
   for(iter in 1:control$maxit) { 
     ################# E STEP Estimate states given U,Q,A,R,B,X0 via Kalman filter
@@ -79,11 +86,12 @@ MARSSkem = function(MLEobj) {
     if(!kf$ok) { 
       if(control$trace) msg.kf=c(msg.kf,paste("iter=",iter," ",kf$errors) )
       else msg.kf=kf$errors
-      stop.msg = paste("Stopped at iter=",iter," in MARSSkem: numerical errors were generated in MARSSkf\n",sep="")
+      stop.msg = paste("Stopped at iter=",iter," in MARSSkem() because numerical errors were generated in MARSSkf\n",sep="")
       stopped.with.errors=TRUE; break
       }
     loglike.new = kf$logLik
    
+   # This is a diagnostic line that checks if the solution is becoming unstable
     if(iter>1 && is.finite(loglike.old) == TRUE && is.finite(loglike.new) == TRUE ) cvg = loglike.new - loglike.old  
     if(iter > 2 & cvg < -sqrt(.Machine$double.eps)) {
         if(control$trace){ msg.kem=c(msg.kem,paste("iter=",iter," LogLike DROPPED.  old=", loglike.old, " new=", loglike.new, "\n", sep=""))
@@ -91,26 +99,42 @@ MARSSkem = function(MLEobj) {
         }
 
     ################
-    # Keep a record of the iterations for debugging and diagnostics
+    # Keep a record of the iterations for debugging and convergence diagnostics
     ################################################################
-    if(control$trace){
+    if(control$trace){ # if trace is on, keep the full record over all iterations
       debugMLEobj$par=iter.params
       iter.record$par=rbind(iter.record$par,MARSSvectorizeparam(debugMLEobj))
       iter.record$logLik=c(iter.record$logLik,loglike.new)
       if(!is.null(kf$errors)) {
         msg.kf=c(msg.kf, paste("iter=",iter," ", kf$errors, sep=""))
         }
-    }else { #Keep just last 10 iterations for diagnostics
+    }else { #Otherwise keep just last (control$conv.test.deltaT+1) iterations for diagnostics
       debugMLEobj$par=iter.params
       iter.record$par=rbind(iter.record$par,MARSSvectorizeparam(debugMLEobj))
+      iter.record$logLik=c(iter.record$logLik,loglike.new)
       tmp.len=dim(iter.record$par)[1]
-      if(tmp.len>10) {
-        iter.record$par=as.matrix(iter.record$par[(tmp.len-9):tmp.len,,drop=FALSE])
+      if(tmp.len>(control$conv.test.deltaT+1)) {
+        iter.record$par=as.matrix(iter.record$par[(tmp.len-control$conv.test.deltaT):tmp.len,,drop=FALSE])
+        iter.record$logLik = iter.record$logLik[(tmp.len-control$conv.test.deltaT):tmp.len]
         }
       }
        
-    # if converged, break out
-    if(cvg >= 0 && cvg < control$abstol && iter >= control$minit) break
+    ################
+    # Convergence Test
+    ################################################################
+    if(iter >= control$minit){  # then do convergence testing
+     if(!is.null(control$abstol)){
+       if( cvg >= 0 && cvg < control$abstol ){
+        conv.test$convergence=0  # means converged
+        break  # break out of the iterations loop
+        }else conv.test$convergence=1  # means NOT converged
+      }else {  # else use the log-log convergence test; the default behavior
+        if(iter>=control$min.iter.conv.test){ 
+          conv.test = loglog.conv.test(iter.record, iter, deltaT=control$conv.test.deltaT, tol=control$conv.test.slope.tol)
+          if(conv.test$convergence!=1) break
+        }else conv.test$convergence=3  
+      } }
+      
     # Store loglike for comparison to new one after parameters are updated
     loglike.old = loglike.new
     
@@ -326,7 +350,7 @@ MARSSkem = function(MLEobj) {
       if(constr.type$B=="unconstrained") {
         B = (S10-U%*%t(X0))%*%chol2inv(chol(S00)); ok=TRUE  #The unconstrained update equation        
         }
-      if(constr.type$B=="diagonal and unequal") {
+      if(constr.type$B=="diagonal and unequal" || constr.type$B=="scalar") {
         B = makediag(takediag(S10-U%*%t(X0))/takediag(S00)); ok=TRUE
         }	 #the unconstrained diagonal B  update eqn; != to diag of above
       if(!ok) stop("MARSSkem: Code bug. B didn't get updated and that shouldn't happen.")
@@ -492,16 +516,14 @@ MARSSkem = function(MLEobj) {
   else loglike=loglike.new
   
   if(stopped.with.errors){
-    if( !control$silent || control$silent==2 ) cat("Stopped due to numerical instability or errors. Print $errors from output for info.\n")  #print brief msg.  Full msg printed if silent=F
-
+    if( control$silent==2 ) cat("Stopped due to numerical instability or errors. Print $errors from output for info or set silent=FALSE.\n")      
+    #print brief msg.  Full msg printed if silent=F
     msg=c(stop.msg,"par, kf, states, iter, loglike are the last values before the error.\n")
     if(!control$safe) {
         msg=c(msg,"Try control$safe=TRUE which uses a slower but slightly more robust algorithm.\n")
-        if( !control$silent || control$silent==2 ) cat( "Try control$safe=TRUE which uses a slower but slightly more robust algorithm.\n" )
         }
     if(!control$trace) {
         msg=c(msg,"Use control$trace=TRUE to generate a detailed error report. See manual for insight.\n")
-        if( !control$silent || control$silent==2 ) cat( "Use control$trace=TRUE to generate a detailed error report. \n" )
         }
     ## Attach any algorithm errors to the MLEobj
     if(control$trace && !is.null(msg.kem)) msg=c(msg,"\nMARSSkem errors\n",msg.kem)
@@ -515,60 +537,49 @@ MARSSkem = function(MLEobj) {
     MLEobj.return$logLik = loglike.new
     return(MLEobj.return)
     }
-  ########### Did not stop with errors 
-  ## Run diagnostics
-  min.iter.for.diag=15
-  if(dim(iter.record$par)[2]!=0 && iter>=min.iter.for.diag){ 
-    params.to.test = c("U","x0","R","Q","A")
-    names.iter=colnames(iter.record$par)
-    names.sub=strsplit(names.iter,"\\.")
-    num.names = length(names.sub)
-    p.elems=NULL
-    for(j in 1:num.names)p.elems=c(p.elems,names.sub[[j]][1])
-    num.varcov = sum(p.elems %in% params.to.test )
-    test.conv=rep(0,num.names)
-    for( j in 1:num.names ){
-     if(p.elems[j] %in% params.to.test ) {
-        test.len2=dim(iter.record$par)[1]
-      	test.len1=max(1,test.len2-9)
-        test.len=(iter-min(test.len2-1,9)):iter 
-        test.par = abs(iter.record$par[test.len1:test.len2,j])
-        if(any(test.par==0)) test.par = test.par+1   
-        test.loglog=lm(log(test.par)~log(test.len))
-        test.conv[j]=test.loglog$coef[2]
-      }
-    }   
-  }else test.conv=0
-   if(iter<min.iter.for.diag){ msg.conv=c(msg.conv, paste("Alert: at least",min.iter.for.diag,"iterations are needed to compute convergence diagnostics.\n") )
-   }else if(any(is.na(test.conv))) msg.conv=c(msg.conv, "The degeneracy test produced NAs.\n") 
-   if(iter>=min.iter.for.diag && !any(is.na(test.conv)) && any(abs(test.conv)>0.5)){
-      if(iter<100){ msg.conv=c(msg.conv, paste("Warning: the ",names.iter[abs(test.conv)>0.5]," parameter value has not converged and iter<100.  Try running with lower tol or higher minit.\n"))
-        }else msg.conv=c(msg.conv, paste("Warning: the ",names.iter[abs(test.conv)>0.5]," parameter value has not converged.\n"))
-      MLEobj.return$convergence = 10 
-   }
-   if(!is.null(msg.conv)) msg=c(msg, "\nConvergence warnings\n", msg.conv)
-   ##############################################################
-   
-  #It converged or reached max.iter
-  converged=(iter < control$maxit)
-  if(is.null(MLEobj.return$convergence)) MLEobj.return$convergence = !(iter < control$maxit) #0 if ok; 1 if hit max.iter
 
-  ### Output depends on how it converged and how iterations were determined
-  if( !control$silent || control$silent==2 ) {
-    if(converged){
-     if( MLEobj.return$convergence != 10 ){
-        if(iter>=100){
-          if(iter==control$minit){ cat(paste("Success! algorithm run for ",iter," iterations, abstol reached and parameters converged.\n",sep=""))
-          }else cat(paste("Success! abstol reached at ",iter," iterations and parameters converged.\n",sep=""))
-        }else{
-          if(iter==control$minit){ cat(paste("algorithm run for ",iter," iterations, abstol was reached, and parameters appear converged.\n",sep=""))
-          }else  cat(paste("abstol reached in ",iter," iterations and parameters appear converged.\n",sep=""))
-          cat("Alert: with less than 100 iterations, the convergence diagnostics will be uncertain.\n") 
+  ########### Did not stop with errors 
+  ## Set the convergence information
+  ## Output depends on how it converged and how iterations were determined
+    if(!is.null(control$abstol) || conv.test$convergence==3){  #loglog test has not been run
+        loglog.test = loglog.conv.test(iter.record, iter, deltaT=control$conv.test.deltaT, tol=control$conv.test.slope.tol)
+    }else loglog.test = conv.test
+    
+    if(conv.test$convergence!=0 && iter==control$maxit){   # stopped because maxit reached
+      MLEobj.return$convergence = ifelse(is.null(control$abstol),10,1)
+      msg.conv=loglog.test$messages
+      if( !control$silent || control$silent==2 )
+         cat(paste("Warning! Reached maxit before parameters converged. Maxit was ",control$maxit,".\n",sep=""))
+    }else { # either maxit not reached or reached and converged
+        MLEobj.return$convergence=72 #this should be reset somewhere below; here for debugging
+        if( conv.test$convergence == 0 ){
+          MLEobj.return$convergence=ifelse(loglog.test$convergence==0,0,11)   # loglog test passed
+          msg.conv=loglog.test$messages
+          if( !control$silent || control$silent==2 ) {
+            if(iter==control$minit){ 
+               if(loglog.test$convergence==0){ cat(paste("Success! algorithm run for ",iter," iterations and parameters converged.\n",sep=""))
+               }else cat(paste("algorithm run for ",iter," iterations, abstol reached, but some parameters have not converged.\n",sep=""))
+          }else{
+            if(loglog.test$convergence==0){ cat(paste("Success! Parameters converged at ",iter," iterations.\n",sep=""))
+            }else cat(paste("abstol reached at ",iter," iterations but some parameters have not converged.\n",sep=""))
+          }
+          if(control$conv.test.slope.tol>0.1) cat(paste("Alert: conv.test.slope.tol is ",control$conv.test.slope.tol,".\nTest with smaller values (<0.1) to ensure convergence.\n",sep="")) 
+          }
         }
-        }else cat(paste("abstol reached at ",iter," iterations but some parameters have not converged.\n",sep="")) 
-    }else cat(paste("Warning! Reached max.iter before abstol reached. Max.iter was ",control$maxit,".\n",sep=""))
+       if( loglog.test$convergence < 0 ){
+           MLEobj.return$convergence = ifelse(is.null(control$abstol),62,12)   #loglog test returned errors
+           msg.conv=loglog.test$messages
+           if( !control$silent || control$silent==2 ){
+              if(!is.null(control$abstol)){
+                 cat(paste("abstol reached at ",iter," iterations but log-log convergence test returned errors.\n",sep=""))
+              }else cat(paste("Algorithmm stopped at ",iter," iterations because log-log convergence test returned errors.\n",sep=""))
+           }
+       }
   }
-  
+  if(!is.null(msg.conv)) msg=c(msg, "\nConvergence warnings\n", msg.conv)
+  ##############################################################
+     
+  ## Other misc output
   MLEobj.return$par=iter.params
   MLEobj.return$kf = kf
   MLEobj.return$states = kf$xtT
@@ -598,3 +609,42 @@ MARSSkem = function(MLEobj) {
   return(MLEobj.return)
 }
 
+## Run log-log convergence diagnostics
+loglog.conv.test = function(iter.record, iter, params.to.test=c("U","x0","R","Q","A","logLik"), deltaT=9, tol=0.5){
+  if( !is.list(iter.record) || !all(c("par","logLik") %in% names(iter.record)) || 
+    !any(params.to.test %in% c(names(iter.record$par),names(iter.record))) ||
+    length(dim(iter.record$par))!=2 || dim(iter.record$par)[1]<=1 || is.null(colnames(iter.record$par)) ){ 
+    msg="par list not a proper list (with par and logLik) or too short for conv test or has no column names.\n"
+    return( list(convergence=-1, messages=msg) )
+  }else {
+    if("logLik" %in% params.to.test){
+       iter.record.par = cbind(iter.record$par,logLik=exp(iter.record$logLik)) #exp because we don't want the log of the log
+       }else iter.record.par=iter.record$par 
+    names.iter=colnames(iter.record.par)
+    names.sub=strsplit(names.iter,"\\.")
+    num.names = length(names.sub)
+    p.elems=NULL
+    for(j in 1:num.names)p.elems=c(p.elems,names.sub[[j]][1])
+    num.varcov = sum( p.elems %in% params.to.test )
+    test.conv=rep(0,num.names)
+    for( j in 1:num.names ){
+     if( p.elems[j] %in% params.to.test ) {
+        test.len2=dim(iter.record.par)[1]
+      	test.len1=max(1,test.len2-deltaT)
+        test.len=(iter-min(test.len2-1, deltaT)):iter 
+        test.par = abs(iter.record.par[test.len1:test.len2,j])
+        if(any(test.par==0)) test.par = test.par+1   
+        test.loglog=lm(log(test.par)~log(test.len))
+        test.conv[j]=test.loglog$coef[2]
+      }
+    }   
+  }
+  if(any(is.na(test.conv))) {
+    msg="The log-log degeneracy test produced NAs. Try using control$abstol instead. See manual.\n"
+    return( list(convergence=-2, messages=msg) )
+  } 
+  if(!is.null(test.conv) && !any(is.na(test.conv)) && any(abs(test.conv)>tol)){
+      msg=paste("Warning: the ",names.iter[abs(test.conv)>tol]," parameter value has not converged.\n")
+      return( list(convergence=1, messages=msg) ) 
+   }else { return( list(convergence=0, messages=NULL ) ) }
+}

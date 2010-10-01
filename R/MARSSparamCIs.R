@@ -4,8 +4,8 @@
 #######################################################################################################
 MARSSparamCIs = function(MLEobj, method="hessian", alpha=0.05, nboot=1000) {
 #this function expects a marssMLE object  as output by KalmanEM
-if(!(method %in% c("hessian","parametric","innovations"))) stop("MARSSparamCIs: Current methods are hessian, parametric, and innovations")
-if(!is.marssMLE(MLEobj)) stop("MARSSparamCIs needs a valid marss MLE object (this is for MLE not Bayes objects).")
+if(!(method %in% c("hessian","parametric","innovations"))) stop("Stopped in MARSSparamCIs(). Current methods are hessian, parametric, and innovations.\n", call.=FALSE)
+if(!is.marssMLE(MLEobj)) stop("Stopped in MARSSparamCIs(). This function needs a valid marss MLE object.\n", call.=FALSE)
 if(method=="hessian")  {
     #if the model has no Hessian specified, then run emHessian to get it
     if(is.null(MLEobj$Hessian)) MLEobj = MARSShessian(MLEobj)

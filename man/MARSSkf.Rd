@@ -5,8 +5,8 @@
   Implements the Kalman filter/smoother for MARSS models. This is a base function in the \code{\link{MARSS-package}}.
 }
 \usage{
-MARSSkf(y, parList, missing.matrix = "not given", 
-  miss.value = "not given", init.state="x10", debugkf=FALSE)
+MARSSkf(y, parList, missing.matrix = NULL, 
+  miss.value = NULL, init.state="x10", debugkf=FALSE)
 }
 \arguments{
   \item{y}{ A matrix (not dataframe), sites (rows) x years (columns). See Details regarding handling of missing values. }

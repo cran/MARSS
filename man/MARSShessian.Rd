@@ -27,11 +27,9 @@ MARSShessian(MLEobj)
 } 
 \seealso{ \code{\link{MARSSparamCIs}} \code{\link{marssMLE}} }
 \examples{
-  \dontrun{
   dat = t(harborSeal)
-  dat = dat[2:nrow(dat),]
+  dat = dat[2:4,]
   MLEobj = MARSS(dat)
   MLEobj.w.hessian = MARSShessian(MLEobj)
-  }
 }
 

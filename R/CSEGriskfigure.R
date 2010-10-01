@@ -1,6 +1,6 @@
 CSEGriskfigure=function(data, te=100, absolutethresh=FALSE, threshold=0.1, datalogged=FALSE, silent=FALSE, return.model=FALSE, CI.method="hessian", CI.sim=1000) {
-#if(!exists("TMUfigure")) stop("You need to source the TMUfigure() file for this plot")
-if(!(CI.method %in% c("hessian","parametric","innovations","none"))) stop("Allowed CI methods are none, hessian, parametric, and innovations")
+if(!(CI.method %in% c("hessian","parametric","innovations","none"))) 
+  stop("Stopped in CSEGriskfigure because allowed CI methods are none, hessian, parametric, and innovations.\n", call.=FALSE)
 
 if(!silent){
 if(datalogged) cat("Analysis assumes that data and threshold are already logged")
@@ -22,7 +22,7 @@ par(mfrow=c(3,2))
 
 #a=read.table(data, skip=dataskip)
 a=as.matrix(data)
-if(dim(a)[2]!=2) stop("This function requires a data file with 2 columns; time in first column.")
+if(dim(a)[2]!=2) stop("Stopped in CSEGriskfigure() because this function requires a data file with 2 columns; time in first column.", call.=FALSE)
 a[a==-99]=NA               #replace the NAs for plotting above with -99
 if(datalogged) a[,2]=exp(a[,2]) #plot unlogged
 nyr=length(a[,1])
@@ -49,7 +49,13 @@ xd = log(N0) - log(thresh)
 kal.u = kem$par$U 
 kal.Q = kem$par$Q
 if(kal.u<=0) p.ever = 1 else p.ever = exp(-2*kal.u*xd/kal.Q) 
-if(N0 <= thresh) kal.cdf = rep(1,te)  else  kal.cdf = p.ever*pnorm(( -xd + abs(kal.u)*tyrs)/ sqrt(kal.Q*tyrs)) + exp(2*xd*abs(kal.u)/kal.Q) * pnorm((-xd - abs(kal.u)* tyrs)/sqrt(kal.Q*tyrs))
+if(N0 <= thresh){ kal.cdf = rep(1,te) 
+  }else{
+  if(is.finite(exp(2*xd*abs(kal.u)/kal.Q))){
+	 sec.part = exp(2*xd*abs(kal.u)/kal.Q) * pnorm((-xd - abs(kal.u)* tyrs)/sqrt(kal.Q*tyrs))
+    }else sec.part=0      
+  kal.cdf = p.ever*pnorm(( -xd + abs(kal.u)*tyrs)/ sqrt(kal.Q*tyrs)) + sec.part
+}
 
 plot(tyrs,kal.cdf,xlab="years into future",ylab="probability to hit threshold",ylim=c(0,1),bty="l",type="l")
 title(paste("Prob. to hit ", format(thresh,digits=1)))
@@ -76,9 +82,12 @@ if(CI.method!="none" & plotCI){
   for(j in 1:nsim){
 	 u=boot.params[j,which(substr(colnames(boot.params),1,1)=="U")]
 	 Q=boot.params[j,which(substr(colnames(boot.params),1,1)=="Q")]
-	 if(u<=0) p.ever = 1
-	 else p.ever = exp(-2*u*xd/Q)     
-    kal.cdf.cis[j,] = p.ever*pnorm(( -xd + abs(u)*tyrs)/ sqrt(Q*tyrs)) + exp(2*xd*abs(u)/Q) * pnorm((-xd - abs(u)* tyrs) / sqrt(Q*tyrs))
+	 if(u<=0){ p.ever = 1
+	 }else p.ever = exp(-2*u*xd/Q)     
+   if(is.finite(exp(2*xd*abs(u)/Q))){
+	 sec.part = exp(2*xd*abs(u)/Q) * pnorm((-xd - abs(u)* tyrs) / sqrt(Q*tyrs))
+    }else sec.part=0      
+   kal.cdf.cis[j,] = p.ever*pnorm(( -xd + abs(u)*tyrs)/ sqrt(Q*tyrs)) + sec.part
   }
     CIs.ex=apply(kal.cdf.cis,2,quantile,c(0.0275,.125,.875,.9725),na.rm=TRUE)
     lines(tyrs,CIs.ex[1,],col="red")

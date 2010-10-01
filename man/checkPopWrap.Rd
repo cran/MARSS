@@ -10,7 +10,7 @@ checkPopWrap(wrapperObj, wrapper.el, allowed, silent=FALSE)
 \arguments{
   \item{wrapperObj}{ An object of class \code{\link{popWrap}}. }
   \item{wrapper.el}{ Wrapper elements; generally set by \code{\link{MARSS}} }
-  \item{allowed}{ Allowed constraints.  This changes depending on the fitting method the user has specified (in \code{\link{MARSS}} or in the \code{\link{marssMLE}} object).  Lists of for \code{allowed} for different fitting methods is set in \code{MARSSsettings.R}. }
+  \item{allowed}{ Allowed constraints.  This changes depending on the fitting method the user has specified (in \code{\link{MARSS}} or in the \code{\link{marssMLE}} object).  Lists of for \code{allowed} for different fitting methods is set in \code{MARSSsettings.R}. Use \code{MARSS:::allowed} to view since \code{allowed} is hidden.}
   \item{silent}{ Suppresses errors and warnings printing. }
 }
 \details{
@@ -30,7 +30,7 @@ checkPopWrap(wrapperObj, wrapper.el, allowed, silent=FALSE)
   ## Error:
   dat = t(harborSeal)
   dat = dat[2:nrow(dat),]
-  wrapperObj = popWrap(dat, allowed=allowed$kem, constraint=list(Z="wrong"))
+  wrapperObj = popWrap(dat, allowed=MARSS:::allowed$kem, constraint=list(Z="wrong"))
   }
 }
 

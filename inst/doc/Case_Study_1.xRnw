@@ -14,7 +14,7 @@ Estimates of extinction\index{extinction} and quasi-extinction risk are an impor
 
 In this case study, we use the Kalman filter to fit a univariate (meaning one time series) state-space model to count data for a population. We will compute the extinction risk metrics given in \citet{Dennisetal1991}, however instead of using a process-error only model (as is done in the original paper), we use a model with both process and observation error.  The risk metrics and their interpretations are the same as in \citet{Dennisetal1991}.  The only real difference is how we compute $\sigma^2$, the process error variance.  However this difference has a large effect on our risk estimates, as you will see.
 
-In this case study, we use a density-independent\index{density-independent} model, which is the same as the Gompertz model \eqref{eqn:mgompertz} with $\BB=1$.  Density-independence is often a reasonable assumption when doing a population viability analysis because we do such calculations for at-risk populations that are either declining or that are well below historical levels (and presumably carrying capacity).  In an actual population viability analysis, it is necessary to justify this assumption and if there is reason to doubt the assumption,  one tests for density-dependence \citep{TaperDennis1994} and does sensitivity analyses using state-space models with density-dependence \citep{Dennisetal2006}.
+In this case study, we use a density-independent\index{density-independent} model, which is the same as the Gompertz model (Equation \ref{eqn:mgompertz}) with $\BB=1$.  Density-independence is often a reasonable assumption when doing a population viability analysis because we do such calculations for at-risk populations that are either declining or that are well below historical levels (and presumably carrying capacity).  In an actual population viability analysis, it is necessary to justify this assumption and if there is reason to doubt the assumption,  one tests for density-dependence \citep{TaperDennis1994} and does sensitivity analyses using state-space models with density-dependence \citep{Dennisetal2006}.
 
 The univariate\index{MARSS model!univariate example} model is written:
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -26,7 +26,7 @@ y_t = x_t + w_t 	& \qquad\textup{where}\; w_t \sim \N(0, \eta^2) \label{eqn:1b}
 where  $y_t$ is the logarithm of the observed population size at time $t$,  $x_t$ is the unobserved state at time $t$, $u$ is the growth rate, and  $\sigma^2$ and $\eta^2$ are the process and observation error variances, respectively.  In the \R  code to follow, $\sigma^2$ is denoted \verb@Q@ and $\eta^2$ is denoted \verb@R@ because the functions we are using are also for multivariate state-space models and those models use $\QQ$ and $\RR$ for the respective variance-covariance matrices.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{Simulated data with process and observation error}
+\section{Simulated data with process and observation error}\index{simulation}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 We will start by using simulated data to see the difference between data and estimates from a model with process error\index{error!process} only versus a model that also includes observation error\index{error!observation}.  For our simulated data, we'll used a decline of 5\% per year, process variability of 0.01 (typical for big mammals), and a observation variability of 0.05 (which is a bit on the high end).  We'll randomly set 10\% of the values as missing.  Here's the code:
 
@@ -144,7 +144,7 @@ legend("topright", c("Observed","True"),
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \index{estimation}
 \subsection{Model with process and observation error}
-\index{estimation!KalmanEM}\index{estimation!maximum-likelihood}We put the simulated  data through the Kalman-EM algorithm in order to estimate the parameters, $u$, $\sigma^2$, and $\eta^2$, and population sizes.   These are the estimates using a model with process and observation variability.  The function call is \verb@kem = MARSS(data)@, where \verb@data@ is a vector of logged (base e) counts with missing values denoted by -99.  After this call, the maximum-likelihood parameter estimates are \verb@kem$par$U@, \verb@kem$par$Q@ and \verb@kem$par$R@.  There are numerous other outputs from the \texttt{MARSS()} function.  To get a list of the outputs type in \verb@names(kem)@.  Note that \verb@kem@ is just a name; the output could have been called \verb@foo@.  Here's code to fit to the simulated time series:
+\index{estimation!Kalman-EM}\index{estimation!maximum-likelihood}We put the simulated  data through the Kalman-EM algorithm in order to estimate the parameters, $u$, $\sigma^2$, and $\eta^2$, and population sizes.   These are the estimates using a model with process and observation variability.  The function call is \verb@kem = MARSS(data)@, where \verb@data@ is a vector of logged (base e) counts with missing values denoted by -99.  After this call, the maximum-likelihood parameter estimates are \verb@kem$par$U@, \verb@kem$par$Q@ and \verb@kem$par$R@.  There are numerous other outputs from the \texttt{MARSS()} function.  To get a list of the outputs type in \verb@names(kem)@.  Note that \verb@kem@ is just a name; the output could have been called \verb@foo@.  Here's code to fit to the simulated time series:
 <<fitKalmanEM1, eval=FALSE,include.source=FALSE>>=
 kem = MARSS(y) 
 @
@@ -160,7 +160,7 @@ kem.params[10,]=apply(kem.params[1:9,],2,mean)
 kem.params[11,]=c(sim.u,sim.Q,sim.R)
 @
 Let's look at the parameter estimates for the nine simulated time series in Figure \ref{fig:CS1.9sim} to get a feel for the variation. The \verb@MARSS()@ function was used on each time series to produce parameter estimate for each simulation.  The estimates are followed by the mean (over the nine simulations) and the true values:
-<<nineparams, echo=TRUE>>=
+<<nineparams, echo=FALSE>>=
 kem.params
 @
 As expected, the estimated parameters do not exactly match the true parameters, but the average should be fairly close (although nine simulations is a small sample size).  Also note that although we do not get $u$ quite right, our estimates are usually negative.  Thus our estimates usually indicate declining dynamics.
@@ -181,7 +181,7 @@ title(paste("simulation ",i) )
 #legend("topright", c("Observed","True","KalmanEM estimate"),lty = c(-1, 2, 1), pch = c(1, -1, -1),col=c(1,1,2))
 @
 \end{center}
-\caption{The circles are the observed population sizes with error.  The dashed lines are the true population sizes.  The solid thin lines are the estimates of the true population size from the Kalman-EM algorithm}
+\caption{The circles are the observed population sizes with error.  The dashed lines are the true population sizes.  The solid thin lines are the estimates of the true population size from the Kalman-EM algorithm.}
 \label{fig:CS1.showstates}
 \end{figure}
 %^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -247,10 +247,10 @@ for(i in 1:9){
 den91.params[10,]=apply(den91.params[1:9,],2,mean)
 den91.params[11,]=c(sim.u,sim.Q)
 @
-<<den91params>>=
+<<den91params, echo=FALSE>>=
 den91.params
 @
-Notice that the $u$ estimates are similar to those from the Kalman-EM algorithm, but the $\sigma^2$ estimate (\verb@Q@) is much larger.  That is because this approach treats all the variance as process variance, so any observation variance in the data is lumped into process variance (in fact it appears as 2 $\times$ the observation variance).
+Notice that the $u$ estimates are similar to those from the Kalman-EM algorithm, but the $\sigma^2$ estimate (\verb@Q@) is much larger.  That is because this approach treats all the variance as process variance, so any observation variance in the data is lumped into process variance (in fact it appears as an additional variance of twice the observation variance).
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{example}{The variability in parameter estimates}
@@ -260,13 +260,14 @@ In this example, you will look at how variable the parameter estimates are by ge
 
 \exbegin{Example \ref{CS1.ex2} code}
 \newline
-{\footnotesize{Type \texttt{show.doc(MARSS, Case\_study\_1.R)} to open a file with all the example code.}}
+{\footnotesize{Type \texttt{show.doc(MARSS, Case\_study\_1.R)} to open a file with all the example code. You will not be able
+to edit this file.  To edit, copy and paste into a new script file.}}
 <<label=Cs1_Exercise2, echo=TRUE, keep.source=TRUE, results=hide>>=
 sim.u = -0.05   # growth rate
 sim.Q = 0.01    # process error variance
 sim.R = 0.05    # non-process error variance
 nYr= 30         # number of years of data to generate
-fracmiss = 0.1  # fraction of years that are missing
+fracmiss = 0.0  # fraction of years that are missing
 init = 7        # log of initial pop abundance (~1100 individuals)
 nsim = 9
 years = seq(1:nYr)  # col of years
@@ -285,8 +286,11 @@ for(i in 1:nsim){
     replace = FALSE) 
   y.ts[i,missYears]=-99
 
-  #Kalman-EM estimates
-  kem = MARSS(y.ts[i,], silent=TRUE)
+  #Kalman-EM estimates 
+  #So that this code runs fast, we're using a rough convergence test (abstol)
+  #change that line to  kem = MARSS(y.ts[i,], silent=TRUE)
+  #for a better (albeit much slower) convergence test
+  kem = MARSS(y.ts[i,], silent=TRUE, control=list(abstol=0.01))
   params[i,c(1,3,4)] = c(kem$par$U,kem$par$Q,kem$par$R)
 	
   #Dennis et al 1991 estimates
@@ -371,7 +375,10 @@ for(j in c(10,1:8)){
 	Q=params[j,3]
   p.ever = ifelse(u<=0,1,exp(-2*u*xd/Q)) 
 	for (i in 1:100){      
-  	kal.ex[i] = p.ever*pnorm(( -xd + abs(u)*tyrs[i])/ (sqrt(Q)*sqrt(tyrs[i]))) + exp(2*xd*abs(u)/Q) * pnorm((-xd - abs(u)* tyrs[i]) / (sqrt(Q)*sqrt(tyrs[i])))
+    if(is.finite(exp(2*xd*abs(u)/Q))){
+	     sec.part = exp(2*xd*abs(u)/Q)*pnorm((-xd-abs(u)* tyrs[i])/sqrt(Q*tyrs[i]))
+    }else sec.part=0      
+    kal.ex[i]=p.ever*pnorm((-xd+abs(u)*tyrs[i])/sqrt(Q*tyrs[i]))+sec.part
 		} # end i loop
 
 	#Dennis et al 1991
@@ -399,7 +406,7 @@ for(j in c(10,1:8)){
 legend("bottomright",c("True","Dennis","KalmanEM"),pch=c(1,-1,-1),col=c(1,2,3),lty=c(-1,1,2),lwd=c(-1,2,2),bty="n")
 @
 \end{center}
-\caption{Plot of the true and estimated probability of declining 90\% in different time horizons for nine simulated population time series with observation error.}
+\caption{Plot of the true and estimated probability of declining 90\% in different time horizons for nine simulated population time series with observation error. The plot may look like a step-function if the $\sigma^2$ estimate is very small (<1e-4 or so).}
 \label{fig:CS1.9probext}
 \end{figure}
 %^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -426,8 +433,10 @@ for(j in c(10,1:8)){
   u=params[j,1];   Q=params[j,3]
   p.ever = ifelse(u<=0,1,exp(-2*u*xd/Q)) 
   for (i in 1:100){      
-    kal.ex[i]=p.ever*pnorm((-xd+abs(u)*tyrs[i])/sqrt(Q*tyrs[i]))+
-      exp(2*xd*abs(u)/Q)*pnorm((-xd-abs(u)* tyrs[i])/sqrt(Q*tyrs[i]))
+    if(is.finite(exp(2*xd*abs(u)/Q))){
+	     sec.part = exp(2*xd*abs(u)/Q)*pnorm((-xd-abs(u)* tyrs[i])/sqrt(Q*tyrs[i]))
+    }else sec.part=0      
+    kal.ex[i]=p.ever*pnorm((-xd+abs(u)*tyrs[i])/sqrt(Q*tyrs[i]))+sec.part
   } # end i loop
 
   #Dennis et al 1991 parameter estimates

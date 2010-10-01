@@ -3,9 +3,10 @@
 #   Kalman filter and smoother
 #   ** All eqn refs are to 2nd ed of Shumway & Stoffer (2006): Time Series Analysis and Its Applications
 #######################################################################################################
-MARSSkf = function(y, parList, missing.matrix ="not given", miss.value="not given", init.state="x10", debugkf=FALSE) {
-    if(identical(missing.matrix,"not given") & identical(miss.value,"not given")) stop("MARSSkf: either missing.matrix or miss.value must be specified.")
-    if(!(init.state %in% c("x10","x00"))) stop("MARSSkf: init.state must be either x10 or x00. See manual.")
+MARSSkf = function(y, parList, missing.matrix = NULL, miss.value= NULL, init.state="x10", debugkf=FALSE) {
+    if(is.null(missing.matrix) && is.null(miss.value)) stop("Stopped in MARSSkf() because either missing.matrix or miss.value must be specified.\n")
+    if(!is.null(miss.value) && !is.na(miss.value) && !is.numeric(miss.value)) stop("Stopped in MARSSkf() because miss.value must be numeric (or NA).")
+    if(!(init.state %in% c("x10","x00"))) stop("Stopped in MARSSkf() because init.state must be either x10 or x00. See manual.\n")
     condition.limit=1E10
     #Set up param names; Phi is used instead of B since S&S use Phi
     U=parList$U; Q=parList$Q; R=parList$R; 
@@ -16,16 +17,22 @@ MARSSkf = function(y, parList, missing.matrix ="not given", miss.value="not give
 	  msg=NULL
 	  
     #if the user didn't pass in the missing values matrix, construct M from miss.value 
-    if(identical(M, "not given")) {
-      if(TRUE %in% (y == miss.value)) {
+    if(is.null(M)) { #then miss.value must not be null
+      if(miss.value %in% y){
         M <- array(0, dim=c(n,n,TT))  
-        for(i in 1:TT)  M[,,i] <- makediag(ifelse(y[,i]!=miss.value,1,0),nrow=n)  
-      }
-      else  M = array(makediag(1,nrow=n),dim=c(n, n, TT))  
+        for(i in 1:TT){ 
+          if(is.na(miss.value)){ 
+            tmp = ifelse(!is.na(y[,i]), 1, 0) #the ifelse just changes T/F to 1/0
+          }else { tmp = ifelse(y[,i]!=miss.value, 1, 0) }
+          M[,,i] <- makediag(tmp, nrow=n)
+          }  
+      }else { M = array(makediag(1,nrow=n),dim=c(n, n, TT)) } 
     }
-    #Make sure the missing vals in y are zeroed out
-    for(i in 1:dim(y)[2]) y[,i]=M[,,i]%*%y[,i]  
-         
+    #Make sure the missing vals in y are zeroed out if there are any
+    if(sum(M)!=(n*TT)){
+      for(i in 1:dim(y)[2]){ y[!as.logical(takediag(M[,,i])),i]=0 }
+      }
+             
     #initialize - these are for the forward, Kalman, filter
     # for notation purposes, 't' represents current point in time, 'T' represents the length of the series
     Vtt <- array(0,dim=c(m,m,TT))     # Analagous to S&S Ptt, var[xt,xt|y(1:t)]
@@ -64,7 +71,7 @@ MARSSkf = function(y, parList, missing.matrix ="not given", miss.value="not give
         }
       }
       else {   #t!=1
-       xtt1[,t] <- Phi%*%xtt[,t-1] + U  #xtt1 denotes x_t^(t-1), eqn 6.19
+       xtt1[,t] <- Phi%*%xtt[,t-1,drop=FALSE] + U  #xtt1 denotes x_t^(t-1), eqn 6.19
        Vtt1[,,t] <- Phi%*%Vtt[,,t-1]%*%t(Phi) + Q                  # eqn 6.20
       }              
       Vtt1[,,t] <- (Vtt1[,,t]+t(Vtt1[,,t]))/2   #in general Vtt1 is not symmetric but here it is since Vtt and Q are
@@ -88,13 +95,14 @@ MARSSkf = function(y, parList, missing.matrix ="not given", miss.value="not give
       siginv=chol2inv(siginv2)     # now siginv is sig[[i]]^{-1} 
       siginv = (t(siginv)+siginv)/2     #Vtt1 happens to be symmetric since it is V0+Q; although in general E(xt t(xt1)) is not symmetric
       Kt[,,t] <- Vtt1[,,t]%*%t(M[,,t]%*%Z) %*% siginv;    #broke siginv to impose symmetry, eqn 6.23
-      innov[,t] <- y[,t] - M[,,t]%*%(Z%*%xtt1[,t] + A)
-      xtt[,t] <- xtt1[,t] + Kt[,,t]%*%innov[,t]   # eqn 6.21
-      Vtt[,,t] <- Vtt1[,,t]-Kt[,,t]%*%M[,,t]%*%Z%*%Vtt1[,,t]  # eqn 6.22, detail after 6.28
+      innov[,t] <- y[,t,drop=FALSE] - M[,,t]%*%(Z%*%xtt1[,t,drop=FALSE] + A)
+      Kt.tmp <- array(Kt[,,t], dim=c(dim(Kt)[1],dim(Kt)[2])) # This is to stop R from changing matrix dim; drop=FALSE won't work here
+      xtt[,t] <- xtt1[,t,drop=FALSE] + Kt.tmp%*%innov[,t,drop=FALSE]   # eqn 6.21
+      Vtt[,,t] <- Vtt1[,,t]-Kt.tmp%*%M[,,t]%*%Z%*%Vtt1[,,t]  # eqn 6.22, detail after 6.28
       Vtt[,,t] <- (Vtt[,,t]+t(Vtt[,,t]))/2 #to ensure its symetric
       # Variables needed for the likelihood calculation; see comments above
       R_mod = (diag(n)-M[,,t]) + M[,,t]%*%R%*%M[,,t]
-      vt[,t] <- y[,t]- M[,,t]%*%(Z%*%xtt1[,t]+A) #need to hold on to this for loglike calc
+      vt[,t] <- y[,t,drop=FALSE]- M[,,t]%*%(Z%*%xtt1[,t,drop=FALSE]+A) #need to hold on to this for loglike calc
       Ft[,,t] <- (M[,,t]%*%Z)%*%Vtt1[,,t]%*%t(M[,,t]%*%Z)+R_mod #need to hold on to this for loglike calc
       Ft[,,t] <- (Ft[,,t]+t(Ft[,,t]))/2 #to ensure its symetric
        
@@ -117,12 +125,12 @@ MARSSkf = function(y, parList, missing.matrix ="not given", miss.value="not give
           return(list(ok=FALSE, 
           errors=paste("Stopped in MARSSkf: soln became unstable and negative values appeared on the diagonal of Vtt or Vtt1.\n") ) )
     } #for i to 1:TT
-    KT <- Kt[,,t];
+    KT <- array(Kt[,,t], dim=c(dim(Kt)[1],dim(Kt)[2]));
 
     ######################################################
     #BACKWARD PASS (Kalman smoother) gets you E[x(t)|y(1:T)] from E[x(t)|y(1:t)]
     #indexing is 0 to T for the backwards smoother recursions
-    xtT[,TT] <- xtt[,TT]  
+    xtT[,TT] <- xtt[,TT,drop=FALSE]  
     VtT[,,TT] <- Vtt[,,TT]
     s <- seq(TT,2)
     for(i in 1:(TT-1)) {
@@ -130,7 +138,7 @@ MARSSkf = function(y, parList, missing.matrix ="not given", miss.value="not give
         Vinv <- chol2inv(chol(Vtt1[,,yr]))
         Vinv <- (Vinv + t(Vinv))/2 #to enforce symmetry after chol2inv call
         J[,,yr-1] <- Vtt[,,yr-1]%*%t(Phi)%*%Vinv     # eqn 6.49
-        xtT[,yr-1] <- xtt[,yr-1] + J[,,yr-1]%*%(xtT[,yr]-xtt1[,yr])     # eqn 6.47
+        xtT[,yr-1] <- xtt[,yr-1,drop=FALSE] + J[,,yr-1]%*%(xtT[,yr,drop=FALSE]-xtt1[,yr,drop=FALSE])     # eqn 6.47
         VtT[,,yr-1] <- Vtt[,,yr-1] + J[,,yr-1]%*%(VtT[,,yr]-Vtt1[,,yr])%*%t(J[,,yr-1])  # eqn 6.48
         VtT[,,yr-1] <- (VtT[,,yr-1]+t(VtT[,,yr-1]))/2     #VtT is symmetric
     }
@@ -139,13 +147,13 @@ MARSSkf = function(y, parList, missing.matrix ="not given", miss.value="not give
       Vinv <- chol2inv(chol(Vtt1[,,1]))
       Vinv <- (Vinv + t(Vinv))/2 #to enforce symmetry after chol2inv call
       J0 <- V0%*%t(Phi)%*%Vinv                      # eqn 6.49
-      x0T <- x0 + J0%*%(xtT[,1]-xtt1[,1]);          # eqn 6.47
+      x0T <- x0 + J0%*%(xtT[,1,drop=FALSE]-xtt1[,1,drop=FALSE]);          # eqn 6.47
       V0T <- V0 + J0%*%(VtT[,,1]-Vtt1[,,1])*t(J0)   # eqn 6.48
       V0T <- (V0T+t(V0T))/2;
     }
     if(init.state=="x10") { #Ghahramani treatment of initial states
       J0 <- J[,,1]
-      x0T <- xtT[,1]
+      x0T <- xtT[,1,drop=FALSE]
       V0T <- VtT[,,1]
     }
     #run another backward recursion to get E[x(t)x(t-1)|y(T)]
@@ -169,7 +177,7 @@ MARSSkf = function(y, parList, missing.matrix ="not given", miss.value="not give
           }
         Ftinv <- chol2inv(chol(Ft[,,i]))
         Ftinv <- (Ftinv +t(Ftinv))/2 #enforce symmetry; Ft is symmetric
-        loglike <- loglike - (1/2)%*%t(vt[,i]) %*% Ftinv %*% vt[,i] - (1/2)*log(detFt);
+        loglike <- loglike - (1/2)%*%t(vt[,i,drop=FALSE]) %*% Ftinv %*% vt[,i,drop=FALSE] - (1/2)*log(detFt);
     }
     if( !is.finite(loglike) ) return(list(ok=FALSE, errors=paste("Stopped in MARSSkf: loglike computed to NA.\n") ) )
 

@@ -3,7 +3,9 @@
 \alias{MARSSsettings}
 \title{ Interface MARSS Model Specification and Estimation }
 \description{
-  A top-level \code{\link{MARSS-package}} function to perform model specification and estimation for multivariate autoregressive state-space (MARSS) models:
+  A top-level \code{\link{MARSS-package}} function to perform model specification and estimation for multivariate autoregressive state-space (MARSS) models.  To open the manual from the command line, type \code{show.doc(MARSS, manual)}.  To open an overview page with package information, type \code{show.doc(MARSS, index)}.    
+  
+MARSS models take the form:
 \describe{
 \item{x(t+1) = B x(t) + U + w(t), where w(t) ~ MVN(0,Q)}{}
 \item{y(t) = Z x(t) + A + v(t), where v(t) ~ MVN(0,R)}{}
@@ -123,32 +125,36 @@ dat = t(harborSealWA)
 dat = dat[2:nrow(dat),] #remove the year row
 #fit a model with 1 hidden state and 5 observation time series
 kemfit = MARSS(dat, constraint=list(Z=factor(c(1,1,1,1,1)), 
-   R="diagonal and unequal"))
+   R="diagonal and equal"))
 kemfit$model #This gives a description of the model
 print(kemfit$model) # same as kemfit$model
 summary(kemfit$model) #This shows the model structure
 show(kemfit$model)    #shows the raw object
 
-#The fit above throws a warning about convergence
-#Determine which variance has not yet converged
+#Look at the log-log convergence plots for the variances
 find.degenerate(kemfit)
 
-\dontrun{
 #Increase the number of iterations to ensure convergence
 kemfit100 = MARSS(dat, constraint=list(Z=factor(c(1,1,1,1,1)), 
-   R="diagonal and unequal"), control=list(minit=100))
-find.degenerate(kemfit100)  #now check convergence of variances
+   R="diagonal and equal"), control=list(minit=100))
+find.degenerate(kemfit100)  #now check log-logconvergence of variances
+#plot is flat; that's good
 
 #fit the model using quasi-Newton algorithm
+\dontrun{ #takes a long time
 bfgsfit = MARSS(dat, constraint=list(Z=factor(c(1,1,1,1,1)), 
    R="diagonal and unequal"), method="BFGS")
+}
 
 #add CIs to a marssMLE object
 #default uses an estimated Hessian matrix
 kem.with.hess.CIs = MARSSparamCIs(kemfit100)   
 kem.with.hess.CIs #print with se's and CIs
+
 #estimate CIs using a parametric bootstrap
-kem.with.boot.CIs = MARSSparamCIs(kemfit100, 
+tmp=kemfit
+tmp$control$abstol=0.01
+kem.with.boot.CIs = MARSSparamCIs(tmp, 
    method="parametric", nboot=10)   
 #nboot should be more like 1000, but set low for example sake
 kem.with.boot.CIs #print with se's, CIs, and bias est
@@ -158,12 +164,15 @@ kemfit = MARSS(dat, silent=TRUE)  #suppress printing
 kemfit #print information on the marssMLE object
 show(kemfit) #look at the raw marssMLE object
 
-#fit a model with 5 correlated hidden states  
-kemfit = MARSS(dat, constraint=list(Q="unconstrained"))
-
 #fit a model with 5 correlated hidden states 
-# with one variance and one  covariance
-kemfit = MARSS(dat, constraint=list(Q="equalvarcov"))
+# with one variance and one  covariance using the delta logLik convergence test
+# by setting abstol.  This is fast, but does not actually test convergence (i.e. that 
+# log param value versus log iteration is flat
+kemfit = MARSS(dat, constraint=list(Q="equalvarcov"), control=list(abstol=0.1))
+
+#fit a model with 5 correlated hidden states
+#abstol set rather huge and many of the Q's are not converged based on log-log test  
+kemfit = MARSS(dat, constraint=list(Q="unconstrained"), control=list(abstol=0.1))
 
 #fit a model with 5 independent hidden states 
 #where each observation time series is independent
@@ -190,7 +199,8 @@ kemfit
 #simulate some new data from our fitted model
 sim.data=MARSSsimulate(kemfit$par, nsim=10, tSteps=100)
 
-#Compute bootstrap AIC for the model; this takes a long time
+\dontrun{
+#Compute bootstrap AIC for the model; this takes a long, long time
 kemfit.with.AICb = MARSSaic(kemfit, output = "AICbp")
 kemfit.with.AICb
 }

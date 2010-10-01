@@ -13,9 +13,9 @@
     \item{summary}{\code{signature(object = "marssMLE")}: ... }
 	 }
 }
-\references{ ~put references to the literature/web site here ~ }
 \author{ 
   Kellie Wills, NOAA, Seattle, USA.  
+
   kellie(dot)wills(at)noaa(dot)gov
 }
 \keyword{classes}

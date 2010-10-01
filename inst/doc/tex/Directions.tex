@@ -3,9 +3,7 @@ The case studies walk you through some  analyses of multivariate population coun
 
 \section*{Set-up}
 \begin{itemize}
-\item If you haven't already, install the MARSS package.  Type from the command line: 
-(Windows) \verb@install.packages("MARSS.zip", repos = NULL)@ or   
-(Mac/Unix) \verb@install.packages("MARSS.tar.gz", repos = NULL)@. Mac users need Xtools installed for this to work. You will need write permissions for your \emph{R} program directories to install packages.  See the help pages on CRAN for workarounds if you don't have write permission.
+\item If you haven't already, install the MARSS package.  See directions on the CRAN webpage (http://cran.r-project.org/) for instructions on installing packages.  You will need write permissions for your \emph{R} program directories to install packages.  See the help pages on CRAN for workarounds if you don't have write permission.
 \item Type in \texttt{library(MARSS)} at the \emph{R} command line.  Now you should be ready.
 \item Each case study comes with an associated script file. To open up a copy of the case study script with the code you need to do the exercises, type \texttt{show.doc(MARSS, Case\_study\_\#.R)} (with \# replaced by the case study number).
 \end{itemize}
@@ -13,7 +11,7 @@ The case studies walk you through some  analyses of multivariate population coun
 \section*{Tips}
 \begin{itemize}
 \item \verb@summary(foo$model)@, where \verb@foo@ is a fitted model object, will print detailed information on the structure of the MARSS model that was fit in the call \verb@foo = MARSS(logdata)@. This allows you to double check the model you fit.  \verb@print(foo)@ will print a `English' version of the model structure along with the parameter estimates.
-\item When you run \verb@MARSS()@, it will output the number of iterations used.  If you reached the maximum, re-run with \texttt{control=list(maxit=...)} set higher than the default (5000).  If it says your model variances did not converge, try running with \texttt{control=list(minit=...)} set higher (to say 100 or 200).
+\item When you run \verb@MARSS()@, it will output the number of iterations used.  If you reached the maximum, re-run with \texttt{control=list(maxit=...)} set higher than the default. 
 \item If you mis-specify the model, \texttt{MARSS()} will post an error that should give you an idea of the problem (make sure \verb@silent=FALSE@ to see full error reports).  Remember, the number of rows in your data is $n$, time is across the columns, and the length of the vector or factors passed in for \verb@constraint$Z@ must be $m$, the number of $x$ hidden state trajectories in your model.
 \item If you are fitting to population counts, your data must be logged (base e) before being passed in.  The default missing value indicator is -99.  You can change that by passing in \verb@miss.value=...@.
 \item Running \texttt{MARSS(data)}, with no arguments except your data, will fit a MARSS model with $m=n$, a diagonal $\QQ$ matrix with $m$ variances, and i.i.d. observation errors.

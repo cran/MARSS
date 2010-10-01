@@ -1,10 +1,10 @@
 \chapter{The MARSS() function}\label{chap:MARSS}
 
-The \verb@MARSS()@ function is an interface to the core functions and allows users to fit MARSS models using text strings to specify the model structure.  The MARSS model takes the form
+The \verb@MARSS()@ function is an interface to the core functions and allows users to fit MARSS models using a list to specify the model structure.  The MARSS model takes the form
 \begin{subequations}\label{eqn:mgompertz}
 \begin{gather}
-	\xx_t = \BB \xx_{t-1} + \uu + \ee_{t-1}, \text{ where } \ee_{t-1} \sim \MVN(0,\QQ)\label{eqn:mgompertzX}\\
-	\yy_t = \ZZ \xx_t + \aa + \et_t, \text{ where } \et_t \sim \MVN(0,\RR)\label{eqn:mgompertzY}\\
+	\xx_t = \BB \xx_{t-1} + \uu + \vv_{t}, \text{ where } \vv_{t} \sim \MVN(0,\QQ)\label{eqn:mgompertzX}\\
+	\yy_t = \ZZ \xx_t + \aa + \ww_t, \text{ where } \ww_t \sim \MVN(0,\RR)\label{eqn:mgompertzY}\\
 	\xx_1 \sim \MVN(\pipi,\VV_1) \label{eqn:mgompertzX1}
 \end{gather}
 \end{subequations}
@@ -21,8 +21,8 @@ where -99 denotes a missing value.  $\xx$ might look like (here $m=2$):
     0.8 & 2.2 & 3 & 2.8 & 3.2 & ... &7.1\\
     1.5 & 2.5 & 2.5 & 2.2 & 3.1 & ... &6\end{array} \right]
 \end{equation*}
- $\ZZ$ is a $n \times m$ design matrix of zeros and ones where the row sums equal one\footnote{In our examples, $\ZZ$ is a design matrix but it can actually be any fixed matrix.}.  $\ZZ$ specifies which observation time series, $y_{i,1:T}$, is associated with which hidden state process, $x_{j,1:T}$.  $\ZZ$ is like a look up table with one row for each of the $n$ observation time series and one column for each of the $m$ hidden processes.  A ``1'' in row $i$ column $j$ means that $\yy$ time series $i$ is measuring the $j$-th $\xx$ trajectory.  Otherwise the value in $\ZZ_{ij}=0$.
-
+In the process equation, $\BB$ is a $m \times m$ matrix, $\uu$ and $\vv_t$ are $m \times 1$ matrices, and $\QQ$ is a $m \times m$ variance-covariance matrix for the $\vv_t$ process errors.  In the observation equation, $\ZZ$ is a $n \times m$ design matrix of zeros and ones where the row sums equal one\footnote{In our examples, $\ZZ$ is a design matrix but it can actually be any fixed matrix.}.  $\ZZ$ specifies which observation time series, $y_{i,1:T}$, is associated with which hidden state process, $x_{j,1:T}$. $\aa$ and $\ww_t$ are $n \times 1$ matrices, and $\RR$ is a $n \times n$ variance-covariance matrix for the $\ww_t$ observation errors.
+ 
 In the \verb@MARSS()@ function, the user specifies the model by passing in a parameter constraint list:\index{model specification!in MARSS}
 \begin{Schunk}
 \begin{Sinput}
@@ -31,7 +31,7 @@ MARSS(data, constraint=list(Z=Z.constraint, B=B.constraint,
        R=R.constraint, x0=pi.constraint, V0=V1.constraint) ) 
 \end{Sinput}
 \end{Schunk}
-\verb@data@ must be a $n \times T$ matrix, that is time goes across columns.   The argument \verb@constraint@ is a list of text strings, factors or a matrix that specifies the form of the MARSS parameters.  The defaults are
+\verb@data@ must be a $n \times T$ matrix, that is time goes across columns.   The argument \verb@constraint@ is a list, where the list elements for each model parameter can be a text string, vector of factors or matrix that specifies the form of the parameter.  The defaults are
 \begin{itemize}
 \item[] \verb@Z.constraint="identity"@ each $y$ in $\yy$ corresponds to one $x$ in $\xx$
 \item[] \verb@B.constraint="identity"@ no interactions between the $x$'s in $\xx$
@@ -42,13 +42,13 @@ MARSS(data, constraint=list(Z=Z.constraint, B=B.constraint,
 \item[] \verb@pi.constraint="unequal"@ all initial states are different
 \item[] \verb@V0.constraint="zero"@ the initial condition $\xx_1$ is fixed but unknown
 \end{itemize}
-The other possible \verb@constraint@ options for each parameter are listed below.  We show the forms using $m=3$ (the number of hidden state processes) as an example.
+Examples of the other possible \verb@constraint@ options for each parameter are listed below.  We show the forms using $m=3$ (the number of hidden state processes) and $n=3$ (number of observation time series).
 
-\section{Process equation constraints}
+\section{Process equation constraint options}
 
-\subsection{\texttt{B.constraint}}
+\subsection{$\BB$ constraints}
 
-$\BB$ is a $m \times m$ matrix.  In MARSS 1.0, $\BB$ must be fixed.  
+In MARSS 1.0, $\BB$ must be fixed. There are two ways that $\BB$ can be fixed: 
 \begin{itemize}\itemsep5pt
 \item[] \texttt{B.constraint="identity"} The $\BB$ matrix is the identity matrix:
 \begin{equation*}
@@ -57,12 +57,11 @@ $\BB$ is a $m \times m$ matrix.  In MARSS 1.0, $\BB$ must be fixed.
     0 & 1 & 0 \\
     0 & 0 & 1 \end{array} \right]
 \end{equation*}
-\item[] \texttt{B.constraint=matrix(..., nrow=m, ncol=m)}  Passing in a $m \times m$ matrix, means that $\BB$ is fixed to the values in the matrix. The matrix must be numeric and all eigenvalues must fall within the unit circle\footnote{meaning \texttt{all(abs(eigen(B)\$values)>=1)}.}.  Using the string ``zero'', sets $\BB=0$.
+\item[] \texttt{B.constraint=matrix(..., nrow=m, ncol=m)}  Passing in a $m \times m$ numeric matrix, means that $\BB$ is fixed to the values in the matrix. The matrix must be numeric and all eigenvalues must fall within the unit circle\footnote{meaning \texttt{all(abs(eigen(B)\$values)>=1)}.}.  Using the string ``zero'', sets $\BB=0$.
 \end{itemize}
 
 \subsection{$\uu$ constraints}
 
-The $\uu$ constraint has the following options:
 \begin{itemize}\itemsep5pt
 \item[] \texttt{U.constraint="equal"} There is only one value in $\uu$:
 \begin{equation*}
@@ -80,7 +79,7 @@ The $\uu$ constraint has the following options:
     u_3 \end{array} \right]
 \end{equation*}
 
-\item[] \texttt{U.constraint=as.factor(c(...))} Here the constraint is specified as a length $m$ character or numeric vector of class factor.  The vector of factors specifies which values in $\uu$ are shared.  \texttt{U.constraint=factor(c(1,1,2))} means that $\uu$ has the following structure:
+\item[] \texttt{U.constraint=factor(c(...))} Here the constraint is specified as a length $m$ character or numeric vector of class factor.  The vector of factors specifies which values in $\uu$ are shared.  \texttt{U.constraint=factor(c(1,1,2))} means that $\uu$ has the following structure:
 \begin{equation*}
  \left[ \begin{array}{c}
     u_1 \\
@@ -89,9 +88,11 @@ The $\uu$ constraint has the following options:
 \end{equation*}
 There are two values in $\uu$ in this case.  The factor levels can be either numeric or character.  \verb@c(1,1,2)@ is the same as \verb@c("north","north","south")@.
 
-\item[] \texttt{U.constraint=matrix(..., nrow=m, ncol=1)} Passing in a $m \times 1$ matrix, means that $\uu$ is fixed to the values in the matrix. The matrix must be numeric.  In MARSS 1.0, $\uu$ cannot vary in time, even if fixed.  $\uu$ can be set to all zeros (a $m \times 1$ matrix) by setting \texttt{U.constraint="zero"}; you might want to use this if you de-trended your data.  
+\item[] \texttt{U.constraint=matrix(..., nrow=m, ncol=1)} Passing in a $m \times 1$ numeric matrix, means that $\uu$ is fixed to the values in the matrix. In MARSS 1.0, $\uu$ cannot vary in time, even if fixed.  $\uu$ can be set to all zeros (a $m \times 1$ matrix) by setting \texttt{U.constraint="zero"}; you might want to use this if you de-trended your data.
 
-\item[] You can also pass in a matrix with fixed values and NAs: 
+\item[] \texttt{U.constraint=matrix(..., nrow=m, ncol=1)} Passing in a $m \times 1$ character matrix, means that all elements in $\uu$ are estimated.  Those elements that share a name will be forced to be the same value.
+
+\item[] You can also pass in a matrix with fixed values and NAs.  For example, \texttt{matrix(c(0.1, NA, NA))}:
 \begin{equation*}
  \left[ \begin{array}{c}
     0.1 \\
@@ -102,9 +103,8 @@ The fixed values will be set to the fixed values and the elements specified by N
 
 \end{itemize}
 
-\subsection{$\QQ$ constraint}
+\subsection{$\QQ$ constraints}
 
-The $\QQ$ constraint has the following options:
 \begin{itemize}\itemsep5pt
 \item[] \texttt{Q.constraint="diagonal and equal"} There is only one process variance value in this case:
 \begin{equation*}
@@ -188,7 +188,7 @@ Warning: specifying shared values in $\pipi$ will tend to produce ill-conditione
     \pi_3 \end{array} \right]
 \end{equation*}
 
-\item[] \texttt{pi.constraint=factor(c(...))} The constraint is specified is a length $m$ character or numeric vector of class factor.  The vector of factors specifies which initial states have the same value.  For example, \texttt{pi.constraint=factor(c(1,1,2))} means that $\pipi$ takes the form:
+\item[] \texttt{pi.constraint=factor(c(...))} The constraint is specified is a length $m$ character or numeric vector of class factor.  The vector of factors specifies which initial states have the same value.  For example, \texttt{factor(c(1,1,2))} means that $\pipi$ takes the form:
 \begin{equation*}
  \left[ \begin{array}{c}
     \pi_1 \\
@@ -198,7 +198,7 @@ Warning: specifying shared values in $\pipi$ will tend to produce ill-conditione
 There are two initial state parameters in this case.  The factor levels can be either numeric or character.  \verb@c(1,1,2)@ is the same as \verb@c("n","n","s")@.
 Warning: specifying shared values in $\pipi$ will tend to produce ill-conditioned matrices in the algorithm and lead to numerical instability.  Avoid if possible.
 
-\item[] \texttt{pi.constraint=matrix(..., nrow=m, ncol=1)}  Passing in a $m \times 1$ matrix, means that the initial states are fixed to the values in the matrix. The matrix must be numeric.  You can set the initial states to zero by using \texttt{pi.constraint="zero"}. 
+\item[] \texttt{pi.constraint=matrix(..., nrow=m, ncol=1)}  Passing in a $m \times 1$ numeric matrix, means that the initial states are fixed to the values in the matrix. You can set the initial states to zero by using \texttt{pi.constraint="zero"}. 
 
 \item[] You can also pass in a matrix with fixed values and NAs: 
 \begin{equation*}
@@ -213,7 +213,7 @@ The fixed values will be set to the fixed values and the values specified by NAs
 
 \subsection{$\VV_1$ constraints}
 
-The initial state variance must be fixed.  The default behavior is to treat $\xx_1$ as fixed but unknown\footnote{Shumway and Stoffer use $\xx$ at $t=0$ as the initial state, but we follow Ghahramani's approach and use $\xx$ at $t=1$ as the initial state. Both approaches give the same answer but the EM update equations are slightly different.}.  In this case, $\VV_1$=0.  You can also set $\VV_1$ to a non-zero value but in that case $\pipi$ must be fixed.  This would translate to using fixed prior for the initial states.
+The initial state variance must be fixed.  The default behavior is to treat $\xx_1$ as fixed but unknown\footnote{Shumway and Stoffer use $\xx$ at $t=0$ as the initial state, but we follow Ghahramani's approach and use $\xx$ at $t=1$ as the initial state. Both approaches give the same answer but the EM update equations are slightly different.}.  In this case, $\VV_1$=0.  You can also set $\VV_1$ to a non-zero value but in that case $\pipi$ must be fixed.  This would translate to using a fixed prior for the initial states.
  \begin{itemize}\itemsep5pt
  \item[] \texttt{V0.constraint=matrix(..., nrow=m, ncol=m)}  Passing in a $m \times m$ matrix, means that the initial state variance is fixed to the values in the matrix. The matrix must be numeric and be a proper variance-covariance matrix.
  \end{itemize}
@@ -255,7 +255,7 @@ The $\ZZ$ constraint can be specified using either numeric or character factor l
 
 \item[] \texttt{Z.constraint="identity"} This is the default behavior.  This means $\ZZ$ is a $n \times n$ identity matrix and $m=n$.  If $n=3$, it is the same as \texttt{Z.constraint=factor(c(1,2,3))}.
 
-\item[] \texttt{Z.constraint=matrix(..., nrow=n, ncol=m)}  Passing in a $n \times m$ matrix, means that $\ZZ$ is fixed to the values in the matrix. The matrix must be numeric but it does not need to be a design matrix.
+\item[] \texttt{Z.constraint=matrix(..., nrow=n, ncol=m)}  Passing in a $n \times m$ numeric matrix, means that $\ZZ$ is fixed to the values in the matrix. The matrix must be numeric but it does not need to be a design matrix.
 
 \end{itemize}
 
@@ -263,7 +263,7 @@ The $\ZZ$ constraint can be specified using either numeric or character factor l
 
 Using the \verb@MARSS()@ function, only \verb@A.constraint="scaling"@ or a fixed $\aa$ are allowed.  If ``scaling'', $\aa$ is a scaling factor without any direct meaning (it just says how the time series in $\yy$ scale relative to each other).   Unless you know the correct scaling, because say you simulated the data or you de-meaned the data, you should use the default.   To set $\aa$ to a fixed value (not estimated), use \texttt{A.constraint=matrix(..., nrow=n, ncol=m)}. The matrix must be numeric.  To fix $\aa$ to zero, use \texttt{A.constraint="zero"}.  
 
-Note, you can circumvent the restriction on $\aa$ by passing in a matrix with NAs (for estimated elements) or passing in a \verb@fixed@/\verb@free@ pair.  But be aware that it is very easy to make your model unsolvable (an infinite number of solutions)---if for example you try to estimate more that $n_i-1$ $a$'s, where $n_i$ is the number of $y$'s for one $x$.  If $\ZZ$ is identity, then $n_i=1$ and you can estimate no $a$'s; all must be fixed. 
+Note, you can circumvent the restriction on $\aa$ by passing in a matrix with NAs (for estimated elements) or passing in a \verb@fixed@/\verb@free@ pair.  But be aware that it is very easy to make your model unsolvable (an infinite number of solutions)---if for example you try to estimate more than $n_i-1$ $a$'s, where $n_i$ is the number of $y$'s for one $x$.  If $\ZZ$ is identity, then $n_i=1$ and you can estimate no $a$'s; all must be fixed. 
 
 \subsection{$\RR$ constraint}
 

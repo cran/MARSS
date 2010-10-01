@@ -12,19 +12,26 @@ MARSSaic = function(MLEobj, output=c("AIC","AICc"), Options=list(nboot=1000, ret
   #      AIC, AICc, AICbp, AICbb, AICi, boot.params
   # silent is a flag to indicate whether the progress bar should be printed
 
-  if(!is.list(Options)) stop("Options must be passed in as a list.")
+  if(!is.list(Options)){
+    msg = " Options argument must be passed in as a list.\n"
+    cat("\nErrors were caught in MARSSaic \n", msg, sep="") 
+    stop("Stopped in MARSSaic() due to problem(s) with arguments.\n", call.=FALSE)
+  } 
   ## Set options if some not passed in
   if(is.null(Options$nboot)) Options$nboot = 1000
   if(is.null(Options$return.logL.star)) Options$return.logL.star = FALSE
   if(is.null(Options$silent)) Options$silent = FALSE
   tmp = is.marssMLE(MLEobj)
   if(!isTRUE(tmp)) {
-    if(!Options$silent) print(tmp)
-    stop("marssMLE object is not fully or correctly specifed.  This function expects a fitted model as output by e.g. MARSSkem().")
-  }
-  if(is.null(MLEobj$logLik))
-    stop("No log likelihood.  This function expects a fitted model via maximum-likelihood.")
-  
+    if(!Options$silent) cat(tmp)
+    stop("Stopped in MARSSaic() due to problem(s) with the MLE object passed in.\n", call.=FALSE)
+    }
+    
+  if(is.null(MLEobj$logLik)){
+    msg = " No log likelihood.  This function expects a model fitted via maximum-likelihood.\n"
+    cat("\n","Errors were caught in MARSSaic \n", msg, sep="") 
+    stop("Stopped in MARSSaic() due to problem(s) with the MLE object passed in.\n", call.=FALSE)
+    }
   return.list=list()
 
   ## Some renaming for readability
@@ -48,7 +55,7 @@ MARSSaic = function(MLEobj, output=c("AIC","AICc"), Options=list(nboot=1000, ret
       K = K + pars
     }     
     MLEobj$AIC = -2*loglike + 2*K
-    samp.size = sum(model$data != model$miss.value)
+    samp.size = ifelse(is.na(model$miss.value), sum(!is.na(model$data)), sum(model$data != model$miss.value) )
     MLEobj$AICc = ifelse(samp.size > (K+1),-2*loglike + 2*K*(samp.size/(samp.size-K-1)),"NA, number of data points less than K+1")
     MLEobj$samp.size = samp.size 
     MLEobj$num.params = K
@@ -90,7 +97,7 @@ MARSSaic = function(MLEobj, output=c("AIC","AICc"), Options=list(nboot=1000, ret
 
   ##### AICbi  using Bengstrom and Cavanaugh algorithm
   if("AICi" %in% output){
-    stop("AICi computation is not fully tested at this time")
+    stop("Stopped in MARSSaic() because AICi computation is not fully tested at this time.\n", call.=FALSE)
     #    I wasn't able to replicate Bengstrom and Cavanaugh's results with my code
     logL.AICi=0; logL2.AICi=0; eqn8=0;
     if(!Options$silent) { #then we can draw a progress bar

@@ -9,7 +9,6 @@ MARSShessian = function(MLEobj) {
   kfNLL=function(paramvec, MLEobj){
     new.model = MARSSvectorizeparam(MLEobj, parvec=paramvec)
     y = new.model$model$data
-    y[which(y == new.model$model$miss.value)] = 0
     kf = MARSSkf(y, parList=new.model$par, missing.matrix=new.model$model$M, miss.value=new.model$model$miss.value)
     return(-kf$logLik)
   }

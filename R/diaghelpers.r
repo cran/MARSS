@@ -135,10 +135,12 @@ return(TRUE) #got through the check without returning FALSE, so OK
 }
 
 is.design = function(x) {
+if(!is.matrix(x)) return(FALSE)
 x=as.matrix(unname(x))
 if(any(is.na(x)) || any(is.nan(x))) return(FALSE)
 if(!is.numeric(x)) return(FALSE)
 if(!all(x %in% c(1,0))) return(FALSE)
+if(dim(x)[1]<dim(x)[2]) return(FALSE) #if fewer rows than columns then not design
 tmp = rowSums(x)
 if(!isTRUE(all.equal(tmp,rep(1,length(tmp))))) return(FALSE)
 return(TRUE)

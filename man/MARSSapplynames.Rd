@@ -2,7 +2,7 @@
 \alias{MARSSapplynames}
 \title{ Names for marssMLE Object Components }
 \description{
-  Puts names on the matrix components of \code{\link{marssMLE}} and \code{\link{marssm}} objects.     This is a utility function in the \code{\link{MARSS-package}}.
+  Puts names on the matrix components of \code{\link{marssMLE}} and \code{\link{marssm}} objects.  This is a utility function in the \code{\link{MARSS-package}} and is not directly accessible.  Use \code{MARSS:::MARSSapplynames()} to access.
 }
 \usage{
 MARSSapplynames(obj, Y.names = NA, X.names = NA, x0.names = NA, 
@@ -38,10 +38,5 @@ Default behavior will use names rownames of data (if available, and if not Y1, Y
   eli(dot)holmes(at)noaa(dot)gov, kellie(dot)wills(at)noaa(dot)gov
 }
 \seealso{ \code{\link{marssMLE}} \code{\link{marssm}} }
-\examples{
-  dat = t(harborSealWA)
-  dat = dat[2:nrow(dat),]
-  kem = MARSS(dat)
-  kemNamed = MARSSapplynames(kem)
-}
+
 

@@ -69,7 +69,6 @@ In the marssm object, the MARSS model is specified by fixed/free pairs of matric
 
 \seealso{ \code{\link{popWrap}} } 
 \examples{
-
   n = m = 5
   fixed = free = vector("list")
 
@@ -90,9 +89,8 @@ In the marssm object, the MARSS model is specified by fixed/free pairs of matric
 
   dat = t(harborSeal)
   dat = dat[2:nrow(dat),]
-  aa = MARSS:::allowed$kem
-  wrapperObj = popWrap(dat, allowed=aa, method="kem")
+  #allowed is a hidden variable which specifies what model structures are allowed
+  wrapperObj = popWrap(dat, MARSS:::allowed$kem, method="kem")
   modelObj = as.marssm(wrapperObj)
-
 }
 

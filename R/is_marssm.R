@@ -6,7 +6,7 @@
 
 is.marssm <- function(modelObj) 
 {
-  if(class(modelObj) != "marssm") stop("is.marssm: Object class is not marssm.")
+  if(class(modelObj) != "marssm") stop("Stopped in is.marssm() because object class is not marssm.\n", call.=FALSE)
   msg = NULL
 
 ###########################
@@ -102,10 +102,10 @@ is.marssm <- function(modelObj)
       msg = c(msg, paste("Missing free", en[est],"\n"))
     }
     if(any(dim.fix)) {
-      msg = c(msg, paste("Dimension problem in fixed", en[dim.fix], "Dims should be", correct.dim1[dim.fix], "x", correct.dim2[dim.fix],"\n"))
+      msg = c(msg, paste("Fixed", en[dim.fix], "dims do not match Z dims. Should be", correct.dim1[dim.fix], "x", correct.dim2[dim.fix],"based on Z.\n"))
     }
     if(any(dim.est)) {
-      msg = c(msg, paste("Dimension problem in free", en[dim.est], "Dims should be", correct.dim1[dim.est], "x", correct.dim2[dim.est],"\n"))
+      msg = c(msg, paste("Free", en[dim.est], "dims do not match Z dims. Should be", correct.dim1[dim.est], "x", correct.dim2[dim.est],"based on Z.\n"))
     }
     if(any(nomatch)) {
       msg = c(msg, paste("Problem with the fixed/free pair for ", en[nomatch], ". The NAs and non-NAs don't match up correctly.\n", sep=""))
@@ -157,34 +157,48 @@ is.marssm <- function(modelObj)
     zer = c(zer, zero.flag)
   }
   if(any(zer)) msg = c(msg, paste("The fixed matrix ", en[zer], " is not positive-definite (and var-cov matrices must be).\n", sep=""))
-
-        
+       
 ###########################
 # Check data and missing values consistency if data present
 ###########################
   if(!is.null(modelObj$data)) {
+    if(!is.numeric(modelObj$data)) msg = paste(msg, "Data must be numeric. \n")
+    for( bad.val in c(NA, NaN, Inf, -Inf)){
+      if(!identical(bad.val, modelObj$miss.value) && ( bad.val %in% modelObj$data ) ) 
+            msg = c(msg, paste("Data cannot have ", bad.val, "s unless miss.value is ", bad.val,". \n",sep=""))
+      }
+    if( (dim(modelObj$data)[1] != n) || length(dim(modelObj$data)) != 2)
+      msg = c(msg, "Data is not a 2D matrix or its dimensions do not match Z.\n")
 
-    if(!is.numeric(modelObj$data)) msg = paste(msg, "Data should be numeric. \n")
-    if( (dim(modelObj$data)[1] != n) || length(dim(modelObj$data)) < 2)
-      msg = c(msg, "Data is not a matrix or its dimensions do not match Z.\n")
-
-    ## Check missing values matrix consistent with data 
+    ## Check miss.value and missing values matrix are present and consistent with data 
     if(is.null(modelObj$miss.value) || is.null(modelObj$M)) {
       msg = c(msg, "Component miss.value or component M is missing.\n")
     }
-    else {
+    else { #miss.value and M are present
       TT = dim(modelObj$data)[2]  
       for(i in 1:TT) {
-        if( !isTRUE( all.equal(takediag(modelObj$M[,,i]), as.numeric(modelObj$data[,i] != modelObj$miss.value)) ) )
-	  msg = c(msg, "Missing data matrix is inconsistent with data. Call marssm() to fix.\n")
+        if(is.na(modelObj$miss.value)){ #This will catch both NAs and NaNs
+          if( !isTRUE( all.equal(takediag(modelObj$M[,,i]), as.numeric(!is.na(modelObj$data[,i]))) ) ){
+	           msg = c(msg, paste("Missing data matrix (M) is inconsistent with data at time ", i, ". Try marssm() to fix.\n", sep="")) }
+        }else {
+          if( !isTRUE( all.equal(takediag(modelObj$M[,,i]), as.numeric(modelObj$data[,i] != modelObj$miss.value)) ) ){
+	           msg = c(msg, paste("Missing data matrix (M) is inconsistent with data at time ", i, ". Try marssm() to fix.\n", sep="")) }
+        }
       }
+      ## Check that data is not all missing values 
+      if(is.na(modelObj$miss.value)){
+        if(all(is.na(modelObj$data))){ msg = c(msg, "Data consists only of missing values.\n") }
+        }
+        else {
+          if(all(modelObj$data == modelObj$miss.value) ){ msg = c(msg, "Data consists only of missing values.\n") }
+        }
     }
   } # end if(!is.null(modelObj$data))
 
   } # end if(is.null(msg))
 
-if(length(msg) == 0) return(TRUE)
-else {
+if(length(msg) == 0){ return(TRUE)
+}else {
   msg=c("\nErrors were caught in is.marssm()\n", msg)
   return(msg)
 }

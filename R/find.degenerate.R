@@ -3,10 +3,10 @@ find.degenerate=function(MLEobj){
 ##error checking
   tmp = is.marssMLE(MLEobj)
   if(!isTRUE(tmp)) {
-      stop("find.degenerate: marssMLE object is incomplete or inconsistent.\n", call.=FALSE)
+      stop("Stopped in find.degenerate() because marssMLE object is incomplete or inconsistent.\n", call.=FALSE)
     }
-  if(is.null(MLEobj$par) || is.null(MLEobj$iter.record)) stop("find.degenerate: MLE object does not have par or iter.record element.\n", call.=FALSE) 
-  if(MLEobj$method != "kem") stop("find.degenerate: This function is only for marssMLE objects generated from method=kem.\n", call.=FALSE) 
+  if(is.null(MLEobj$par) || is.null(MLEobj$iter.record)) stop("Stopped in find.degenerate() because MLE object does not have par or iter.record element.\n", call.=FALSE) 
+  if(MLEobj$method != "kem") stop("Stopped in find.degenerate() because this function is only for marssMLE objects generated from method=kem.\n", call.=FALSE) 
 
 #find the variance components and plot them
 names.iter=colnames(MLEobj$iter.record$par)

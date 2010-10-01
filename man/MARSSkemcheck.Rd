@@ -5,10 +5,11 @@
   This is a helper function in the \code{\link{MARSS-package}} that checks that the model can be handled by the \code{\link{MARSSkem}} algorithm.
 }
 \usage{
-MARSSkemcheck(modelObj)
+MARSSkemcheck(modelObj, method="kem")
 }
 \arguments{
   \item{modelObj}{ An object of class \code{\link{marssm}}. }
+  \item{method}{ The method to be used. Currently only \code{method="kem"} is available. }
 }
 \value{
   A list with of the model elements A, B, Q, R, U, x0, Z, V0 specifying the structure of the model using text strings).

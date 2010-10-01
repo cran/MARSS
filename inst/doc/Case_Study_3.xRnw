@@ -21,9 +21,11 @@ For management purposes, two stocks are recognized; the coastal stock consists o
 \end{figure}
 %~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Our goal for this case study is to address the following questions about spatial structure: 1) Does population abundance data support the existing management boundaries, or are there alternative groupings that receive more support? and 2) Does the Hood Canal site represent a distinct subpopulation?  Type \texttt{show.doc(MARSS, Case\_study\_3.R)} to open a file with the \R code to get you started on the analyses in this chapter.
+Our goal for this case study is to address the following questions about spatial structure: 1) Does population abundance data support the existing management boundaries, or are there alternative groupings that receive more support? and 2) Does the Hood Canal site represent a distinct subpopulation?   To address these questions, we will mathematically formulate different hypotheses about population structure via different MARSS models; each model represents a different population structure.  We will then compare the data support for different models using model selection\index{model selection} criteria, specifically AIC.
+
+Type \texttt{show.doc(MARSS, Case\_study\_3.R)} to open a file with the \R code to get you started on the analyses in this chapter.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section{How many distinct subpopulations?}  
+\section{How many distinct subpopulations?}\label{sec:CS3.analysis1}  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 We will analyze the support for five hypotheses about the population structure.  These do not represent all possible structures but instead represent those that are considered most biologically plausible given the geography and the behavior of harbor seals.
 \begin{description}
@@ -42,6 +44,9 @@ Write down the $\ZZ$ matrices for the hypotheses. Hint: Hypothesis 1 and 2 have 
 \bigskip
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&
+\begin{table}[htdp]
+\begin{center}
 \begin{tabular}{r cc c cc c c}
  & \multicolumn{2}{c}{H 1 and 2} & & \multicolumn{2}{c}{H 3 and 4} & & H 5\\
  & \multicolumn{2}{c}{$\ZZ$}  & & \multicolumn{2}{c}{$\ZZ$} & & $\ZZ$ \\
@@ -130,6 +135,8 @@ $
     \end{array}\right]
 $
 \end{tabular} 
+\end{center}
+\end{table}
 \bigskip
 \bigskip
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -171,45 +178,47 @@ Fill in the following table, by fitting the five state-space models---for the fi
 \bigskip
 \bigskip
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\begin{table}[htdp]
+\caption{Table to fill out for the five hypotheses from the first analysis (Section \ref{sec:CS3.analysis1}). The code of the form
+\texttt{\$foo\$bar} shows you what to type at the command line to output each parameter or metric.  Remember to add the name of the model fit, e.g. \texttt{kem\$foo\$bar} where \texttt{kem} is the name you gave to the model fit.}
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|c|c|}
+\begin{tabular}{c|c|c|c|c|c|c|c|}
+     &  pop. growth   &  &  & $K$   &      &  & \\
+H &  rate    &   proc. variance  & obs. variance & \verb@$num.@   &   log-like   & AIC  & AICc\\
+  &  \verb@$par$U@    &   \verb@$par$Q@  & \verb@$par$R@ & \verb@params@ & \verb@$logLik@ & \verb@$AIC@ & \verb@$AICc@ \\	
+\hline
+& &   &  &    &   & &\\
+1&  &   &  &    &   & &\\
+& &   &  &    &   & &\\
+\hline
+&  &   &  &    &   & &\\
+2&  &   &  &    &   & &\\
+&  &   &  &    &   & &\\
 	\hline
-     &  pop. growth   &   process  & obs. & $K$   & log-     &   \\
-H &  rate    &   variance  & variance & \verb@kem$num.@  & like.     & AIC  \\
-  &  \verb@kem$par$U@    &   \verb@kem$par$Q@  & \verb@kem$par$R@ & \verb@params@ & \verb@kem$logLik@ & \verb@kem$AIC@  \\	
+&  &   &  &    &   & &\\
+3&  &   &  &    &   & &\\
+&  &   &  &    &   & &\\
 \hline
-& &   &  &    &   &\\
-1&  &   &  &    &   &\\
-& &   &  &    &   &\\
+&  &   &  &    &   & &\\
+4&   &   &  &    &   & &\\
+&   &   &  &    &   & &\\
 \hline
-&  &   &  &    &   &\\
-2&  &   &  &    &   &\\
-&  &   &  &    &   &\\
-	\hline
-&  &   &  &    &   &\\
-3&  &   &  &    &   &\\
-&  &   &  &    &   &\\
-\hline
-&  &   &  &    &   &\\
-4&   &   &  &    &   &\\
-&   &   &  &    &   &\\
-\hline
-&   &   &  &    &   &\\
-5&    &   &  &    &   &\\
-&    &   &  &    &   &\\
-\hline
+&  &   &  &    &   & &\\
+5&   &   &  &    &   & &\\
+&   &   &  &    &   & &\\
 \end{tabular}
 \end{center}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{table}
+%~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 \bigskip
 
 \subsection{Interpret results for question 1}
-What do these results indicate about the process error grouping and spatial grouping?  A lower AIC means a more parsimonious model (highest likelihood given the number of parameters).  A difference of 10 between AICs is large, and means the model with the higher AIC is unsupported relative to the model with lower AIC.
+What do these results indicate about the process error grouping and spatial grouping?  A lower AIC\index{model selection!AIC} means a more parsimonious model (highest likelihood given the number of parameters).  A difference of 10 between AICs is large, and means the model with the higher AIC is unsupported relative to the model with lower AIC.
 
 Extra analysis (if you have time):  Do your results change if you assume that observation errors are independent but have unique variances?  The nine sites have different numbers of haul-outs and so the observation variances might be different.  Repeat the analysis with unique observation variances for each site (this means changing \verb@R.constraint@).  You can also try the analysis with temporally co-varying subpopulations (good and bad years correlated) by setting \verb@Q.constraint="unconstrained"@ or \verb@Q.constraint="equalvarcov"@.
 
-\section{Is Hood Canal separate?}
+\section{Is Hood Canal separate?}\label{sec:CS3.analysis2}
 The Hood Canal site may represent a distinct population, and has recently been subjected to a number of catastrophic events (hypoxic events, possibly leading to reduced prey availability, and several killer whale predation events, removing up to 50\% of animals per occurrence).  Build four models, assuming that each site (other than Hood Canal) is assigned to its current management stock, but Hood Canal is a different subpopulation ($m=3$).  Again, assume that observation error variance is identical and independent across sites.
 
 \begin{description}
@@ -315,7 +324,7 @@ Specify \texttt{Q.groups} showing which subpopulations share their process varia
 \item{Hypothesis 4: \verb@Q.constraint=@}
 \end{itemize}
 \verb@Q.constraint@ will be a length $m$ vector of factors.
-\texttt{R.constraint} is the same as for Question 1; the observation variances are the same for each site.
+\texttt{R.constraint} is set so that the observation variances are the same for each site.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Fit the models and summarize results}
@@ -330,38 +339,40 @@ kem = MARSS(sealData, constraint=list(Z = Z.constraint,
 \bigskip
 
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\begin{table}[htdp]
+\caption{Table to fill out for the four hypotheses from the second analysis (Section \ref{sec:CS3.analysis2}). The code of the form
+\texttt{\$foo\$bar} shows you what to type at the command line to output each parameter or metric.  Remember to add the name of the model fit, e.g. \texttt{kem\$foo\$bar} where \texttt{kem} is the name you gave to the model fit.}
 \begin{center}
-\begin{tabular}{|c|c|c|c|c|c|c|}
+\begin{tabular}{c|c|c|c|c|c|c|c|}
+     &  pop. growth   &  &  & $K$   &      &  & \\
+H &  rate    &   proc. variance  & obs. variance & \verb@$num.@   &   log-like   & AIC  & AICc\\
+  &  \verb@$par$U@    &   \verb@$par$Q@  & \verb@$par$R@ & \verb@params@ & \verb@$logLik@ & \verb@$AIC@ & \verb@$AICc@ \\	
+\hline
+& &   &  &    &   & &\\
+1&  &   &  &    &   & &\\
+& &   &  &    &   & &\\
+\hline
+&  &   &  &    &   & &\\
+2&  &   &  &    &   & &\\
+&  &   &  &    &   & &\\
 	\hline
-     &  pop. growth   &  &  & $K$   & log-like     &   \\
-H &  rate    &   proc. variance  & obs. variance & \verb@kem$num.@   & \verb@kem$@     & AIC  \\
-  &  \verb@kem$par$U@    &   \verb@kem$par$Q@  & \verb@kem$par$R@ & \verb@params@ & \verb@logLik@ & \verb@kem$AIC@  \\	
+&  &   &  &    &   & &\\
+3&  &   &  &    &   & &\\
+&  &   &  &    &   & &\\
 \hline
-& &   &  &    &   &\\
-1&  &   &  &    &   &\\
-& &   &  &    &   &\\
-\hline
-&  &   &  &    &   &\\
-2&  &   &  &    &   &\\
-&  &   &  &    &   &\\
-	\hline
-&  &   &  &    &   &\\
-3&  &   &  &    &   &\\
-&  &   &  &    &   &\\
-\hline
-&  &   &  &    &   &\\
-4&   &   &  &    &   &\\
-&   &   &  &    &   &\\
-\hline
+&  &   &  &    &   & &\\
+4&   &   &  &    &   & &\\
+&   &   &  &    &   & &\\
 \end{tabular}
 \end{center}
+\end{table}
 %~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 \bigskip
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Interpret results for Question 2}
+\subsection{Interpret results for question 2}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-How do the residuals for the Hood Canal site compare from these models relative to the best model from Question 1?  Hint:  If you have the vector of estimated population states (\verb@Xpred = t(kem$states@)) and the data (\texttt{Xobs = sealData}), the residuals for site $i$ can be plotted in \emph{R} as:
+How do the residuals for the Hood Canal site compare from these models relative to the best model from question 1?  Hint:  If you have the vector of estimated population states (\verb@Xpred = t(kem$states@)) and the data (\texttt{Xobs = sealData}), the residuals for site $i$ can be plotted in \emph{R} as:
 <<plotresiduals,eval=F, fig=F, keep.source=T>>= 
 Xpred = t(kem$states)
 Xobs = sealData
@@ -370,7 +381,7 @@ plot(Xpred[, Z.constraint[i]] - Xobs[,i],
 @
 In \R, if you have a matrix \verb@Y[1:numYrs, 1:n]@, you can extract column $j$ by writing \verb@Yj = Y[,j]@.
 
-Relative to the previous models from Question 1, do these scenarios have better or worse AIC scores (smaller AIC is better)?  If you were to provide advice to managers, would you recommend that the Hood Canal population is a source or sink?  What implications does this have for population persistence?
+Relative to the previous models from question 1, do these scenarios have better or worse AIC scores (smaller AIC is better)?\index{model selection!AIC}  If you were to provide advice to managers, would you recommend that the Hood Canal population is a source or sink?  What implications does this have for population persistence?
 
 <<Reset, echo=F>>=
 options(prompt="> ", continue="+ ")
