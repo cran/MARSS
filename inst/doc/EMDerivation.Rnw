@@ -1,11 +1,26 @@
 %\VignetteIndexEntry{EM Derivation} 
 %\VignettePackage{MARSS}
-\documentclass[]{article}
+\documentclass[pdftex]{article}
+\usepackage{pslatex}	    % to use PostScript fonts
+%% Set PDF 1.5 and compression, including object compression
+%% Needed for MiKTeX -- most other distributions default to this
+\ifx\pdfoutput\undefined
+\else
+  \ifx\pdfoutput\relax
+  \else
+    \ifnum\pdfoutput>0
+      % PDF output
+      \pdfminorversion=5
+      \pdfcompresslevel=9
+      \pdfobjcompresslevel=2
+    \fi
+  \fi
+\fi
 
 % choose options for [] as required from the list
 % in the Reference Guide, Sect. 2.2
 
-\usepackage{Sweave}
+%\usepackage{Sweave}
 \usepackage{multirow}
 \usepackage[bottom]{footmisc}% places footnotes at page bottom
 \usepackage[round]{natbib}
@@ -2089,18 +2104,19 @@ When $\QQ$ has zeros on the diagonal, then we might also have similar numerical 
 &\text{where }\VV_t^{t-1} = \BB \VV_{t-1}^{t-1} \BB^\top + \QQ
 \end{split}
 \end{equation}
-If $\QQ$ has zeros on the diagonal, the corresponding $\JJ_t$ elements become:
-\begin{equation}\label{eq:Jt.3}
-\begin{split}
-\JJ_t &= \VV_{t-1}^{t-1}\BB^\top(\BB \VV_{t-1}^{t-1} \BB^\top)^{-1}\\
-&= \VV_{t-1}^{t-1}\BB^\top (\BB^\top)^{-1}(\VV_{t-1}^{t-1})^{-1}\BB^{-1}\\
-&= \BB^{-1}
-\end{split}
+If there are zeros on the diagonals of ($\LAM$ and/or $\BB$) and $\QQ$ and these zeros line up, then if the $\BB^{(0)}$ and $\BB^{(1)}$ elements in $\BB$ are blocks\footnote{This means the following.  Let the rows where the diagonal elements in $\QQ$ equal zero be denoted $i$ and the the rows where there are non-zero diagonals be denoted $j$. The $\BB^{(0)}$ elements are the $\BB$ elements where both row and column are in $i$.  The $\BB^{(1)}$ elements are the $\BB$ elements where both row and column are in $j$.  If the $\BB^{(0)}$ and $\BB^{(1)}$ elements in $\BB$ are blocks, this means all the $\BB_{i,j}$ are 0; no deterministic components interact with the stochastic components.}, there will be zeros on the diagonal of $\VV_t^t$.  Thus there will be zeros on the diagonal of $\VV_t^{t-1}$ and it cannot be inverted.  In this case, the corresponding elements of $\VV_t^T$ need to be zero since what's happening is that those elements are deterministic and thus have 0 variance.
+
+We want to catch these zero variances in $\VV_t^{t-1}$ so that we can take the inverse.  Note that this can only happen when there are zeros on the diagonal of $\QQ$ since $\BB \VV_{t-1}^{t-1} \BB^\top$ can never be negative on the diagonal since $\BB \BB^\top$ must be positive-definite and so is $\VV_{t-1}^{t-1}$.  The basic idea is the same as above.  We replace $(\VV_t^{t-1})^{-1}$ with:
+\begin{equation}
+(\OMG_{Vt}^+)^\top\big(\OMG_{Vt}^+(\VV_t^{t-1})(\OMG_{Vt}^+)^\top\big)^{-1}\OMG_{Vt}^+
 \end{equation}
-Note when $\LAM = 0$ and $\QQ=0$, $\JJ_0$ could be set to 0 or $\BB^{-1}$.
+where $\OMG_{Vt}^+$ is a matrix that removes all the positive $\VV_t^{t-1}$ rows analogous to  $\OMG_t^{(1)}$.
 
 \subsection{EM algorithm modifications}
+[1/25/2012 note.  This whole section is under construction and very rough, but I'm posting as is to get version 2.9 up.]
+
 The constrained update equations for $\QQ$ and $\RR$ (either diagonal w/o missing values or non-diagonal with no missing values) work fine because they deal with fixed values (in this case, zeros) and the derivation does not involve any inverses of non-invertible matrices. However if $\RR$ is non-diagonal and there are missing values, then the $\RR$ update equation  involves $\hatyt$, and that will involve the inverse of $\RR_{11}$  (section \ref{sec:exp.Y}), which might have zeros on the diagonal.  In that case, use the $\IR_t$ modification that deals with zeros on the diagonal of $\RR$ (equation \ref{eq:IRt.degen}).
+
 
 \subsubsection{Modified likelihood for partially deterministic models}
 Let $\RR^+$ be the sub-setted positive $\RR$ matrix.  For example, if
@@ -2153,22 +2169,30 @@ Let $\OMG_r^{(0)}$ be a $(n-p) \times n$  matrix that extracts the $n-p$ zero ro
 \end{equation}
 Similarly,  $\OMG_q^+$ extracts the non-zero rows from $\QQ$ and  $\OMG_q^{(0)}$ extracts the zero rows.
 
-Using these definitions, we can rewrite the MARSS model by separating out the deterministic parts ($\QQ=0$):
-\begin{equation}\label{eq:degen.model1}
+Using these definitions, we can rewrite the state process part of the MARSS model by separating out the deterministic parts ($\QQ=0$):
+\begin{equation}\label{eq:degen.model.x1}
 \begin{split}
 \xx_t^{(0)}&=\OMG_q^{(0)}\xx_t=\OMG_q^{(0)}\BB\xx_{t-1} + \OMG_q^{(0)}\uu\\
 \xx_t^+&=\OMG_q^+\xx_t=\OMG_q^+\BB\xx_{t-1} + \OMG_q^+\uu + \ww_t^+\\
 \ww_t^+ &\sim \MVN(0,\QQ^+)\\
 \xx_0& \sim \MVN(\xixi,\LAM)
-\\
-\yy_t^{(0)}&=\OMG_r^{(0)}\yy_t=\OMG_r^{(0)}(\ZZ\II_q^+\xx_t + \ZZ(\OMG_q^{(0)})^\top\OMG_q^{(0)}(\BB\xx_{t-1}+\uu) + \aa)\\
-\yy_t^+&=\OMG_q^+\yy_t=\OMG_q^+(\ZZ\II_q^+\xx_t + \ZZ\II_q^{(0)}(\BB\xx_{t-1}+\uu) + \aa) + \vv_t^+\\
+\end{split}
+\end{equation}
+Similarly, we can rewrite the observation process part of the MARSS model by separating out the parts with $\RR=0$:
+\begin{equation}\label{eq:degen.model.y1}
+\begin{split}
+\yy_t^{(0)}&=\OMG_r^{(0)}\yy_t=\OMG_r^{(0)}(\ZZ\xx_t + \aa) \\
+&=\OMG_r^{(0)}(\ZZ\II_q^+\xx_t + \ZZ\II_q^{(0)}\xx_t + \aa)\\
+\yy_t^+&=\OMG_r^+\yy_t=\OMG_r^+(\ZZ\xx_t + \aa) + \vv_t^+\\
+&=\OMG_r^+(\ZZ\II_q^+\xx_t + \ZZ\II_q^{(0)}\xx_t + \aa)+\vv_t^+\\
 \vv_t^+ &\sim \MVN(0,\RR^+)
 \end{split}
 \end{equation}
-In order for this to be solvable, we require that $\OMG_r^{(0)}\ZZ\II_q^{(0)}$ is all zeros so that $\BB$ and $\uu$ do not appear in the $\yy^{(0)}$ equation, and then they disappear in the $\yy^{(0)}$ equation as shown above.  That is, if state process $x_i$ (in $\xx$) is deterministic (0 process variance), then no observation processes $y$ in $\yy$ that involves that $x_i$ (through $\ZZ$) shall have 0 observation variance.  Also notice that $\OMG_r^{(0)}\ZZ$ and $\OMG_r^{(0)}\aa$ appear in the $\yy^{(0)}$ equation and not in the $\yy^+$ equation.  This means that $\OMG_r^{(0)}\ZZ$ and $\OMG_r^{(0)}\aa$ cannot be estimated but must be fixed terms.
 
-Summarizing, this equation becomes
+In order for this to be solvable using an EM algorithm with the Kalman filter, we require that no estimated $\BB$ or $\uu$ elements appear in the equation for $\yy_t^{(0)}$.  Since the $\yy_t^{(0)}$ don't appear in the likelihood function ($\RR^{(0)}=0$), $\yy_t^{(0)}$ would not affect the the estimate for the parameters appearing in the $\yy_t^{(0)}$ equation.  This translates to the following constraints, $(\II \otimes \ZZ^+\II_q^{(0)})\DD_B$ is all zeros and $(\II \otimes \ZZ^+\II_q^{(0)})\DD_u$ is all zeros.
+Also notice that $\OMG_r^{(0)}\ZZ$ and $\OMG_r^{(0)}\aa$ appear in the $\yy^{(0)}$ equation and not in the $\yy^+$ equation.  This means that $\OMG_r^{(0)}\ZZ$ and $\OMG_r^{(0)}\aa$ cannot be estimated but must be fixed terms.
+
+In summary, the degenerate model becomes
 \begin{equation}\label{eq:degen.model2}
 \begin{split}
 \xx_t^{(0)}&=\BB^{(0)}\xx_{t-1} + \uu^{(0)}\\
@@ -2176,38 +2200,54 @@ Summarizing, this equation becomes
 \ww_t^+ &\sim \MVN(0,\QQ^+)\\
 \xx_0& \sim \MVN(\xixi,\LAM)
 \\
-\yy_t^{(0)}&=\ZZ^{(0)}\xx_t + \aa^{(0)}\\
+\yy_t^{(0)}&=\ZZ^{(0)}\II_q^+\xx_t + \ZZ^{(0)}\II_q^{(0)}\xx_t + \aa^{(0)}\\
 \yy_t^+&=\ZZ^+\xx_t + \aa^+ + \vv_t^+\\
 &=\ZZ^+\II_q^+\xx_t + \ZZ^+\II_q^{(0)}\xx_t + \aa^+ + \vv_t^+\\
 \vv_t^+ &\sim \MVN(0,\RR^+)
 \end{split}
 \end{equation}
-As discussed above, we require that $\OMG_r^{(0)}\ZZ\II_q^{(0)}$ is all zeros while $\OMG_r^+\ZZ\II_q^{(0)}$ has no rows that are all zeros.  This equation is conceptually the same as equation 4.2.28 in Harvey (1989).
+where $\BB^{(0)}=\OMG_q^{(0)}\BB$ and $\BB^+=\OMG_q^+\BB$ so that $\BB^{(0)}$ are the rows of $\BB$ corresponding to the diagonal of $\QQ=0$ and $\BB^+$ are the rows of $\BB$ corresponding to the diagonal of $\QQ \neq 0$.  The other parameters are similarly defined: $\uu^{(0)}=\OMG_q^{(0)}\uu$  and $\uu^+=\OMG_q^+\uu$, $\ZZ^{(0)}=\OMG_r^{(0)}\ZZ$  and $\ZZ^+=\OMG_r^+\ZZ$, and $\aa^{(0)}=\OMG_r^{(0)}\aa$  and $\aa^+=\OMG_r^+\aa$.
 
 We want to write down the joint likelihood of $\yy^+=\{\yy_1^+,\yy_2+,\yy_3+,...\}$ and $\xx^+=\{\xx_1^+,\xx_2^+,\xx_3^+,...\}$. 
-We can write the joint log-likelihood function for the + elements using equation \eqref{eq:degen.model1} and the likelihood function for a multivariate normal distribution.  
+We can write the joint log-likelihood function for the + elements using equations \ref{eq:degen.model.x1} and \ref{eq:degen.model.y1} along with the likelihood function for a multivariate normal distribution.  
 \begin{equation}\label{eq:degen.logL}
 \begin{split}
-&\Psi^+ = \log\LL(\yy^+,\xx^+ ; \Theta) = \\
+&\log\LL(\yy^+,\xx^+ ; \Theta) = \\
 &-\frac{1}{2}\sum_1^T (\yy_t^+ - \ZZ^+(\II_q^+\xx_t + \II_q^{(0)}\xx_t) - \aa^+)^\top (\RR^+)^{-1}\\ 
 &\quad (\yy_t^+ - \ZZ^+(\II_q^+\xx_t + \II_q^{(0)}\xx_t) - \aa^+) -\frac{T}{2}\log |\RR^+|\\
 &  -\frac{1}{2}\sum_1^T (\xx_t^+ - \BB^+ \xx_{t-1} - \uu^+)^\top (\QQ^+)^{-1} (\xx_t^+ - \BB^+ \xx_{t-1} - \uu^+) - \frac{T}{2}\log |\QQ^+|\\
-&  -\frac{1}{2}(\xx_0 - \xixi)^\top \VV_0^{-1}(\xx_0 - \xixi) - \frac{1}{2}\log |\LAM| -\frac{n}{2}\log 2\pi \\
+&  -\frac{1}{2}(\xx_0 - \xixi)^\top \LAM^{-1}(\xx_0 - \xixi) - \frac{1}{2}\log |\LAM| -\frac{n}{2}\log 2\pi \\
 \end{split}
 \end{equation}
 $n$ is the number of data points.  If either $\RR$ or $\QQ$ are all zero, the line in the log-likelihood equation involving $\RR^+$ or $\QQ^+$ disappears.
-Notice that $\aa^{(0)}$ and $\ZZ^{(0)}$ do not appear, which means that the rows of $\aa$ and $\ZZ$ associated with deterministic $\yy$ do not appear.  Since these parameters do not appear in the likelihood (as written above), we cannot maximize the expected log-likelihood with respect to them.  Notice also that $\BB^{(0)}$ and $\uu^{(0)}$ appear in the $\yy$ part of the likelihood while $\BB^+$ and $\uu^+$ appear in the $\xx$ part.
+Notice that $\aa^{(0)}$ and $\ZZ^{(0)}$ do not appear, which means that the rows of $\aa$ and $\ZZ$ associated with deterministic $\yy$ do not appear.  Since these parameters do not appear in the likelihood (as written above), we cannot maximize the expected log-likelihood with respect to them.  Notice also that $\BB^{(0)}$ and $\uu^{(0)}$ appear in the $\yy$ part of the likelihood (in $\II_q^{(0)}\xx_t$) while $\BB^+$ and $\uu^+$ appear in the $\xx$ part.
 
 If $\xx_0$ is treated as fixed ($\LAM=0$), then the likelihood takes a slightly different form using equation \eqref{eq:degen.model2}
 \begin{equation}\label{eq:degen.logL.x0.fixed}
 \begin{split}
-&\Psi^+ = \log\LL(\yy^+,\xx^+ ; \Theta) = \\
+&\log\LL(\yy^+,\xx^+ ; \Theta) = \\
 &-\frac{1}{2}\sum_1^T (\yy_t^+ - \ZZ^+(\II_q^+\xx_t + \II_q^{(0)}\xx_t) - \aa^+)^\top (\RR^+)^{-1}\\ &\quad (\yy_t^+ - (\ZZ^+\II_q^+\xx_t + \ZZ^+(\II_q^+\xx_t + \II_q^{(0)}\xx_t) - \aa^+) -\frac{T}{2}\log |\RR^+|\\
 &-\frac{1}{2}\sum_1^T (\xx_t^+ - \BB^+ \xx_{t-1} - \uu^+)^\top (\QQ^+)^{-1} (\xx_t^+ - \BB^+ \xx_{t-1} - \uu^+)\\
 & - \frac{T}{2}\log |\QQ^+| -  \frac{n}{2}\log 2\pi\\
 &\quad \text{where }\xx_0 \equiv \xixi  \\
 \end{split}
 \end{equation}
+
+If the initial condition parameters refer to $\xx_1$ instead of $\xx_0$, then the $\xx$ summation in equations \ref{eq:degen.logL.x0.fixed} and \ref{eq:degen.logL} starts at 2 instead of 1.
+
+\subsubsection{Summary of requirements}
+Below are discussed the update equations for the different parameters.  Here I summarize the constraints that are scattered throughout these subsections.
+\begin{itemize}
+\item $(\II \otimes \ZZ^+\II_q^{(0)})\DD_B$ is all zeros; if there is a $y$ with $\RR=0$ and it is linked (through $\ZZ$) to an $x$ with $\QQ=0$, then the corresponding $\BB$ elements are fixed instead of estimated.
+\item $(\II \otimes \ZZ^+\II_q^{(0)})\DD_u$ is all zeros; if there is a $y$ with $\RR=0$ and it is linked (through $\ZZ$) to an $x$ with $\QQ=0$, then the corresponding $\uu$ elements are fixed instead of estimated.
+\item $(\II \otimes \OMG_r^{(0)})\DD_z$ is  all zeros; if $y$ has no observation error, then the corresponding $\ZZ$ rows are fixed values.
+\item $(\II \otimes \OMG_r^{(0)})\DD_a$ is all zeros; if $y$ has no observation error, then the corresponding $\aa$ rows are fixed values.
+\item $\OMG_r^+\ZZ\II_q^{(0)}$ has no rows that are all zeros; this is a sufficient contraint but it's a bit too stringent.  The constraint is that the $\BB^{(0)}$ elements appear in the $\yy^+$ part of the likelihood and you need to make sure that all the elements appear (aren't zero-ed out by zero rows in $\OMG_r^+\ZZ\II_q^{(0)}$).   This requirement means that there are no deterministic processes observed with no errors; if you have deterministic processes that are observed with no errors, then you should be able to rewrite the model to remove that redundant $y$ by having $n < m$.
+\item $\BB^{(0)}$ is fixed.  While it could be estimated potentially, the derivation here assumes it is not.
+\item If part or all of $\uu^{(0)}$ is estimated, then the estimated $\uu^{(0)}$ elements must unconnected to the stochastic part of the $\xx$ model; this allows us to use the matrix geometric series to rewrite $\xx^{(0)}$ in terms of $\uu^{(0)}$, $\xixi^{(0)}$ and $\BB^{(0)}$ in the $\uu$ update equation.  $\BB$ must be block diagonal with $\OMG_q^{(0)}\BB(\OMG_q^{(0)})^\top$ and $\OMG_q^+\BB(\OMG_q^+)^\top$ in separate blocks or . This means that deterministic state processes are not linked to the stochastic state processes through $\BB$.   Also the absolute value of all the eigenvalues of $\OMG_q^{(0)}\BB(\OMG_q^{(0)})^\top$ must be less than 1.
+\item If $\uu^(0)$ is fixed, then $\BB$ need not be block diagonal.  The only requirement is that $\BB^{(0)}$ is fixed.
+\end{itemize}
+The dimension of the identity matrices in the above constraints is implicit.
 
 \subsubsection{$\ZZ^+$ and $\aa^+$ update equations for partially deterministic models}
 The $\aa$ and $\ZZ$ update equations involve both $\hatyt$ and the inverse of $\RR$ and thus must be modified allow zeros on the diagonal of $\RR$.   
@@ -2235,69 +2275,86 @@ The new $\aa$ parameter is then
 \end{equation}
 The $\aa^{(0)}$ elements are fixed which means that  $\DD_a^\top\RR^*\DD_a$ is invertible.  For example, if $\RR$ is all zeros and $\ZZ$ is a column vector, then all the $\aa$ elements must be fixed.
 
-\subsubsection{$\uu$ update equation for partially deterministic models with diagonal $\BB^{(0)}$}
-To derive the update equation for $\uu$, we need to take the partial derivative of $\Psi^+$ holding everything constant except $\uu$.  If a state process is fully deterministic and $\BB$ is diagonal, then we cannot hold $\xx^{(0)}$ constant while changing $\uu^{(0)}$.  If we change $\uu^{(0)}$, then $\xx^{(0)}$ must change because it is deterministic.  This is in contrast to $\uu^+$ which can be changed while holding $\xx^+$ constant, because $\xx^+$ is stochastic and all values are possible for a given $\uu^+$ (albeit maybe not as likely).
+\subsubsection{Systems with fully deterministic $\xx$ rows}
 
-When $\BB^{(0)}$ is diagonal and there are no $\BB$ elements linking the $\BB^+$ and $\BB^{(0)}$ blocks, the equation for the deterministic state processes becomes $x_t = b x_{t-1} + u$ which is simply 
+Our process equation is $\xx_t = \BB\xx_{t-1}+\uu$, with the $\ww_t$ term left off. Each row $i$ in $\uu$ is an individual $u_i$ parameter although we work with $\uu$ as a vector. Each $u_i$ is associated with row $i$ in $\xx_t$ (left side).  When we do the partial differentiation step in deriving the EM update equation for $\uu$ (or $\xixi$ if $\LAM=0$), we will need to take a partial derivative  while holding $\xx_t$ (which includes $\xx_{t-1}$) constant.  If any of our rows in $\xx_t$ are fully deteministic, meaning no process variance for that row and NOT connected through $\BB$ to any of the stochastic rows, then we cannot hold that row of $\xx$ constant while changing the corresponding row of $\uu$ (or $\xixi$ if $\LAM=0$).  If a row of $\xx$ is fully deterministic, then that $x_i$ must change when $u_i$ is changed (or $\xi_i$ if $\LAM=0$).  Thus we simply cannot do the partial differentiation step required in the EM update equation derivation.  
+
+So we need to identify the fully deterministic $\xx$ and treat them differently in our update equation.  $x_i$ is directly stochastic when the corresponding $\QQ$ diagonal term is non-zero.  I will denote this group as the $\QQ\neq 0$ group.  Secondly, $x_i$ could be indirectly stochastic by being connected to the $\QQ\neq 0$ group through $\BB$. If we replace all non-zero elements in $\BB$ with 1, then we have an adjacency matrix, let's call it $\MM$, for our system of $x$'s.  Then finding out whether $x_i$ is fully deterministic is a matter of determining if there exists a path in $\MM$ from $x_i$ in the $\QQ=0$ group to the $x_i$ in the $\QQ\neq 0$ group.  If no path exists, then $x_i$ is fully deterministic.  Note if $x_i$ is fully deterministic but we are not trying to estimate $u_i$ or $\xixi_i$ or $\BB_{i,.}$, then it does not matter since we won't be taking the partial derivative with respect to $u_i$.   
+
+Denote the $i$ for the fully deterministic $\xx$ rows as ${d}$.  $\BB$ can be thought of has having two types of rows: stochastic either directly on indirectly and fully deterministic.  By definition, the $\BB$ can be rearranged to look something like so where $s$ are stochastic because $\QQ\neq 0$, $is$ are indirectly stochastic because $\QQ=0$ but they are linked to the $s$ rows through $\BB$, and $d$ are fully deterministic rows because $\QQ=0$ and they are not linked to the $s$ rows through $\BB$:
+\begin{equation}\label{eq:block.B}
+\begin{bmatrix}
+s&s&s&s&s\\
+s&s&s&s&s\\
+is&is&is&is&is\\
+0&0&d&d&d\\
+0&0&d&d&d\\
+\end{bmatrix}
+\end{equation}
+The $s$'s, $is$'s and $d$'s are not all equal; I am just showing the blocks.  The 0s in the fully deterministic rows are what is causing these to be fully deterministic.  This is the $\QQ=0 \bullet \LAM=0$ group that is unconnected to the  $\QQ\neq 0$ group through any path through $\BB$.
+
+How do you determine the $d$, or deterministic, set of $\xx$ rows?  Since my $\BB$ matrices are small, I use a very inefficient strategy in my code.  I define the $\MM$ adjacency matrix by replacing all non-zero $\BB$ values with 1.  Then I raise $\MM$ to the $m$-th power to find all the connections of length $m$ or smaller. I subset out the $\MM^m$ rows associated with $\QQ=0$.  Within that subset, those rows where only 0s appear in the  $\QQ\neq 0$ columns are the fully deterministic $\xx$ rows.   This is inefficient because taking the $m$-th power of $\MM$ is slow as $m$ gets large.  There are much faster algorithm for finding paths, but this test is only done once at the start of the EM algorithm.
+
+\subsubsection{$\uu$ update equation for systems with fully deterministic $\xx$ rows}
+To derive the update equation for $\uu$, we need to take the partial derivative of $\Psi^+$ holding everything constant except $\uu$, which includes both $\uu^{d}$ and $\uu^{s}$ ($d$ denotes the fully deterministic and $s$ denotes stochastic, directly or indirectly).  The state processes in $\xx^{d}$ are fully deterministic, therefore we cannot hold $\xx^{d}_t$ constant while changing $\uu^{d}$.  If we change $\uu^{d}$, then $\xx^{d}_t$ must change because it is fully deterministic.  This is in contrast to $\uu^s$ which can be changed while holding $\xx^s$ constant, because $\xx^s$ is stochastic (perhaps indirectly through $\BB$) and all values are possible for a given $\uu^s$ (and the $\xx^{d}$ are unconnected to $\xx^{s}$ so also do not change if $\uu^s$ is changed).  Thus we need to replace $\xx^{d}_t$ (it is inside $\II_q^{(0)}\xx_t$) appearing in the likelihood with an equation that does not involve $\xx^{d}_t$.
+
+By definition, all the $\BB$ elements in the $s$ columns of $\BB^{d}$ are 0 (see equation \ref{eq:block.B}). If the absolute value of all the eigenvalues of $\BB^{d,d}$ are less than 1 ($\BB^{d,d}$ is  the block of $d$'s in equation \ref{eq:block.B}), we can rewrite the equation for $\xx^{d}$ as follows using the matrix geometric series: 
 \begin{equation}
 \begin{split}
-x_t=&b^t x_0 + u\sum_{i=0}^{t-1}b^i = \\
-&b^t x_0 + u\frac{1-b^t}{1-b}, b \neq 1\\
-&x_0 + u t, b = 1
+\xx_t^{d}=&(\BB^{d,d})^t \xx_0^{d} + \sum_{i=0}^{t-1}(\BB^{d,d})^i \uu^{d} = \\
+&(\BB^{d,d})^t \xx_0^{d} + (\II - \BB^{d,d})^{-1}(\II-(\BB^{d,d})^t)\uu^{d}, \quad\text{if }\BB^{d,d} \neq \II\\
+&\xx_0^{d} + \uu^{d} t,\quad\text{if }\BB^{d,d} = \II
 \end{split}
 \end{equation}
-Thus we will replace the $\II_q^{(0)}\xx_t$ term appearing in $\Psi^+$ (equation \ref{eq:degen.logL}) with 
+where $\BB^{d,d}$ is the block of $d$'s in equation \ref{eq:block.B}.
+
+Then to obtain the $\uu$ update equation, we will replace the $\II_q^{(0)}\xx_t$ term appearing in the likelihood (equation \ref{eq:degen.logL}) with $\II_q^{d}\xx_t+\II_q^{is}\xx_t$ where $\II_q^{d}$ and $\II_q^{is}$ are defined in the standard way: they are diagonal matrices where all elements are 0 except the diagonals corresponding to the $d$ (or $is$) rows are set to 1.  $\II_q^{(0)}=\II_q^{d}+\II_q^{is}$ since for the $d$ and $is$ rows are associated with $\QQ$ diagonals equal to 0.  We are only concerned about the $\II_q^{d}\xx_t$ because these are the $\xx$ elements that cannot be held fixed when $\uu^d$ is changed.
+
+We rewrite this with the matrix geometric series:
 \begin{equation}\label{eq:x0.q0}
 \begin{split}
-\II_q^{(0)}\xx_t&=(\BB^{(0)})^t \xx^{(0)}_0 + (\II_q^{(0)}-(\BB^{(0)})^t)(\II-\BB^{(0)})^{-1}\uu^{(0)}\\
+\II_q^{d}\xx_t&=(\BB^\bullet)^t \xx_0 + \II_q^{d}(\II_m-\BB^\bullet)^{-1}(\II_m-(\BB^\bullet)^t)\II_q^{d}\uu\\
 &=\BB^\diamondsuit\xx_0 + \BB^\sharp\uu\\
-&\text{where }\BB^\diamondsuit=(\II_q^{(0)}\BB\II_q^{(0)})^t\\
-&\text{and }\BB^\sharp=(\II_q^{(0)}-\BB^\diamondsuit)(\II_m-\II_q^{(0)}\BB\II_q^{(0)})^{-1}
+&\text{where }\BB^\bullet = \II_q^{d} \BB \II_q^{d}\\
+&\text{where }\BB^\diamondsuit=(\BB^\bullet)^t\\
+&\text{and }\BB^\sharp=\II_q^{d}(\II_m-\BB^\bullet)^{-1}(\II_m-\BB^\diamondsuit)\II_q^{d}
 \end{split}
 \end{equation}
+The 
+Equation \ref{eq:x0.q0} has been written slightly differently so that we are working with a $\BB$ matrix with the stochastic row/columns zeroed out ($\II_q^{d} \BB \II_q^{d}$) and the $\xx_t$ vector with the stochastic rows zeroed out ($\II_q^{d}\xx_t$).  If any block of $\BB^\bullet$ is an identity matrix, then we will need to replace the corresponding block in $(\BB^\diamondsuit\xx_0 + \BB^\sharp)$ with $t\II$, a diagonal block with $t$ on the diagonal.
+
+We will replace $\II_q^{is}\xx_t$ with $\II_q^{is}(\BB\xx_{t-1}+\uu)$.  We cannot do this with the deterministic rows in $\xx$ because when we try to do the partial differentiation, we would not be able to hold $\xx_{t-1}^d$ constant since it is fully deterministic.  But since $\xx_{t-1}^{is}$ is stochastic (indirectly through $\BB$) we can do the partial differentiation step.
+
 Thus $\Psi^+$ becomes
 \begin{equation}\label{eq:degen.logL.u}
 \begin{split}
-&\Psi^+ = \log\LL(\yy^+,\xx^+ ; \Theta) = \\
-&-\frac{1}{2}\sum_1^T (\yy_t^+ - \ZZ^+(\II_q^+\xx_t + \II_q^{(0)}(\BB^\diamondsuit\xx_0 + \BB^\sharp\uu)) - \aa^+)^\top (\RR^+)^{-1}\\ 
-&\quad (\yy_t^+ - \ZZ^+(\II_q^+\xx_t + \II_q^{(0)}(\BB^\diamondsuit\xx_0 + \BB^\sharp\uu)) - \aa^+) -\frac{T}{2}\log |\RR^+|\\
-& -\frac{1}{2}\sum_1^T (\xx_t^+ - \BB^+ \xx_{t-1} - \uu^+)^\top (\QQ^+)^{-1} (\xx_t^+ - \BB^+ \xx_{t-1} - \uu^+)\\
-& - \frac{T}{2}\log |\QQ^+| - \frac{1}{2}(\xx_0 - \xixi)^\top \LAM^{-1}(\xx_0 - \xixi) - \frac{1}{2}\log |\LAM| -\frac{n}{2}\log 2\pi \\
+&\Psi^+ = \E[\log\LL(\YY^+,\XX^+ ; \Theta)] = \\
+&\E[-\frac{1}{2}\sum_1^T (\YY_t^+ - \ZZ^+(\II_q^+\XX_t + \II_q^{is}(\BB\XX_{t-1}+\uu) + \II_q^{d}(\BB^\diamondsuit\XX_0 + \BB^\sharp\uu)) - \aa^+)^\top (\RR^+)^{-1}\\ 
+&\quad (\YY_t^+ - \ZZ^+(\II_q^+\XX_t + \II_q^{is}(\BB\XX_{t-1}+\uu) + \II_q^{d}(\BB^\diamondsuit\xx_0 + \BB^\sharp\uu)) - \aa^+) -\frac{T}{2}\log |\RR^+|\\
+& -\frac{1}{2}\sum_1^T (\XX_t^+ - \BB^+ \XX_{t-1} - \uu^+)^\top (\QQ^+)^{-1} (\XX_t^+ - \BB^+ \XX_{t-1} - \uu^+)\\
+& - \frac{T}{2}\log |\QQ^+| - \frac{1}{2}(\XX_0 - \xixi)^\top \LAM^{-1}(\XX_0 - \xixi) - \frac{1}{2}\log |\LAM| -\frac{n}{2}\log 2\pi \\
 \end{split}
 \end{equation}
-This works because $\II_q^{(0)}\BB\II_q^{(0)}$ is diagonal.
-The $\uu^{(0)}$ parameter appears in the $\yy$ part of the likelihood and $\uu^+$ appears in the $\xx$ part. However, because $\uu$ can have shared elements, it is possible that a $\uu$ element is shared across  $\uu^{(0)}$ and $\uu^+$.  We write then $\uu$ as $\ff_u + \DD_u \pmb{\upsilon}$, put that in equation \eqref{eq:degen.logL.u}, and differentiate with respect to $\pmb{\upsilon}$ rather than $\uu^{(0)}$ or $\uu^+$.
+The $\uu^{(0)}$ parameter appears in the $\YY$ part of the likelihood (as $(\II_q^{is}+\II_q^d)u$) and $\uu^+$ appears in the $\xx$ part. However, because $\uu$ can have shared elements, it is possible that a $\uu$ element is shared across  $\uu^{(0)}$ and $\uu^+$.  We write $\uu$ as $\ff_u + \DD_u \pmb{\upsilon}$, put that in equation \eqref{eq:degen.logL.u}, and differentiate with respect to $\pmb{\upsilon}$ rather than $\uu^{(0)}$ or $\uu^+$.
 
-The rest of the derivation steps are similar to those for the general update equation (analogous to equation \ref{eq:u.general.update1}).  Take the derivative of $\Psi^+$ (equation \ref{eq:degen.logL.u}) with respect to $\pmb{\upsilon}$.  Note that $\II_q^{(0)}=(\II_q^{(0)})^\top$ and that $\II_q^{(0)}(\II-\BB^t)(\II-\BB)^{-1}\II_q^{(0)}$ is a diagonal matrix and thus can be moved (i.e., if $A$ and $D$ are diagonal, $AD=DA$ and $D^\top=D$).  After taking the derivative with respect to $\pmb{\upsilon}$, we get:
+The derivation steps are similar to those for the general update equation (analogous to equation \ref{eq:u.general.update1}).  Take the derivative of $\Psi^+$ (equation \ref{eq:degen.logL.u}) with respect to $\pmb{\upsilon}$.  After taking the derivative with respect to $\pmb{\upsilon}$, we get:
 \begin{equation}
 \begin{split}\label{eq:u.degen}
 &\DD_u^\top(\RR^\sharp + T\QQ^*)\DD_u\pmb{\upsilon}=\\
-&\quad \DD_u^\top\II_q^{(0)}\sum_{t=1}^T \BB^\sharp\ZZ^\top\RR^*\big( \hatyt-\ZZ\II_q^+\hatxt - \ZZ\II_q^{(0)}(\BB^\diamondsuit\hatxzero + \BB^\sharp\ff_u) -\aa \big) \\
+&\quad \DD_u^\top\II_q^{(0)}\sum_{t=1}^T (\BB^\sharp+\II_q^{is})^\top\ZZ^\top\RR^*\big( \hatyt-\ZZ\II_q^+\hatxt -\ZZ\II_q^{is}\BB\hatxtm - \ZZ\II_q^{is}\ff_u - \ZZ\II_q^{d}(\BB^\diamondsuit\hatxzero + \BB^\sharp\ff_u) -\aa \big) \\
 &\quad + \DD_u^\top\II_q^+\QQ^*\sum_{t=1}^T \big(\hatxt-\BB\hatxtm - \ff_u \big)\\
 &\text{where }\RR^*=(\OMG_r^+)^\top(\RR^+)^{-1}\OMG_r^+\\
-&\text{and }\RR^\sharp=\sum_{t=1}^T \BB^\sharp\ZZ^\top\RR^*\ZZ\BB^\sharp \\
+&\text{and }\RR^\sharp=\sum_{t=1}^T (\BB^\sharp + \II_q^{is})^\top\ZZ^\top\RR^*\ZZ(\BB^\sharp + \II_q^{is})\\
 &\text{and }\QQ^*=(\OMG_q^+)^\top(\QQ^+)^{-1}\OMG_q^+
 \end{split}
 \end{equation}
-
-Again, this update equation is based on constraining $\II_q^{(0)}\BB\II_q^{(0)}$  to be diagonal and $\II_q^+\BB\II_q^{(0)}$ and $\II_q^{(0)}\BB\II_q^+$ to be zero.  This means that $\BB$ can be rearranged to look like so, where the $c$'s show the $\BB^{(0)}$ block and the $b$'s show the $\BB^+$ block:
-\begin{equation}
-\begin{bmatrix}
-c&0&0&0&0\\
-0&c&0&0&0\\
-0&0&b&b&b\\
-0&0&b&b&b\\
-0&0&b&b&b\\
-\end{bmatrix}
-\end{equation}
-
-Note that $\RR^\sharp + \QQ^*$ does not have any zero rows or columns since we require that any state process with zero variance is observed with errors and the corresponding row/column of $\ZZ^\top\RR^*\ZZ$ will be non-zero.  Also note that because $\QQ^*=\II_q^+\QQ^*\II_q^+$ by definition, $\RR^\sharp$ is contributing to the $u's$ associated with $\QQ=0$ and $\QQ^*$ contributes to the $u's$ associated with $\QQ \neq 0$.
+$\RR^\sharp$ will have 0s where $\QQ \neq 0$ and $\QQ^*$ will have 0s where $\QQ=0$. $\BB^\sharp$ is wrapped in $\II_q^d$ which is why that does not appear in front of it in the equation.  Note that $\RR^\sharp + \QQ^*$ does not have any zero rows or columns since we require that any state process with zero variance is observed with errors (no zero rows in $\OMG_r^+\ZZ\II_q^{(0)}$). This means that corresponding $\QQ^{(0)}$ rows/columns of $(\BB^\sharp)^\top\ZZ^\top\RR^*\ZZ\BB^\sharp$ will be non-zero.  Note that the $\BB^{(00)}$ part of $\BB^\sharp$ will never have all zero rows/columns by virtue of its definition.  Also note that because $\QQ^*=\II_q^+\QQ^*\II_q^+$ by definition, $\RR^\sharp$ is contributing to the $u's$ associated with $\QQ=0$ and $\QQ^*$ contributes to the $u's$ associated with $\QQ \neq 0$.
 
 Thus, the updated $\pmb{\upsilon}$ is
 \begin{equation}
 \begin{split}\label{eq:u.degen.update1}
 \pmb{\upsilon}_{j+1} &= \big(\DD_u^\top(\RR^\sharp + T\QQ^*)\DD_u\big)^{-1}\DD_u^\top \times\\
-&\quad \bigg( \sum_{t=1}^T \BB^\sharp\ZZ^\top\RR^*\big( \hatyt - \ZZ\II_q^+\hatxt - \ZZ\BB^\diamondsuit\hatxzero - \ZZ\BB^\sharp\ff_u -\aa \big) \\
+&\quad \bigg( \sum_{t=1}^T (\BB^\sharp+\II_q^{is})^\top\ZZ^\top\RR^*\big( \hatyt - \ZZ\II_q^+\hatxt - \ZZ\II_q^{is}\BB\hatxtm - \ZZ\II_q^{is}\ff_u - \ZZ\BB^\diamondsuit\hatxzero - \ZZ\BB^\sharp\ff_u -\aa \big) \\
 &\quad + \II_q^+\QQ^*\sum_{t=1}^T \big(\hatxt-\BB\hatxtm - \ff_u \big) \bigg)\\
 \end{split}
 \end{equation}
@@ -2307,10 +2364,51 @@ and
 \end{equation}
 where $\BB^\diamondsuit$ and $\BB^\sharp$ are defined in equation \eqref{eq:x0.q0} and $\RR^\sharp$, $\RR^*$ and $\QQ^*$ are defined in equation \eqref{eq:u.degen}.  If $\xx_0$ is treated as fixed, $\hatxzero$ is replaced with $\xixi$, otherwise it has its usual definition ($\E[\XX_0|\yy(1),\Theta_j]$).  
 
-Conceptually, I think the approach described here is the same as the approach presented in section 4.2.5 of \citep{Harvey1989}, but it is a little more general because it deals with the case where some $\uu$ elements are shared (linear functions of some set of shared values), possibly across deterministic and stochastic elements.  Also, I present it here within the context of the EM algorithm, so solving for the maximum-likelihood $\uu$ appears in the context of maximizing $\Psi^+$ with respect to $\uu$ for the update equation at iteration $j+1$.
+Conceptually, I think the approach described here is the same as the approach presented in section 4.2.5 of \citep{Harvey1989}, but it is more general because it deals with the case where some $\uu$ elements are shared (linear functions of some set of shared values), possibly across deterministic and stochastic elements.  Also, I present it here within the context of the EM algorithm, so solving for the maximum-likelihood $\uu$ appears in the context of maximizing $\Psi^+$ with respect to $\uu$ for the update equation at iteration $j+1$.
 
-\subsubsection{$\xixi$ update equation for partially deterministic models with diagonal $\BB^{(0)}$}
-Take the derivative of $\Psi^+$ (equation \ref{eq:degen.logL.u}) with respect to $\pp$ where $\xixi = \ff_\xi + \DD_\xi \pp$.  The constrained $\pp$ update equation  when $\QQ$ has zeros on the diagonal is then
+\subsubsection{$\uu^+$ update equation when $\uu^{(0)}$ is not estimated}
+When $\uu^{(0)}$ is not estimated (since it is at some user defined value), we do not need to take the partial derivative with respect to $\uu^{(0)}$. Thus the likelihood (equation \ref{eq:degen.logL}) is unchanged.  Since $\uu^+$ only appears in the $\xx$ part of the likelihood, the update equation for $\uu$ is relatively unchanged:
+Thus,
+\begin{equation}\label{eq:u.degen.update.no.u0.1}
+\pmb{\upsilon}_{j+1} = \frac{1}{T}\big(\DD_u^\top\QQ^*\DD_u\big)^{-1}
+ \DD_u^\top\QQ^*\sum_{t=1}^T \big(\hatxt-\BB\hatxtm -\ff_u \big)
+\end{equation}
+and
+\begin{equation}\label{eq:u.degen.update.no.u0.2}
+\uu_{j+1} = \ff_u + \DD_u\pmb{\upsilon}_{j+1},
+\end{equation}
+The difference is that $\QQ^*$ appears in the equation instead of $\QQ^{-1}$ to deal with the 0s on the diagonal of $\QQ$ when taking the inverse.  Equation \ref{eq:u.degen.update2} reduces to this since $\DD_u^\top \II_q^{(0)}$ will be all zeros so the $\RR$ part of the update equation drops out.
+
+\subsubsection{$\xixi^+$ update equation when $\xixi^{(0)}$ is not estimated}
+When $\xixi^{(0)}$ is not estimated (because you fixed it as some value), we do not need to take the partial derivative with respect to $\xixi^{(0)}$ since we will not be estimating it. Thus the likelihood (equation \ref{eq:degen.logL}) is unchanged and the update equation for $\xixi$ is relatively unchanged (see section on the unconstrained $\xixi$ update equations.   The one difference is that $\QQ^*$ will appear in the update equation to deal with the 0s on the diagonal of $\QQ$ when taking the inverse.
+\subsubsection{$\xixi$ update equation when $\LAM \neq 0$}
+If $\LAM^{(0)} \neq 0$ then the update equation for $\xixi$ does not change since we can take the partial derivative of $\Psi^+$ while holding $\XX_0$ constant.  
+
+\subsubsection{$\xixi^{(0)}$ update equation when $\LAM=0$ and $\xx_0 \equiv \xixi$}
+Define $\xixi^{(0)}$ as the $\xixi$ rows corresponding to $\QQ$ diagonal values equal to 0.  The expected log likelihood function for this case, when $\LAM=0$ is written:
+\begin{equation}\label{eq:logL.V0.is.0.degen.x0}
+\begin{split}
+&\Psi^+ = \E[\log\LL(\YY^+,\XX^+ ; \Theta)] = \\
+&\E[-\frac{1}{2}-\sum_1^T (\YY_t^+ - \ZZ^+(\II_q^+\XX^+_t + \II_q^{(0)}\XX^{(0)}_t) - \aa^+)^\top (\RR^+)^{-1} (\YY_t^+ - \ZZ^+(\II_q^+\XX^+_t + \II_q^{(0)}\XX^{(0)}_t) - \aa^+) -\sum_1^T\frac{1}{2} \log |\RR^+|\\
+&\quad  -\sum_1^T \frac{1}{2} (\XX_t^+ - \BB^+ \XX_{t-1} - \uu^+)^\top (\QQ^+)^{-1} (\XX_t^+ - \BB^+ \XX_{t-1} - \uu^+) - \sum_1^T\frac{1}{2}\log |\QQ^+|-\frac{n}{2}\log 2\pi]\\
+&\xx_0 \equiv \xixi  
+\end{split}
+\end{equation}
+When $\LAM^{(0)}=0$, we run into the same troubles as for $\uu^{(0)}$.  We need to take the partial derivative of $\Psi^+$ holding everything but $\xixi$ constant. But if some of the $\xx$ are fully deterministic, they will automatically change with $\xixi^d$ since they are a deterministic function of $\xixi^d$; they won't be affected by the other $\xixi$ rows since by definition fully deterministic $\xx$ are not connected, via $\BB$, to any other rows except those in the fully deterministic group. If some of the $\xx$ are indirectly stochastic, $\xx_1^{is}$ will automatically change with $\xixi$ since $\xx_1^{is}=\BB\xixi+\uu$ (no $\ww_t$).
+
+We use the same trick as for $\uu^{(0)}$:
+\begin{equation}\label{eq:logL.V0.is.0.degen.x0.2}
+\begin{split}
+&\Psi^+ = \E[\log\LL(\YY^+,\XX^+ ; \Theta)] = \\
+&\E[-(\YY_1^+ - \ZZ^+(\II_q^+\XX^+_1 + \II_q^{is}(\BB\xixi+\uu) + \II_q^{d}(\BB_1^\diamondsuit\xixi + \BB_1^\sharp\uu)) - \aa^+)^\top\\
+&(\RR^+)^{-1} (\YY_1^+ - \ZZ^+(\II_q^+\XX_1 + \II_q^{is}(\BB\xixi+\uu) + \II_q^{d}(\BB_1^\diamondsuit\xixi + \BB_1^\sharp\uu)) - \aa^+)\\
+&-\sum_2^T (\YY_t^+ - \ZZ^+(\II_q^+\XX_t + \II_q^{is}\XX_t+ \II_q^{d}(\BB_t^\diamondsuit\xixi + \BB_t^\sharp\uu)) - \aa^+)^\top (\RR^+)^{-1} (\YY_t^+ - \ZZ^+(\II_q^+\XX_t + \II_q^{is}\XX_t + \II_q^{d}(\BB_t^\diamondsuit\xixi + \BB_t^\sharp\uu)) - \aa^+) -\sum_1^T\frac{1}{2} \log |\RR^+|\\
+&\quad  -\sum_1^T \frac{1}{2} (\XX_t^+ - \BB^+ \XX_{t-1} - \uu^+)^\top (\QQ^+)^{-1} (\XX_t^+ - \BB^+ \XX_{t-1} - \uu^+) - \sum_1^T\frac{1}{2}\log |\QQ^+|-\frac{n}{2}\log 2\pi]\\
+&\xx_0 \equiv \xixi  
+\end{split}
+\end{equation}
+
+We take the derivative of $\Psi^+$ (equation \ref{eq:logL.V0.is.0.degen.x0.2}) with respect to $\pp$ where $\xixi = \ff_\xi + \DD_\xi \pp$.  The constrained $\pp$ update equation  when $\QQ$ has zeros on the diagonal is then
 \begin{equation}\label{eq:xi.degen}
 \begin{split}
 &\DD_\xi^\top( \RR^\diamondsuit + \BB^\top\QQ^*\BB )\DD_\xi\pp = \\
@@ -2319,7 +2417,7 @@ Take the derivative of $\Psi^+$ (equation \ref{eq:degen.logL.u}) with respect to
 &\text{where }\RR^\diamondsuit=\sum_{t=1}^T \BB^\diamondsuit\ZZ^\top\RR^*\ZZ\BB^\diamondsuit
 \end{split}
 \end{equation}
-The matrices $\BB^\diamondsuit$ and $\BB^\sharp$ are defined in equation \eqref{eq:x0.q0}, and $\RR^*$ and $\QQ^*$ are defined in equation \eqref{eq:u.degen}.  $\BB^{(0)}$ is constrained to be diagonal.
+The matrices $\BB^\diamondsuit$ and $\BB^\sharp$ are defined in equation \eqref{eq:x0.q0}, and $\RR^*$ and $\QQ^*$ are defined in equation \eqref{eq:u.degen}.  The absolute value of all the eigenvalues of $\BB^{(00)}$ are constrained to be less than or equal to 1.
 
 Thus, the updated $\pp$ is
 \begin{equation}\label{eq:xi.degen.update1}
@@ -2334,6 +2432,17 @@ and
 \begin{equation}\label{eq:xi.degen.update2}
 \xixi_{j+1} = \ff_\xi + \DD_\xi\pp_{j+1},
 \end{equation}
+
+\subsubsection{$\xixi^+$ update equation when $\xixi^{(0)}$ is fixed}
+When $\xixi^{(0)}$ is fixed, we do not need to take the partial derivative with respect to $\xixi^{(0)}$ since it is now fixed. Thus the likelihood (equation \ref{eq:degen.logL}) is unchanged and the update equation for $\xixi$ is relatively unchanged (see section on the unconstrained $\xixi$ update equations.
+
+For example if $\xixi$ is treated as an unknown parameters and $\LAM=0$, then
+\begin{equation}
+\begin{split}
+\pp_{j+1} = (\DD_\xi^\top\BB^\top\QQ^*\BB\DD_\xi)^{-1}\DD_\xi^\top\BB^\top\QQ^*(\widetilde{\mbox{$\mathbf x$}}_1  - \uu - \BB\ff_\xi) \\
+\end{split}
+\end{equation}
+The difference is that $\QQ^*$ appears to deal with the 0s on the diagonal of $\QQ$ when taking the inverse.
 
 \subsubsection{$\BB$ update equation for partially deterministic models when $\BB^{(0)}$ is diagonal and not fixed}
 If $\BB^{(0)}$ is diagonal and fixed, we can use the usual constrained update equation for $\BB$.  But if we wanted to estimate $\BB^{(0)}$, the problem becomes difficult as outlined here.  First we would write $\Psi^+$ in equation \eqref{eq:degen.logL.u} as a function of $\pmb{\beta}$ instead of $\BB$.  
@@ -2380,7 +2489,7 @@ In some cases, the update equation for one parameter needs other parameters.  Te
 \section{MARSS R package}
 R code for the Kalman filter, Kalman smoother, and EM algorithm is provided as a separate R package, MARSS, available on CRAN (http://cran.r-project.org/web/packages/MARSS).  MARSS was developed by Elizabeth Holmes, Eric Ward and Kellie Wills and provides maximum-likelihood estimation and model-selection for both unconstrained and constrained MARSS models. The package contains a detailed user guide which shows various applications. In addition to model fitting via the EM algorithm, the package provides algorithms for bootstrapping, confidence intervals, auxiliary residuals, and model selection criteria.
 
-\bibliography{./tex/Manual}
+\bibliography{./Manual}
 \bibliographystyle{apalike}
 
 \end{document}

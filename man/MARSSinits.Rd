@@ -6,7 +6,7 @@
 }
 \usage{
 MARSSinits(modelObj, inits=list(B=1, U=0, Q=0.05, 
-   A=0, R=0.05, x0=-99, V0=5))
+   Z=1, A=0, R=0.05, x0=-99, V0=5), method)
 }
 \arguments{
   \item{modelObj}{ An object of class \code{\link{marssm}}. \code{MARSSinits} uses three elements of the model object.
@@ -17,6 +17,7 @@ MARSSinits(modelObj, inits=list(B=1, U=0, Q=0.05,
     }
 }
   \item{inits}{ A list of up to 8 values to construct starting matrices for each parameter in a MARSSmodel.}
+  \item{method}{ The method used to fit the model.  This affects the default init values.}
 }
 \details{
   Creates an \code{inits} parameter list for use by iterative maximization algorithms.  

@@ -4,10 +4,25 @@
 \usepackage[nogin]{Sweave}
 \usepackage{pdfpages}
 
+%% Set PDF 1.5 and compression, including object compression
+%% Needed for MiKTeX -- most other distributions default to this
+\ifx\pdfoutput\undefined
+\else
+  \ifx\pdfoutput\relax
+  \else
+    \ifnum\pdfoutput>0
+      % PDF output
+      \pdfminorversion=5
+      \pdfcompresslevel=9
+      \pdfobjcompresslevel=2
+    \fi
+  \fi
+\fi
+
 \begin{document}
 
 \newpage
 
-\includepdf[fitpaper=true, pages=-]{./refs/Manual.pdf}
+\includepdf[fitpaper=true, pages=-]{./Manual.pdf}
 
 \end{document} 

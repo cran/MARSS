@@ -36,14 +36,15 @@ MARSSoptim = function(MLEobj) {
   #The code is used to set things up to use MARSSvectorizeparam to just select inits for the estimated parameters
   tmp.MLEobj = MLEobj
   tmp.MLEobj$par = tmp.inits  #set initial conditions for estimated parameters
-  #diagonal elements of Q and R will be logged' need to log both par and fixed
   for(elem in c("Q","R","V0")){
         the.par=tmp.MLEobj$par[[elem]]
         is.zero=diag(tmp.MLEobj$par[[elem]])==0
         if(any(is.zero)) diag(the.par)[is.zero]=1    #so the chol doesn't fail if there are zeros on the diagonal
         tmp.MLEobj$par[[elem]]=t(chol(the.par))
         if(any(is.zero)) diag(tmp.MLEobj$par[[elem]])[is.zero]=0
+        #when being passed to optim, pars for var-cov mat is the chol, so need to reset free and fixed
         tmp.MLEobj$model$free[[elem]][upper.tri(tmp.MLEobj$par[[elem]])]=NA
+        tmp.MLEobj$model$fixed[[elem]][upper.tri(tmp.MLEobj$par[[elem]])]=0
         is.na.par=is.na(diag(fixed[[elem]]))
         the.par= fixed[[elem]][!is.na.par,!is.na.par,drop=FALSE]
         if(!all(is.na.par)){
@@ -55,10 +56,34 @@ MARSSoptim = function(MLEobj) {
         }
     }
   # will return the inits only for the estimated parameters
-  pars = MARSSvectorizeparam(tmp.MLEobj) 
+  pars = MARSSvectorizeparam(tmp.MLEobj)
+    
+  if(substr(tmp.MLEobj$method,1,4)=="BFGS"){ optim.method="BFGS" }else{ optim.method="something wrong" }
+    optim.output = try(optim(pars, neglogLik, MLEobj=tmp.MLEobj, method = optim.method, lower = lower, upper = upper, control = optim.control, hessian = FALSE), silent=TRUE  )
 
-  optim.output = try(optim(pars, neglogLik, MLEobj=tmp.MLEobj, method = MLEobj$method, lower = lower, upper = upper, control = optim.control, hessian = FALSE), silent=TRUE  )
-  if(class(optim.output)=="try-error") optim.output = list(convergence=53, message=c(" MARSSkf() call used to compute log likelihood encountered numerical problems\n and could not return logLik. Sometimes better initial conditions helps.\n"))
+  if(class(optim.output)=="try-error"){ #try MARSSkf if the user did not use it
+    if( MLEobj$control$kf.x0 == "x10" & !(substr(MLEobj$method, nchar(MLEobj$method)-1, nchar(MLEobj$method))=="kf") ){  #if user did not request MARSSkf
+    tmp.MLEobj$method="BFGSkf"
+    optim.output = try(optim(pars, neglogLik, MLEobj=tmp.MLEobj, method = optim.method, lower = lower, upper = upper, control = optim.control, hessian = FALSE), silent=TRUE  )
+    }
+  }
+  
+  #error returned
+  if(class(optim.output)=="try-error"){
+  # figure out which kf routine to use
+    kf.function = "MARSSkf"
+    kf.comment = ""
+  if( MLEobj$control$kf.x0 == "x10" & !(substr(MLEobj$method, nchar(MLEobj$method)-1, nchar(MLEobj$method))=="kf") ){  #if user did not request MARSSkf
+       kf.function = "MARSSkfas"
+       kf.comment="Try using method=BFGSkf to force MARSSkf to be used."
+    } 
+    optim.output = list(convergence=53, message=c(kf.function, " call used to compute log likelihood encountered numerical problems\n and could not return logLik. ", kf.comment, "\n", sep=""))
+   }
+  
+  if(MLEobj$control$kf.x0 == "x10") kf.function="MARSSkfas"
+  if(MLEobj$control$kf.x0 == "x00") kf.function="MARSSkf"
+  if( substr(tmp.MLEobj$method, nchar(tmp.MLEobj$method)-1, nchar(tmp.MLEobj$method))=="kf" ) kf.function="MARSSkf"
+       
   MLEobj.return=list(); class(MLEobj.return) = "marssMLE"
   MLEobj.return$iter.record=optim.output$message
   MLEobj.return$control=MLEobj$control
@@ -66,8 +91,8 @@ MARSSoptim = function(MLEobj) {
   MLEobj.return$start = tmp.inits #set to what was used here
   MLEobj.return$convergence = optim.output$convergence
   if(optim.output$convergence %in% c(1,0)) {
-      if((!control$silent || control$silent==2) && optim.output$convergence==0) cat(paste("Success! Converged in ",optim.output$counts[1]," interations.\n",sep=""))
-      if((!control$silent || control$silent==2) && optim.output$convergence==1) cat(paste("Warning! Max iterations of ", control$maxit," reached before convergence.\n",sep=""))
+      if((!control$silent || control$silent==2) && optim.output$convergence==0) cat(paste("Success! Converged in ",optim.output$counts[1]," iterations.\n","Function ",kf.function," used for likelihood calculation.\n",sep=""))
+      if((!control$silent || control$silent==2) && optim.output$convergence==1) cat(paste("Warning! Max iterations of ", control$maxit," reached before convergence.\n","Function ", kf.function, " used for likelihood calculation.\n", sep=""))
       tmp.MLEobj = MARSSvectorizeparam(tmp.MLEobj, optim.output$par)
       #par has the fixed and estimated values with diags of Q and R logged
   for(elem in c("Q","R","V0")){
@@ -80,7 +105,7 @@ MARSSoptim = function(MLEobj) {
       MLEobj.return = MARSSvectorizeparam(MLEobj.return, pars)
       kf.out = MARSSkf(MLEobj.return$model$data, MLEobj.return$par, miss.value = MLEobj.return$model$miss.value, init.state=control$kf.x0)
       }else{
-      if(optim.output$convergence==10) optim.output$message=c("degeneracy of the Nelder-Mead simplex\n",optim.output$message)
+      if(optim.output$convergence==10) optim.output$message=c("degeneracy of the Nelder-Mead simplex\n",paste("Function ",kf.function," used for likelihood calculation.\n",sep=""),optim.output$message)
       optim.output$counts = NULL      
       if( !control$silent ) cat("MARSSoptim() stopped with errors. No parameter estimates returned.\n")
       if( control$silent==2 ) cat("MARSSoptim() stopped with errors. No parameter estimates returned. See $errors in output for details.\n")
@@ -124,7 +149,12 @@ neglogLik = function(x, MLEobj=NULL){  #NULL assignment needed for optim call sy
     if( MLEobj$control$kf.x0 == "x00"){
     negLL = MARSSkf(MLEobj$model$data, MLEobj$par, miss.value = MLEobj$model$miss.value, init.state=MLEobj$control$kf.x0 )$logLik    
     }else{ #must be x10
-    negLL = MARSSkfas(MLEobj$model$data, MLEobj$par, miss.value = MLEobj$model$miss.value, init.state=MLEobj$control$kf.x0, diffuse=MLEobj$control$diffuse )$logLik
+    if( substr(MLEobj$method, nchar(MLEobj$method)-1, nchar(MLEobj$method))=="kf" ){  #if user requests MARSSkf
+        negLL = MARSSkf(MLEobj$model$data, MLEobj$par, miss.value = MLEobj$model$miss.value, init.state=MLEobj$control$kf.x0 )$logLik    
+    }else{ #use kfas
+       negLL = MARSSkfas(MLEobj$model$data, MLEobj$par, miss.value = MLEobj$model$miss.value, init.state=MLEobj$control$kf.x0, diffuse=MLEobj$control$diffuse )$logLik
+    }
+    
     }
     -1*negLL
      }

@@ -2,8 +2,7 @@
 #  Summary method for class marssm. 
 ###############################################################################################################################################
 
-summary.marssm <- function (object, ...) 
-    {
+summary.marssm <- function (object, ...){
       n = dim(object$fixed$Z)[1]; m = dim(object$fixed$Z)[2]
       cat(paste("Model Structure is\n","m: ",m," state process(es)\n","n: ",n," observation time series\n",sep=""))
 

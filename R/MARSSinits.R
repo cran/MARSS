@@ -2,10 +2,10 @@
 ## Set up inits
 ## These will be checked by the MLE object checker.
 
-MARSSinits <- function(modelObj, inits=list(B=1, U=0, Q=0.05, A=0, R=0.05, x0=-99, V0=5))
+MARSSinits <- function(modelObj, inits=list(B=1, U=0, Q=0.05, Z=1, A=0, R=0.05, x0=-99, V0=5), method)
 {
 if(!is.list(inits)) stop("Stopped in MARSSinits() because inits must be a list.\n", call.=FALSE)
-default = list(B=1, U=0, Q=0.05, A=0, R=0.05, x0=-99, V0=5)
+default = alldefaults[[method]]
 for(elem in names(default)){
   if(is.null(inits[[elem]])) inits[[elem]]=default[[elem]]
 }
@@ -15,25 +15,7 @@ for(elem in names(default)){
   miss.value = modelObj$miss.value
 
   D=as.design(modelObj$fixed$x0, modelObj$free$x0)$D  #need this many places
-  if(identical(unname(inits$x0),-99) & !is.fixed(modelObj$fixed$x0) ) {
-      if(!is.design(modelObj$fixed$Z))
-        stop("Stopped in MARSSinits(). Because Z is not a design matrix, you'll need to specify inits$x0.  See help file.\n", call.=FALSE )
-    tmp.Z.mat=modelObj$fixed$Z
-    inits$x0 = array(0,dim=c(m,1))
-    # do a simple linear regression, estimating the predicted value using the y that x will be scaled to (in case multiple y per x)
-    for(i in 1:m) {
-      this.index = min(which(tmp.Z.mat[,i]==1))
-      y.obs = y[this.index,]
-      if(is.na(miss.value)){
-        y.obs[ is.na(y.obs) ] = NA 
-      }else { y.obs[ y.obs==miss.value ] = NA }
-      inits$x0[i,1] = lm(y.obs~seq(1:dim(y)[2]))$fitted.values[1]
-    }
-    #use average if there are shared values
-    inits$x0 = D%*%solve(t(D)%*%D)%*%t(D)%*%inits$x0
-  }
-  if( is.fixed(modelObj$fixed$x0) ){inits$x0 = modelObj$fixed$x0
-  }else inits$x0=array(inits$x0,dim=dim(modelObj$fixed$x0))
+  f=as.design(modelObj$fixed$x0, modelObj$free$x0)$f  #need this many places
   
   if(length(inits$V0)==1){
     if( is.fixed(modelObj$fixed$x0) ){ inits$V0=makediag(inits$V0, nrow=m)
@@ -47,6 +29,7 @@ for(elem in names(default)){
      stop("Stopped in MARSSinits() because inits$V0 is not a mxm matrix.  See help file.\n", call.=FALSE)
   if(!is.fixed(modelObj$fixed$x0) && !all( (!(D%*%t(D)))*inits$V0==0 ))
      warning("The initial V0 looks wrong (look at start$V0). A wrong init V0 will mean a wrong logLik value.")
+
   for(elem in c("A","U","Z")) {
     if(is.fixed(modelObj$fixed[[elem]])){ inits[[elem]] = modelObj$fixed[[elem]]
     }else { #use inits but replace any fixed elements with their fixed values
@@ -54,6 +37,7 @@ for(elem in names(default)){
       inits[[elem]][!is.na(modelObj$fixed[[elem]])]= modelObj$fixed[[elem]][!is.na(modelObj$fixed[[elem]])]
     }
     }
+  
   for(elem in c("Q","R","B","V0")) {  #if inits is a scalar to vector, make init a diagonal matrix
     if(is.fixed(modelObj$fixed[[elem]])){ inits[[elem]] = modelObj$fixed[[elem]]
     }else{ if(length(inits[[elem]])==length(modelObj$fixed[[elem]]) ){
@@ -67,14 +51,22 @@ for(elem in names(default)){
     if(!is.matrix(inits[[elem]])) #there was a problem.  
      stop(paste("Stopped in MARSSinits() because inits$",elem," is not a matrix.  See help file.\n",sep=""), call.=FALSE)
     }
-         
-  if(is.null(inits$Z) || inits$Z == -99) {
-    if(!is.fixed(modelObj$fixed$Z)) {
-      stop("Stoppped in MARSSinits(). Because you are estimating parts of Z, you'll need to specify inits$Z.  See help file.\n", call.=FALSE)
+    
+  if( is.fixed(modelObj$fixed$x0) ){ inits$x0 = modelObj$fixed$x0 
+  }else{      
+    if(identical(unname(inits$x0),-99)) {  #get estimate of x0
+      y1=y[,1,drop=FALSE]
+      if(is.na(miss.value)){ #replace NAs with 0s
+        y1[ is.na(y1) ] = 0 
+      }else{ y1[ y1==miss.value ] = 0 }
+      #the following is by solving for x1 using y1=Z*(D*pipi+f)+a
+      pipi = solve(t(D)%*%D)%*%t(D)%*%(solve(t(inits$Z)%*%inits$Z)%*%t(inits$Z)%*%(y1-inits$A) - f)
+      inits$x0 = D%*%pipi+f
+    }else{ #use inits but replace any fixed elements with their fixed values
+      inits[[elem]]=array(inits[[elem]],dim=dim(modelObj$fixed[[elem]]))
+      inits[[elem]][!is.na(modelObj$fixed[[elem]])]= modelObj$fixed[[elem]][!is.na(modelObj$fixed[[elem]])]
     }
-    else inits$Z = modelObj$fixed$Z #Z is fixed
   }
-  #else user must have passed in inits$Z and it will be checked by MLE object checker      
 
   inits
 }

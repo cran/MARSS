@@ -3,7 +3,7 @@
 \alias{neglogLik}
 \title{Parameter estimation for MARSS models using optim}
 \description{
-  Parameter estimation for MARSS models using R's \code{\link{optim}} function.   This allows access to R's quasi-Newton algorithms available via the \code{\link{optim}} function.  The \code{MARSSoptim} is called when \code{\link{MARSS}} is called with \code{method="BFGS"}.  This is a base function in the \code{\link{MARSS-package}}.  \code{neglogLik} is a helper function for \code{MARSSoptim} that returns the negative log-likelihood given a vector of the estimated parameters and a \code{\link{marssMLE}} object.  When possible, the Kalman filter and smoother functions from the KFAS R package are used.
+  Parameter estimation for MARSS models using R's \code{\link{optim}} function.   This allows access to R's quasi-Newton algorithms available via the \code{\link{optim}} function.  The \code{MARSSoptim} is called when \code{\link{MARSS}} is called with \code{method="BFGS"}.  This is a base function in the \code{\link{MARSS-package}}.  \code{neglogLik} is a helper function for \code{MARSSoptim} that returns the negative log-likelihood given a vector of the estimated parameters and a \code{\link{marssMLE}} object.  When possible, the Kalman filter and smoother functions (function \code{\link{MARSSkfas}}) from the KFAS R package are used but the user can force the Kalman filter and smoother functions based on Shumway and Stoffer (function \code{\link{MARSSkf}}) to be used by setting \code{method="BFGSkf"}.
 }
 \usage{
 MARSSoptim(MLEobj)

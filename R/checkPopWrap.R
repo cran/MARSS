@@ -103,7 +103,7 @@ msg=NULL
     if(!is.null(tmp)) {
       if(!is.list(tmp)) {
         problem=TRUE
-        msg = c(msg, paste(" ",mat," must be passed in as a list (or left off to ignore).\n"))
+        msg = c(msg, paste(" ",mat," must be passed in as a list (or left off to ignore).\n",sep=""))
         }
       passed.in = (model.elem %in% names(tmp))
       for(i in model.elem[passed.in])

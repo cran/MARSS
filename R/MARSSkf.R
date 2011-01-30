@@ -27,20 +27,19 @@ MARSSkf = function(y, parList, missing.matrix = NULL, miss.value= NULL, init.sta
     n.Rn0=sum(diag.R!=0)
     if(n.Qn0==m){ 
       OmgQ=OmgQ1=t.OmgQ1=I.m
-      B.inv.0 = matrix(0,m,m)
     }else{
       OmgQ1=I.m[diag.Q!=0, , drop=FALSE]
       t.OmgQ1 = t(OmgQ1)
       OmgQ0=I.m[diag.Q==0, , drop=FALSE]
       t.OmgQ0 = t(OmgQ0)
       OmgQ = t.OmgQ1 %*% OmgQ1    #if Q is all 0, this is matrix(0,m,m)
-      B.inv.0 = chol2inv(chol(OmgQ0%*%B%*%t.OmgQ0))  #this part of B must be diagonal
-      B.inv.0 = t.OmgQ0%*%B.inv.0%*%OmgQ0    #expand back up with 0s where Q!=0
     } #case when n.Qn0 == 0 dealt with inside the Kalman smoother
     if(n.Rn0==n){
       OmgR1=I.n
     }else{
       OmgR1=I.n[diag.R!=0, , drop=FALSE]
+      t.OmgR1 = t(OmgR1)
+      OmgR = t.OmgR1 %*% OmgR1
     }
 	  #Check that if any R are 0 then model is solveable
 	  OmgRVtt = I.m
@@ -128,19 +127,12 @@ MARSSkf = function(y, parList, missing.matrix = NULL, miss.value= NULL, init.sta
     }else siginv1=I.n #placeholder siginv will be all zero in this case 
     # bracketed piece of eqn 6.23 modified per 6.78; because R diag might be 0, bracket in Omg1
 
-    ## Catch errors before entering chol2inv
-    diag.Vtt1 = unname(Vtt1[,,t]); diag.Vtt1=diag.Vtt1[1 + 0:(m - 1)*(m + 1)]   #much faster way to get the diagonal
-    if(any(diag.Vtt1==0) ) {  #0s on diag of Vtt1 will break the K smoother (below) if t>1
-      #deal with 0s that are ok if there are corresponding 0s on Q diagonal
-      Q0s=identical(which(diag.Q==0),which(diag.Vtt1==0))
-      if(!Q0s && (init.state=="x00" || (init.state=="x10" && t>1)) ){
-        return(list(ok=FALSE, errors=paste("Stopped in MARSSkf: soln became unstable when zeros appeared on the diagonal of Vtt1 at t>1.\n") ) )
-      }else if(any(takediag(siginv1)==0) && (init.state=="x00" || (init.state=="x10" && t>1)))
-        return(list(ok=FALSE, errors=paste("Stopped in MARSSkf: soln became unstable when zeros appeared on the diagonal of siginv1[,,1].\n") ) )
-    }
-
     if(t==1 && init.state=="x10" && identical(unname(V0),matrix(0,m,m))) {
-      Kt[,,t] = V0%*%t.Zt
+      Kt[,,t] = V0%*%t.Zt #all zeros the right size, m x n
+      if(any(diag.R==0)){ #Need to adjust if any diag.R==0; V0*t.Z*(Z*V0*t.Z  + R)^-1   ---> I not 0 as V0-->0
+        Kt[,,t]=Kt[,,t] + I.m%*%t.Zt%*%solve(Zt%*%t.Zt)%*%(I.n-OmgR)  #take the matrix of 0s and add the correction for R=0 rows
+        #when R=0, Kt%*%Z=I thus Kt*Z*t.Z=I*t.Z so Kt=I*t.Z*solve(Z*t.Z); replace cols of Kt corresponding to R=0 with this
+      }
     }else{  #compute Kt using update equation
         siginv2=try(chol(siginv1), silent = TRUE)      
         #Catch errors before entering chol2inv
@@ -196,9 +188,9 @@ MARSSkf = function(y, parList, missing.matrix = NULL, miss.value= NULL, init.sta
           }
           #Abandon if solution is so unstable that Vtt diagonal became negative
         diag.Vtt = unname(Vtt[,,t]); diag.Vtt=diag.Vtt[1 + 0:(m - 1)*(m + 1)]   #much faster way to get the diagonal
-        if(any(diag.Vtt<0) || any(diag.Vtt1<0) )
+        if( any(diag.Vtt<0) )
           return(list(ok=FALSE, 
-          errors=paste("Stopped in MARSSkf: soln became unstable and negative values appeared on the diagonal of Vtt or Vtt1.\n") ) )
+          errors=paste("Stopped in MARSSkf: soln became unstable and negative values appeared on the diagonal of Vtt.\n") ) )
     ####### Error-checking
 
     } #End of the Kalman filter recursion (for i to 1:TT)
@@ -213,33 +205,64 @@ MARSSkf = function(y, parList, missing.matrix = NULL, miss.value= NULL, init.sta
     for(i in 1:(TT-1)) {
       t=s[i]
       Zt = Z; Zt[YM[,t]==0,]=0   #MUCH faster than defining Mt using diag(YM)
-      #deal with any 0s on diagonal of Q
-      if(n.Qn0>0){
-          if(n.Qn0==1){ Vinv.sub = 1/(OmgQ1%*%Vtt1[,,t]%*%t.OmgQ1) 
-          }else{ Vinv.sub = chol2inv(chol(OmgQ1%*%Vtt1[,,t]%*%t.OmgQ1))}  #OmgQ1 is dealing with 0s in Q
-          Vinv = t.OmgQ1%*%Vinv.sub%*%OmgQ1  #expand back with 0s for Q=0 elements
-          if(m!=1) Vinv = (Vinv + matrix(Vinv,m,m,byrow=TRUE))/2  #to enforce symmetry after chol2inv call
-          J[,,t-1] = B.inv.0 + Vtt[,,t-1]%*%t.B%*%Vinv  # eqn 6.49 and 1s on diag when Q=0
-        }else J[,,t-1] = B.inv.0   #Q is all zeros
+
+      #deal with any 0s on diagonal of Vtt1; these can arise due to 0s in V0, B, + Q
+      #0s on diag of Vtt1 will break the Kalman smoother if t>1
+      diag.Vtt1 = unname(Vtt1[,,t]); diag.Vtt1=diag.Vtt1[1 + 0:(m - 1)*(m + 1)]   #much faster way to get the diagonal
+      if( any(diag.Vtt1<0) ) #abandon if problems like this
+          return(list(ok=FALSE, 
+          errors=paste("Stopped in MARSSkf: soln became unstable and negative values appeared on the diagonal of Vtt1.\n") ) )
+      Omg1Vtt1 = t.Omg1Vtt1 = I.m
+      if(any(diag.Vtt1==0) ) {  
+        #deal with 0s that are ok if there are corresponding 0s on Q diagonal
+        Q0s=identical(which(diag.Q==0),which(diag.Vtt1==0))
+        if(!Q0s && (init.state=="x00" || (init.state=="x10" && t>1)) ){
+          return(list(ok=FALSE, errors=paste("Stopped in MARSSkf: soln became unstable when zeros appeared on the diagonal of Vtt1 at t>1.\n") ) )
+        }else if(any(takediag(siginv1)==0) && (init.state=="x00" || (init.state=="x10" && t>1)))
+          return(list(ok=FALSE, errors=paste("Stopped in MARSSkf: soln became unstable when zeros appeared on the diagonal of siginv1[,,1].\n") ) )
+        Omg1Vtt1=I.m[diag.Vtt1!=0, , drop=FALSE]
+        t.Omg1Vtt1 = t(Omg1Vtt1)
+      }
+      if(!all(diag.Vtt1==0)){
+        Vinv.sub = chol2inv(chol(Omg1Vtt1%*%Vtt1[,,t]%*%t.Omg1Vtt1))  #dealing with 0s in Vtt1
+        Vinv = t.Omg1Vtt1%*%Vinv.sub%*%Omg1Vtt1  #expand back with 0s for Vtt1=0 elements
+        }else{ Vinv=matrix(0,m,m) }
+      if(m!=1) Vinv = (Vinv + matrix(Vinv,m,m,byrow=TRUE))/2  #to enforce symmetry after chol2inv call
+      J[,,t-1] = Vtt[,,t-1]%*%t.B%*%Vinv  # eqn 6.49 and 1s on diag when Q=0
+
       xtT[,t-1] = xtt[,t-1,drop=FALSE] + J[,,t-1]%*%(xtT[,t,drop=FALSE]-xtt1[,t,drop=FALSE])     # eqn 6.47
       if(length(J[,,t-1])==1) t.J = J[,,t-1] else t.J = matrix(J[,,t-1],m,m,byrow=TRUE) #faster transpose
       VtT[,,t-1] = Vtt[,,t-1] + J[,,t-1]%*%(VtT[,,t]-Vtt1[,,t])%*%t.J  # eqn 6.48
       #VtT[,,t-1] = (VtT[,,t-1]+matrix(VtT[,,t-1],m,m,byrow=TRUE))/2     #should not be necessary here
-      }
+    } #end of the smoother
 
-    if(init.state=="x00") { #Shumway and Stoffer treatment of initial conditions
-     if(n.Qn0>0){
-          if(n.Qn0==1){ Vinv.sub = 1/(OmgQ1%*%Vtt1[,,1]%*%t.OmgQ1) 
-          }else{ Vinv.sub = chol2inv(chol(OmgQ1%*%Vtt1[,,1]%*%t.OmgQ1)) }  #OmgQ1 is dealing with 0s in Q
-          Vinv = t.OmgQ1%*%Vinv.sub%*%OmgQ1
-          if(m!=1) Vinv = (Vinv + t(Vinv))/2 #to enforce symmetry after chol2inv call
-          J0 = B.inv.0 + V0%*%t.B%*%Vinv  # eqn 6.49 ; when V0=0, this can be set to B.inv or 0 (gets same ans)
-      }else J0=B.inv.0      #Q all zeros
+    #define J0 
+    if(init.state=="x00") { #Shumway and Stoffer treatment of initial conditions; LAM and pi defined for x_0
+      #deal with any 0s on diagonal of Vtt1; these can arise due to 0s in V0, B, + Q
+      #0s on diag of Vtt1 will break the Kalman smoother if t>1
+      diag.Vtt1 = unname(Vtt1[,,1]); diag.Vtt1=diag.Vtt1[1 + 0:(m - 1)*(m + 1)]   #much faster way to get the diagonal
+      Omg1Vtt1 = t.Omg1Vtt1 = I.m
+      if(any(diag.Vtt1==0) ) {  
+        #deal with 0s that are ok if there are corresponding 0s on Q diagonal
+        Q0s=identical(which(diag.Q==0),which(diag.Vtt1==0))
+        if(!Q0s && (init.state=="x00" || (init.state=="x10" && t>1)) ){
+          return(list(ok=FALSE, errors=paste("Stopped in MARSSkf: soln became unstable when zeros appeared on the diagonal of Vtt1 at t>1.\n") ) )
+        }else if(any(takediag(siginv1)==0) && (init.state=="x00" || (init.state=="x10" && t>1)))
+          return(list(ok=FALSE, errors=paste("Stopped in MARSSkf: soln became unstable when zeros appeared on the diagonal of siginv1[,,1].\n") ) )
+        Omg1Vtt1=I.m[diag.Vtt1!=0, , drop=FALSE]
+        t.Omg1Vtt1 = t(Omg1Vtt1)
+      }
+      if(!all(diag.Vtt1==0)){
+        Vinv.sub = chol2inv(chol(Omg1Vtt1%*%Vtt1[,,1]%*%t.Omg1Vtt1))  #dealing with 0s in Vtt1
+        Vinv = t.Omg1Vtt1%*%Vinv.sub%*%Omg1Vtt1  #expand back with 0s for Vtt1=0 elements
+        }else{ Vinv=matrix(0,m,m) }
+      if(m!=1) Vinv = (Vinv + matrix(Vinv,m,m,byrow=TRUE))/2  #to enforce symmetry after chol2inv call
+      J0 = V0%*%t.B%*%Vinv  # eqn 6.49 and 1s on diag when Q=0
       x0T = x0 + J0%*%(xtT[,1,drop=FALSE]-xtt1[,1,drop=FALSE]);          # eqn 6.47
       V0T = V0 + J0%*%(VtT[,,1]-Vtt1[,,1])*t(J0)   # eqn 6.48
       V0T = (V0T+t(V0T))/2;
     }
-    if(init.state=="x10") { #Ghahramani treatment of initial states
+    if(init.state=="x10") { #Ghahramani treatment of initial states; LAM and pi defined for x_1
       J0 = J[,,1]
       x0T = xtT[,1,drop=FALSE]
       V0T = VtT[,,1]
@@ -276,7 +299,7 @@ MARSSkf = function(y, parList, missing.matrix = NULL, miss.value= NULL, init.sta
           Ftinv=matrix(0,n,n)
         }else{
           #when R(i,i) is 0 then vt_t(i) will be zero and Sigma[i,i,1] will be 0 if V0=0.
-          #OmgF1 makes sure we don't try to take 1/0 in
+          #OmgF1 makes sure we don't try to take 1/0 
           if(length(OmgF1%*%Ft[,,t]%*%t(OmgF1))==1) detFt = OmgF1%*%Ft[,,t]%*%t(OmgF1) else detFt = det(OmgF1%*%Ft[,,t]%*%t(OmgF1))
           Ftinv = t(OmgF1)%*%chol2inv(chol(OmgF1%*%Ft[,,t]%*%t(OmgF1)))%*%OmgF1 #0s on row and col where 0 on diag
           }

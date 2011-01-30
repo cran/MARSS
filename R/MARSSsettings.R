@@ -7,7 +7,7 @@ alldefaults$kem = alldefaults$kemsafe = list(
       control=list(minit=15, maxit=500, abstol=NULL, trace=0, kf.x0="x00", 
                    safe=FALSE, allow.degen=TRUE, min.degen.iter=50, degen.lim=1.0e-04, MCInit=FALSE, 
                    numInits = 500, numInitSteps = 10, min.iter.conv.test=15, conv.test.deltaT=9, conv.test.slope.tol= 0.5,  demean.states=FALSE,
-                   boundsInits=list(B=c(0,1), U=c(-1,1), Q = c(1,1),
+                   boundsInits=list(B=c(-1,1), U=c(-1,1), Q = c(1,1),
                                     Z=c(0,1), A=c(-1,1), R = c(1,1) ) 
                    )
 )
@@ -18,7 +18,8 @@ alldefaults$BFGS = list(
       control=list(maxit=5000, kf.x0="x00", diffuse=FALSE, MCInit=FALSE, numInits = 500, numInitSteps = 10, boundsInits=list(B=c(0,1), U=c(-1,1), Q = c(1,1), Z=c(0,1), A=c(-1,1), R = c(1,1) ),
       REPORT=NULL, reltol=NULL, fnscale=NULL, parscale=NULL, ndeps=NULL, alpha=NULL, beta=NULL, gamma=NULL, type=NULL, lmm=NULL, factr=NULL,
       pgtol=NULL, tmax=NULL, temp=NULL, lower=NULL, upper=NULL ))
-      
+alldefaults$BFGSkf = alldefaults$BFGS
+
 model.elem =      c("A","U","B","R","Q","Z","x0","V0")
             
 #method=="kemsafe"   This is the safe list
@@ -62,7 +63,8 @@ allowed$BFGS= list(
         factors = c("Z"),
         matrices = c("A","B","Q","R","U","x0","Z","V0") 
       )
+allowed$BFGSkf=allowed$BFGS
 
 kem.methods=c("kem","kemsafe")
-optim.methods=c("BFGS")      
+optim.methods=c("BFGS","BFGSkf")      
 allowed.methods = c(kem.methods, optim.methods)

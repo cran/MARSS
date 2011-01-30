@@ -58,16 +58,42 @@ errmsg = " Try using foo=MARSS(..., fit=FALSE), then summary(foo$model) to see w
       #stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
       }
   
-  ############ Check that the B sub matrix for Q=0 is diagonal  
-    diag.Q=takediag(modelObj$fixed$Q)
-    if( any(diag.Q==0,na.rm=TRUE) ){
-       B.0 = fixed$B[diag.Q==0, diag.Q==0]
-       if(!is.diagonal(B.0, na.rm=TRUE)){ 
-          msg=c(" The B sub matrix, corresponding to Q diagonal = 0, must be diagonal.\n", errmsg)
+  diag.Q=takediag(modelObj$fixed$Q)
+  if( any(diag.Q==0,na.rm=TRUE) ){
+    B.0 = fixed$B[diag.Q==0, ,drop=FALSE]
+    ############ Check that the B sub matrix for Q=0 is fixed  
+    if( any( is.na(B.0) ) ){
+          msg=c(" All rows of B corresponding to Q diagonal = 0 must be fixed values.\n", errmsg)
           cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
           stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
-       }
     }    
+
+   for(elem in c("U","x0")){
+   elem.0 = fixed[[elem]][diag.Q==0, ,drop=FALSE]
+   ############ If u^(0) is estimated, B.0 must be independent of B.plus for the estimated u.0s 
+   if( any( is.na(elem.0) ) && any(diag.Q!=0,na.rm=TRUE) ){
+    B.00 = fixed$B[is.na(fixed[[elem]]) & diag.Q==0, diag.Q==0]
+    B.0.plus = fixed$B[is.na(fixed[[elem]]) & diag.Q==0, diag.Q!=0]
+    B.plus.0 = fixed$B[diag.Q!=0, is.na(fixed[[elem]]) & diag.Q==0]
+    block.B = all( B.0.plus == 0 ) && all( B.plus.0 == 0 )
+    zero.B00 =  all( B.00 == 0 ) && all(is.na(rowSums( B.0.plus )) | rowSums( B.0.plus )>0 )
+    ############ Check that the abs of all eigenvalues of the B sub matrix for Q=0 are less than or = to 1, B is block diag  
+    if( block.B ){
+        tmp=eigen(B.00, only.values = TRUE)$values
+    if( any( tmp > 1 ) ){
+          msg=c(paste(" There are 0s on the diagonal of Q and corresponding ",elem,"'s are estimated.\n In this case, the abs of all eigenvalues of B.0 block must be less than or = 1.\n",sep=""), errmsg)
+          cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
+          stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
+      } 
+    }
+    if( !block.B & !zero.B00 ){
+          msg=c(paste(" There are 0s on the diagonal of Q and corresponding ", elem,"'s are estimated.\n In this case, B must be block diagonal (B.0 block and B.plus block)\n or B00 must be all 0s.\n",sep=""), errmsg)
+          cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
+          stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
+    } 
+   }
+   } 
+} #zeros on the diagonal of Q
 
 constr.type = describe.marssm(modelObj)   
 return(constr.type)

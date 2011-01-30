@@ -188,7 +188,7 @@ kf.x0 = MLEobj$control$kf.x0  #the initial conditions treatment "x00" x0 is at t
         if(!new.kf$ok) msg.kf=c(msg.kf,paste("Warning: kf returned error at iter=",iter," in attempt to set 0 diagonals for ", elem,"\n", new.kf$errors,"\n Perhaps Q and R are both going to 0?\n", sep="") ); 
         if(new.kf$ok && is.finite(loglike.old) && is.finite(new.kf$logLik) ) tmp.cvg2 = new.kf$logLik - loglike.old  else tmp.cvg2=Inf
         if(new.kf$ok && tmp.cvg2 < -sqrt(.Machine$double.eps)) {
-          msg.kem=c(msg.kem,paste("Warning: setting diagonal to 0 blocked at iter=",iter,". logLik was lower in attempt to set 0 diagonals on ",elem," logLik old=", loglike.old, " new=", new.kf$logLik,"\n", sep=""))
+          msg.kem=c(msg.kem,paste("Alert: setting diagonal to 0 blocked at iter=",iter,". logLik was lower in attempt to set 0 diagonals on ",elem," logLik old=", loglike.old, " new=", new.kf$logLik,"\n", sep=""))
         }
         if(new.kf$ok && tmp.cvg2 > -sqrt(.Machine$double.eps)) { #this means degenerate R has lower LL, so accept it
           assign(elem, degen.param)
@@ -278,8 +278,7 @@ kf.x0 = MLEobj$control$kf.x0  #the initial conditions treatment "x00" x0 is at t
         if(!new.kf$ok) msg.kf=c(msg.kf,paste("Warning: kf returned error at iter=",iter," in attempt to set 0 diagonals for ", elem,"\n", new.kf$errors,"\n Perhaps Q and R are both going to 0?\n", sep="") ); 
         if(new.kf$ok && is.finite(loglike.old) && is.finite(new.kf$logLik) ) tmp.cvg2 = new.kf$logLik - loglike.old  else tmp.cvg2=Inf
         if(new.kf$ok && tmp.cvg2 < -sqrt(.Machine$double.eps)) {
-          msg.kem=c(msg.kem,paste("Warning: setting diagonal to 0 blocked at iter=",iter,". logLik was lower in attempt to set 0 diagonals on ",elem," logLik old=", loglike.old, " new=", new.kf$logLik,"\n", sep=""))
-
+            msg.kem=c(msg.kem,paste("Alert: setting diagonal of ",elem," to 0 blocked at iter=",iter,". logLik was lower in attempt to set 0 diagonals on ",elem," logLik old=", loglike.old, " new=", new.kf$logLik,"\n", sep=""))
         }
         if(new.kf$ok && tmp.cvg2 > -sqrt(.Machine$double.eps)) { #this means degenerate Q has lower LL, so accept it
           assign(elem, degen.param)

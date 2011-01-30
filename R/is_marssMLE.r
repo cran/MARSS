@@ -149,12 +149,9 @@ is.marssMLE <- function(MLEobj)
            if(el %in% c("B", "U", "A", "Z")) {
            null.flag <- (target[[el]][1] >= target[[el]][2])
            if(null.flag) msg = c(msg, paste("The first element of control$boundsInits$", el," is not smaller than the second\n",sep=""))
-           if (el %in% c("B")) {
-              null.flag <- ( any(target[[el]] < 0) )	  
-              if(null.flag) msg = c(msg, "One of the elements if control$boundsInits$B is < 0\n") }
            if (el %in% c("R", "Q")) {
               null.flag <- ( any(target[[el]] <= 0) )	  
-              if(null.flag) msg = c(msg, "One of the elements if control$boundsInits$", el, " is <= 0\n", sep="") }           }	  
+              if(null.flag) msg = c(msg, "One of the elements of control$boundsInits$", el, " is <= 0\n", sep="") }           }	  
         }
       }      
     }  

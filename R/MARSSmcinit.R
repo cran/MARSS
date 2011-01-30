@@ -39,25 +39,25 @@ MARSSmcinit = function(MLEobj) {
       if(FALSE %in% is.na(free.tmp[[el]])){
         dim.param = dim.tmp[[el]]
         bounds.param = bounds.tmp[[el]]
-        tmp = table(free.tmp[[el]])
-        free.levels = names(tmp)
-        numGroups <- length(free.levels)
-        Ztmp <- matrix(0, dim.param[1]*dim.param[2], numGroups)  # matrix to allow shared values
-        for(i in free.levels) 
-          Ztmp[which(as.vector(free.tmp[[el]])==i), which(free.levels==i)] <- 1
-	      if(el %in% c("Q", "R")) {   #This doesn't preserve sharing constraints but does do random starts drawn from a wishart dist
+        tmp=as.design(MLEobj$model$fixed[[el]],MLEobj$model$free[[el]])
+        if(el %in% c("Q", "R")){   # random starts drawn from a wishart dist
 	        if( bounds.param[1] < dim.param[1]){ df=dim.param[1] }else{ df=bounds.param[1] }
 	        S=diag(bounds.param[2],dim.param[1])
-	        param.random = rwishart(df, S)/df
+	        #draw a random matrix from wishart
+	        tmp.random = rwishart(df, S)/df
+	        #reapply the sharing and fixed constraints 
+          element.random = solve(t(tmp$D)%*%tmp$D)%*%t(tmp$D)%*%(vec(tmp.random)-tmp$f)
+          param.random = unvec(tmp$f + tmp$D%*%element.random, dim.param)
 	      }else{
-	        element.random = array(runif(numGroups, bounds.param[1], bounds.param[2]), dim=c(numGroups,1))
-          param.random = array(Ztmp%*%element.random, dim = dim.param)
-	      }
+	        element.random = matrix(runif(dim(tmp$D)[2], bounds.param[1], bounds.param[2]), dim(tmp$D)[2],1)
+          param.random = unvec(tmp$f+tmp$D%*%element.random, dim.param)
+          if(el %in% c("B")){
+           tmp.max=max(abs(eigen(param.random,only.values=TRUE)$values))
+           #rescale to bring the max abs eigenvalues to between 0 and 1
+           param.random = unvec(tmp$f+tmp$D%*%( element.random/(tmp.max/runif(1,.01,.99)) ), dim.param)
+          }
+        } 
       }else{ param.random=MLEobj$model$fixed[[el]] }
-      #if some vals are  fixed, fix them
-      fixed.vals = !is.na(MLEobj$model$fixed[[el]])
-      fix.tmp = MLEobj$model$fixed[[el]]
-      param.random[fixed.vals]=fix.tmp[fixed.vals] 
       init.loop[[el]] = param.random 
     }
 

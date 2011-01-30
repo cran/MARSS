@@ -62,10 +62,10 @@ for(el in req.args)
 for(el in req.args) {
   tmp = get(el)
   if(!is.list(tmp) && !(el %in% c("miss.value", "method")))
-     stop(paste("Stopped in popWrap: arg ",el," must be passed in as a list (or left off to use defaults).\n"),call.=FALSE)
+     stop(paste("Stopped in popWrap: arg ",el," must be passed in as a list (or left off to use defaults).\n", sep=""),call.=FALSE)
   if(!all(names(tmp) %in% names(defaults[[el]]))){
      bad.name = names(tmp)[!(names(tmp) %in% names(defaults[[el]]))]
-     stop(paste("\nStopped in popWrap: elements ", bad.name," is not allowed in arg ",el," (misspelled?).\n"),call.=FALSE) 
+     stop(paste("\nStopped in popWrap: elements ", bad.name," is not allowed in arg ",el," (misspelled?).\n",sep=""),call.=FALSE) 
      } 
   passed.in = (names(defaults[[el]]) %in% names(tmp))
   for(i in names(defaults[[el]])[!passed.in] )   {

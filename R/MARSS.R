@@ -63,7 +63,7 @@ MARSS = function(y,
     
     ## Create the marssMLE object
     # This is a helper function to set simple inits for a marss MLE model object
-    wrapperObj$inits = MARSSinits(modelObj, wrapperObj$inits)
+    wrapperObj$inits = MARSSinits(modelObj, wrapperObj$inits, method)
 
     MLEobj = list(model=modelObj, start=wrapperObj$inits, control=c(wrapperObj$control, silent=silent), method=method)
     class(MLEobj) = "marssMLE"
