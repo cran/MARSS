@@ -1,5 +1,5 @@
 ###################################################
-### chunk number 98: Cs3_code
+### code chunk number 8: Cs3_code
 ###################################################
 # Read in the data
 # The data are logged already
@@ -20,12 +20,12 @@ for(i in 1:9) {
 # for one of the hypotheses
 # Hypothesis 5 build a simple panmictic model - 1 subpop, 1 R, 1 Q, 1 U
 ###############################################################
-   Q.constraint="unconstrained" #could be left out since Q scalar
-   R.constraint="diagonal and equal"
-   U.constraint="unconstrained" #could be left out since U scalar
-   Z.constraint=factor(rep(1,9)) #repeat 1 nine times
+   Q.model="unconstrained" #could be left out since Q scalar
+   R.model="diagonal and equal"
+   U.model="unconstrained" #could be left out since U scalar
+   Z.model=factor(rep(1,9)) #repeat 1 nine times
 
-kem = MARSS(sealData, constraint=list(Z=Z.constraint, Q=Q.constraint, R=R.constraint, U=U.constraint))
+kem = MARSS(sealData, model=list(Z=Z.model, Q=Q.model, R=R.model, U=U.model))
 
 # the parameter estimates
 kem$par$U
@@ -40,7 +40,7 @@ Xobs = sealData
 par(mfrow=c(3,3))
 for(i in 1:9) {
     plot(years, Xobs[i,], ylab="", main=rownames(sealData)[i] )
-    lines(years, Xpred[,Z.constraint[i]]+kem$par$A[i], ylab="", lwd=2, col=2 )
+    lines(years, Xpred[,Z.model[i]]+kem$par$A[i], ylab="", lwd=2, col=2 )
 }                                                            
 mtext("Predicted (line) and Observed (points)", side=2, outer=T, line=-2)
 
@@ -49,7 +49,7 @@ Xpred = t(kem$states)
 Xobs = sealData
 par(mfrow=c(3,3))
 for(i in 1:9) {
-    plot(years, Xpred[,Z.constraint[i]] - Xobs[i,], ylab="Predicted-Observed Data", main=rownames(sealData)[i] )
+    plot(years, Xpred[,Z.model[i]] - Xobs[i,], ylab="Predicted-Observed Data", main=rownames(sealData)[i] )
 }
 
 

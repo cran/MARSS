@@ -22,7 +22,7 @@ MARSSparamCIs(MLEobj, method = "hessian", alpha = 0.05, nboot=1000)
 }
 \references{ 
 Holmes, E. E. and E. J. Ward. 2010. Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
-Center, 2725 Montlake Blvd E., Seattle, WA 98112; this is the user manual accesses via \code{show.doc(MARSS, manual)}
+Center, 2725 Montlake Blvd E., Seattle, WA 98112; this is the user guide accessed via \code{RShowDoc("UserGuide",package="MARSS")}
  }
 \author{ 
   Eli Holmes, NOAA, Seattle, USA.
@@ -34,7 +34,7 @@ Center, 2725 Montlake Blvd E., Seattle, WA 98112; this is the user manual access
 \examples{
   dat = t(harborSealWA)
   dat = dat[2:4,]
-  kem = MARSS(dat, constraint=list(Z=factor(c(1,1,1)), 
+  kem = MARSS(dat, model=list(Z=factor(c(1,1,1)), 
      R="diagonal and unequal"))
   kem.with.CIs.from.hessian = MARSSparamCIs(kem)
   kem.with.CIs.from.hessian

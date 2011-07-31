@@ -1,11 +1,11 @@
 ###################################################
-### chunk number 43: Cs1_Exercise1
+### code chunk number 6: Cs1_Exercise1
 ###################################################
 par(mfrow=c(3,3))
 sim.u = -0.05 
-sim.Q = 0.01 
+sim.Q = 0.02 
 sim.R = 0.05 
-nYr= 30 
+nYr= 50 
 fracmiss = 0.1 
 init = 7 
 years = seq(1:nYr)
@@ -19,8 +19,8 @@ for(i in 1:9){
     y[t]= x[t] + rnorm(1,mean=0,sd=sqrt(sim.R)) }
   missYears = 
     sample(years[2:(nYr-1)],floor(fracmiss*nYr),replace = FALSE)
-  y[missYears]=-99
-  plot(years[y!=-99], y[y!=-99],
+  y[missYears]=NA
+  plot(years, y,
     xlab="",ylab="log abundance",lwd=2,bty="l")
   lines(years,x,type="l",lwd=2,lty=2)
   title(paste("simulation ",i) )
@@ -30,18 +30,18 @@ legend("topright", c("Observed","True"),
 
 
 ###################################################
-### chunk number 53: Cs1_Exercise2
+### code chunk number 16: Cs1_Exercise2
 ###################################################
 sim.u = -0.05   # growth rate
-sim.Q = 0.01    # process error variance
+sim.Q = 0.02    # process error variance
 sim.R = 0.05    # non-process error variance
-nYr= 30         # number of years of data to generate
-fracmiss = 0.0  # fraction of years that are missing
+nYr= 50         # number of years of data to generate
+fracmiss = 0.1  # fraction of years that are missing
 init = 7        # log of initial pop abundance (~1100 individuals)
 nsim = 9
 years = seq(1:nYr)  # col of years
-params = matrix(NA, nrow=11, ncol=5, 
-  dimnames=list(c(paste("sim",1:9),"mean sim","true"),
+params = matrix(NA, nrow=(nsim+2), ncol=5, 
+  dimnames=list(c(paste("sim",1:nsim),"mean sim","true"),
 c("kem.U","den91.U","kem.Q","kem.R", "den91.Q")))
 x.ts = matrix(NA,nrow=nsim,ncol=nYr)  # ts w/o measurement error 
 y.ts = matrix(NA,nrow=nsim,ncol=nYr)  # ts w/ measurement error
@@ -53,18 +53,15 @@ for(i in 1:nsim){
     y.ts[i,t] = x.ts[i,t]+rnorm(1,mean=0,sd=sqrt(sim.R))}
   missYears = sample(years[2:(nYr-1)], floor(fracmiss*nYr),
     replace = FALSE) 
-  y.ts[i,missYears]=-99
+  y.ts[i,missYears]=NA
 
   #Kalman-EM estimates 
-  #So that this code runs fast, we're using a rough convergence test (abstol)
-  #change that line to  kem = MARSS(y.ts[i,], silent=TRUE)
-  #for a better (albeit much slower) convergence test
-  kem = MARSS(y.ts[i,], silent=TRUE, control=list(abstol=0.01))
+  kem = MARSS(y.ts[i,], silent=TRUE)
   params[i,c(1,3,4)] = c(kem$par$U,kem$par$Q,kem$par$R)
 	
   #Dennis et al 1991 estimates
-  den.years = years[y.ts[i,]!=-99]  # the non missing years
-  den.yts = y.ts[i,y.ts[i,]!=-99]   # the non missing counts
+  den.years = years[!is.na(y.ts[i,])]  # the non missing years
+  den.yts = y.ts[i,!is.na(y.ts[i,])]   # the non missing counts
   den.n.yts = length(den.years) 	
   delta.pop = rep(NA, den.n.yts-1 ) # transitions
   tau = rep(NA, den.n.yts-1 )       # time step lengths
@@ -80,7 +77,7 @@ params[nsim+2,]=c(sim.u,sim.u,sim.Q,sim.R,sim.Q)
 
 
 ###################################################
-### chunk number 57: Cs1_Exercise3
+### code chunk number 20: Cs1_Exercise3
 ###################################################
 #Needs Exercise 2 to be run first
 par(mfrow=c(3,3))
@@ -91,10 +88,11 @@ for(j in c(10,1:8)){
 
   #Kalman-EM parameter estimates
   u=params[j,1];   Q=params[j,3]
-  p.ever = ifelse(u<=0,1,exp(-2*u*xd/Q)) 
+  if(Q==0) Q=1e-4  #just so the extinction calc doesn't choke
+  p.ever = ifelse(u<=0,1,exp(-2*u*xd/Q))
   for (i in 1:100){      
     if(is.finite(exp(2*xd*abs(u)/Q))){
-	     sec.part = exp(2*xd*abs(u)/Q)*pnorm((-xd-abs(u)* tyrs[i])/sqrt(Q*tyrs[i]))
+	  sec.part = exp(2*xd*abs(u)/Q)*pnorm((-xd-abs(u)* tyrs[i])/sqrt(Q*tyrs[i]))
     }else sec.part=0      
     kal.ex[i]=p.ever*pnorm((-xd+abs(u)*tyrs[i])/sqrt(Q*tyrs[i]))+sec.part
   } # end i loop
@@ -128,14 +126,14 @@ legend("bottomright",c("True","Dennis","KalmanEM"),pch=c(1,-1,-1),
 
 
 ###################################################
-### chunk number 59: Cs1_Exercise4
+### code chunk number 22: Cs1_Exercise4
 ###################################################
 par(mfrow=c(1,1))
-CSEGtmufigure(N=30, u=-0.05, s2p=0.01)
+CSEGtmufigure(N=50, u=-0.05, s2p=0.02)
 
 
 ###################################################
-### chunk number 63: Cs1_Exercise5
+### code chunk number 26: Cs1_Exercise5
 ###################################################
 #If you have your data in a tab delimited file with a header
 #This is how you would read it in using file.choose() 

@@ -127,8 +127,9 @@ is.marssm <- function(modelObj)
       }
       
 ###########################
-# Check that the Q and R matrices have no zeros
+# TURNED OFF Check that the Q and R matrices have no zeros
 ###########################
+if(1==0){ #TURNED OFF
   en = c("R", "Q")
   #this one catches if the user set 1 0 on the diagonal and set the others to NA (estimated)
   zer = NULL
@@ -138,26 +139,33 @@ is.marssm <- function(modelObj)
     zer = c(zer, zero.flag)
     }
   if(any(zer)) { 
-      msg = c(msg, paste("Zeros are on the diagonal of ", en[zer], ". In a MARSS model, zeros are illegal on the diag of the R or Q matrices.\n", sep=""))
+      msg = c(msg, paste("Zeros are on the diagonal of ", en[zer], ". Zeros are illegal on the diag of the R or Q matrices.\n", sep=""))
       }
+}
 
 ###########################
-# Check that fixed V0, Q and R matrices are positive and definite
+# Check that fixed V0, Q and R matrices are symmetric and positive-definite
 ###########################
   en = c("R", "Q", "V0")
-  zer = NULL
+  pos = symm = NULL
   for (elem in en) {
-    zero.flag = FALSE
-    #this if will not be triggered if all zero, but all zero Q or R will be caught above.
-    if(is.fixed(modelObj$fixed[[elem]]) && !identical(unname(modelObj$fixed[[elem]]),array(0,dim=dim(modelObj$fixed[[elem]])))){
+    symm.flag = FALSE
+    pos.flag = FALSE
+    par.as.list = array(list(), dim=dim(modelObj$fixed[[elem]]))
+    par.as.list[!is.na(modelObj$fixed[[elem]])]= modelObj$fixed[[elem]][!is.na(modelObj$fixed[[elem]])]
+    par.as.list[!is.na(modelObj$free[[elem]])]= modelObj$free[[elem]][!is.na(modelObj$free[[elem]])]
+    if(!isTRUE(all.equal(par.as.list, t(par.as.list)))) symm.flag=TRUE
+    if(is.fixed(modelObj$fixed[[elem]])){
       tmp = try( eigen(modelObj$fixed[[elem]]), silent=TRUE )
-      if(class(tmp)=="try-error") zero.flag=TRUE
-      else if(any(tmp$values<=0)) zero.flag=TRUE
+      if(class(tmp)=="try-error") pos.flag=TRUE
+      else if(!all(tmp$values >= 0)) pos.flag=TRUE
     }
-    zer = c(zer, zero.flag)
+    pos = c(pos, pos.flag)
+    symm = c(symm, symm.flag)
   }
-  if(any(zer)) msg = c(msg, paste("The fixed matrix ", en[zer], " is not positive-definite (and var-cov matrices must be).\n", sep=""))
-       
+  if(any(pos)) msg = c(msg, paste("The fixed matrix ", en[pos], " is not positive-definite (and var-cov matrices must be).\n", sep=""))
+  if(any(symm)) msg = c(msg, paste("The variance matrix ", en[symm], " is not symmetric (and var-cov matrices must be).\n", sep=""))
+        
 ###########################
 # Check data and missing values consistency if data present
 ###########################

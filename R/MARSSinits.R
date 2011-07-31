@@ -2,10 +2,10 @@
 ## Set up inits
 ## These will be checked by the MLE object checker.
 
-MARSSinits <- function(modelObj, inits=list(B=1, U=0, Q=0.05, A=0, R=0.05, x0=-99, V0=10))
+MARSSinits <- function(modelObj, inits=list(B=1, U=0, Q=0.05, A=0, R=0.05, x0=-99, V0=5))
 {
 if(!is.list(inits)) stop("Stopped in MARSSinits() because inits must be a list.\n", call.=FALSE)
-default = list(B=1, U=0, Q=0.05, A=0, R=0.05, x0=-99, V0=10)
+default = list(B=1, U=0, Q=0.05, A=0, R=0.05, x0=-99, V0=5)
 for(elem in names(default)){
   if(is.null(inits[[elem]])) inits[[elem]]=default[[elem]]
 }
@@ -54,7 +54,7 @@ for(elem in names(default)){
       inits[[elem]][!is.na(modelObj$fixed[[elem]])]= modelObj$fixed[[elem]][!is.na(modelObj$fixed[[elem]])]
     }
     }
-  for(elem in c("Q","R","B")) {
+  for(elem in c("Q","R","B","V0")) {  #if inits is a scalar to vector, make init a diagonal matrix
     if(is.fixed(modelObj$fixed[[elem]])){ inits[[elem]] = modelObj$fixed[[elem]]
     }else{ if(length(inits[[elem]])==length(modelObj$fixed[[elem]]) ){
       inits[[elem]]= inits[[elem]]=array(inits[[elem]],dim=dim(modelObj$fixed[[elem]]))

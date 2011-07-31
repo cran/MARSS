@@ -5,26 +5,17 @@
 #######################################################################################################
 MARSSkem = function(MLEobj) {
 # This is a core function and does not check if user specified a legal or solveable model. 
-# free and fixed are list of constraint matrices.  Values that are not fixed must be designated NA in 'fixed'; 
+# free and fixed are a list of model matrices.  Values that are not fixed must be designated NA in 'fixed'; 
 # Values that are not free must be designated NA in 'free'
 # y is MLEobj$model$data with the missing values replace by 0
+kf.x0 = MLEobj$control$kf.x0  #the initial conditions treatment "x00" x0 is at t=0 or "x01" x0 is at t=1
+#kf.x0=x00 prior is defined as being E[x(t=0)|y(t=0)]; xtt[0]=x0; Vtt[0]=V0
+#kf.x1=x10 prior is defined as being E[x(t=0)|y(t=0)]; xtt1[1]=x0; Vtt1[1]=V0
 
   #Check that model is allowed given the EM algorithm constaints; returns some info on the model structure
   constr.type=MARSSkemcheck(MLEobj$model, method=MLEobj$method)
   #set up holders for warning messages
   msg=NULL; stop.msg=NULL; msg.kem=NULL; msg.kf=NULL; msg.conv=NULL #error messages
-  
-  ## Warn about small initial value for V0
-  if(MLEobj$control$iter.V0 < 0.5 & !is.fixed(MLEobj$model$fixed$x0) ){
-    msg.conv=c(msg.conv,"control$iter.V0=0 is small. This will cause x0 to converge slowly (and not at all if =0). See ?MARSSkem.\n")
-  }
-  tmp = takediag(MLEobj$model$fixed$Q)
-  if(any(!is.na(tmp)) && any(tmp[!is.na(tmp)]<0.01) && !is.fixed(MLEobj$model$fixed$U) ){
-    msg.conv=c(msg.conv, "Some Q on the diagonal are fixed very small (<0.01). This could cause U to converge slowly (and not at all if fixed Q is ca 0).\n")
-  }
-  if(MLEobj$control$iter.V0 == 0){
-    msg.kem=c(msg.kem, "control$iter.V0=0. This makes the EM algorithm unstable. See ?MARSSkem.\n")
-  }
 
   ## attach would be risky here since user might have one of these variables in their workspace    
   y = MLEobj$model$data #must have time going across columns
@@ -34,31 +25,42 @@ MARSSkem = function(MLEobj) {
   inits = MLEobj$start
   model.el = names(fixed)
   n = dim(y)[1]; TT = dim(y)[2]; m = dim(as.matrix(fixed$Q))[1]
+  Id = list(m = diag(1,m), n = diag(1,n)) # identity matrices
   control = MLEobj$control
+  if(identical(unname(MLEobj$model$fixed$V0), matrix(0,m,m))) x0.is.stochastic = FALSE else x0.is.stochastic = TRUE
+
   stopped.with.errors=FALSE; kf=NULL; condition.limit=1E10
-     
+  tmp=takediag(MLEobj$model$fixed$V0)
+  ## Warn about small initial value for V0
+  if(any(!is.na(tmp)) && !is.fixed(MLEobj$model$fixed$x0) && x0.is.stochastic && any(tmp[!is.na(tmp)] < 0.05) ){
+    msg.conv=c(msg.conv,"One of the diagonal elements of V0 is small. This will cause x0 to converge slowly . See ?MARSSkem.\n")
+  }
+  tmp = takediag(MLEobj$model$fixed$Q)
+  if(any(!is.na(tmp)) && any(tmp[!is.na(tmp)]<0.01) && !is.fixed(MLEobj$model$fixed$U) ){
+    msg.conv=c(msg.conv, "Some Q on the diagonal are fixed very small (<0.01). This could cause U to converge slowly.\n")
+  }
+       
   ## assign the starting parameter values; use fixed values where fixed otherwise use inits; V0 will be reassigned below
+  ## do the test for whether parameter is fixed here
   for(elem in model.el) {
     inits[[elem]][is.na(free[[elem]])] = fixed[[elem]][is.na(free[[elem]])]
     assign(elem, inits[[elem]])
     } 
-
+  
   ## create fixed0 matrices with NAs replaced with 0s so we can add the estimated to fixed to get the $par matrices
   fixed0 = fixed
   for(elem in model.el) fixed0[[elem]][is.na(fixed[[elem]])] = 0
   
-  # If V0 is fixed to be zero, then the EM algorithm is run with a diag V0 set large.  At end, the kalman filter is rerun with 
-  if(!is.fixed(fixed$x0)){
-   if(!identical(unname(fixed$V0), array(0,dim=c(m,m)))){ 
-      stop("Stopped in MARSSkem(). If x0 is estimated, V0 must be 0.  See discussion regarding initial conditions in manual.\n",call.=FALSE)
-   }else{
-        D=as.design(fixed$x0, free$x0)$D  #need this many places
-        V0 = control$iter.V0 * D%*%t(D) #if some x0 are shared, they need V0 with 100% correlation
-        }
-   }else { V0 = fixed$V0 }   #if x0 is fixed, x0 is treated as a prior
-  MLEobj$start$V0=V0 #set to whatever V0 is fixed to
-
-  ## M is the matrix for handling missing values
+  ## create the fixec vec and design matrices for each parameter
+  d = f = not.fixed = list()
+  for(elem in model.el) {
+    design = as.design(fixed[[elem]],free[[elem]])
+    d[[elem]] = design$D
+    f[[elem]] = design$f
+    not.fixed[[elem]]=!is.fixed(fixed[[elem]])
+    }
+      
+  ## M is the matrix for handling missing values; 0 on diag = missing
   M = MLEobj$model$M
   #Make sure the missing vals in y are zeroed out
   for(i in 1:dim(y)[2]){ y[!as.logical(takediag(M[,,i])),i]=0 }
@@ -72,7 +74,7 @@ MARSSkem = function(MLEobj) {
   #######################################################################################   
   
   #set up the convergence flags
-  conv.test=list(convergence=72, messages="No convergence test performed.\n")   # 2 means no info yet; 0 means converged
+  conv.test=list(convergence=72, messages="No convergence test performed.\n", not.converged.params=model.el, converged.params=c() )   # 72 means no info yet; 0 means converged
   cvg = ifelse(is.null(control$abstol), 1, 1 + control$abstol )
   cvg2 = ifelse(is.null(control$abstol), 1, 1 + control$abstol )
   loglike.new = NA #start with no value
@@ -80,13 +82,25 @@ MARSSkem = function(MLEobj) {
   for(iter in 1:control$maxit) { 
     ################# E STEP Estimate states given U,Q,A,R,B,X0 via Kalman filter
     #####################################################################################
-    iter.params=list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )    #this list at iteration iter
+    iter.params=list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )    #the parameter list at iteration iter
     kf.last = kf
-    kf <- MARSSkf(y, iter.params, missing.matrix=M, init.state="x10", debugkf=control$trace)
+    kf = MARSSkf(y, iter.params, missing.matrix=M, init.state=kf.x0, debugkf=control$trace)   #kf.x0 set at top
+    if(control$demean.states) {
+      xbar = apply(cbind(kf$x0T,kf$xtT),1,mean)
+      kf$xtT = kf$xtT-xbar
+      kf$x0T = kf$x0T-xbar
+    }
     if(!kf$ok) { 
-      if(control$trace) msg.kf=c(msg.kf,paste("iter=",iter," ",kf$errors) )
-      else msg.kf=kf$errors
+      if(control$trace){ msg.kf=c(msg.kf,paste("iter=",iter," ",kf$errors) )
+      }else msg.kf=kf$errors
       stop.msg = paste("Stopped at iter=",iter," in MARSSkem() because numerical errors were generated in MARSSkf\n",sep="")
+      stopped.with.errors=TRUE; break
+      }
+    Ey = MARSShatyt(y, iter.params, kf, missing.matrix=M)
+    if(!Ey$ok) { 
+      if(control$trace){ msg.kf=c(msg.kf,paste("iter=",iter," ",Ey$errors) )
+      }else msg.kf=Ey$errors
+      stop.msg = paste("Stopped at iter=",iter," in MARSSkem() because numerical errors were generated in MARSShatyt\n",sep="")
       stopped.with.errors=TRUE; break
       }
     loglike.new = kf$logLik
@@ -94,9 +108,10 @@ MARSSkem = function(MLEobj) {
    # This is a diagnostic line that checks if the solution is becoming unstable
     if(iter>1 && is.finite(loglike.old) == TRUE && is.finite(loglike.new) == TRUE ) cvg = loglike.new - loglike.old  
     if(iter > 2 & cvg < -sqrt(.Machine$double.eps)) {
-        if(control$trace){ msg.kem=c(msg.kem,paste("iter=",iter," LogLike DROPPED.  old=", loglike.old, " new=", loglike.new, "\n", sep=""))
-        }else msg.kem = "MARSSkem: The soln became unstable and logLik DROPPED at some point in the algorithm.\n"
-        }
+      if(control$trace){ 
+          msg.kem=c(msg.kem,paste("iter=",iter," LogLike DROPPED.  old=", loglike.old, " new=", loglike.new, "\n", sep=""))
+      }else msg.kem = "MARSSkem: The soln became unstable and logLik DROPPED.\n"
+    }
 
     ################
     # Keep a record of the iterations for debugging and convergence diagnostics
@@ -139,347 +154,549 @@ MARSSkem = function(MLEobj) {
     loglike.old = loglike.new
     
     ################# M STEP update U,Q,A,R,B,X0 via ML given x(t) estimate
-
-    ################
-    # Get new x0 subject to its constraints
-    # S&S Eqn 4.78
-    # Note, if x0 is a known prior, x0.update will be all 0s since it is not updated
+    # Update Q and R
+    # Run Kalman smoother again to update the hidden states expectations
+    # Update the other parameters
+    
     ################################################################
-    if(FALSE %in% is.na(free$x0)){  # some element needs estimating
-      x0 = array(kf$x0T,dim=c(m,1))
-      ## impose grouping and constraints (fixed values)
-      tmp=table(free$x0, exclude = c(NA, NaN))
-      x0.est.levels=names(tmp)
-      x0.numGroups <- length(x0.est.levels)
-      Zx0 <- matrix(0,m,x0.numGroups)  
-      for(i in x0.est.levels) Zx0[which(as.vector(free$x0)==i),which(x0.est.levels==i)] = 1   #as.vector unzips by column
-      x0.element.update = array((t(Zx0) %*% x0)/colSums(Zx0), dim=c(x0.numGroups,1))
-      x0.update = array(Zx0%*%x0.element.update, dim=c(m,1))
-    }
-    else x0.update = 0
-    x0 = fixed0$x0 + x0.update
-    if(control$safe & is.fixed(fixed$x0) ) {
-      updated.iter.params=list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )  
-      kf <- MARSSkf(y, updated.iter.params, missing.matrix=M, init.state="x10", debugkf=control$trace)
-      if(!kf$ok){ 
-         msg.kf=c(msg.kf,paste("iter=",iter," x0 update ",kf$errors,sep="") ); 
-         stop.msg = paste("Stopped at iter=",iter," in MARSSkem after x0 update: numerical errors generated in MARSSkf\n",sep="")
-         stopped.with.errors=TRUE;  break}
-      loglike.new = kf$logLik
-      if(iter>1 && is.finite(loglike.old) == TRUE && is.finite(loglike.new) == TRUE ) cvg2 = loglike.new - loglike.old  
-      if(iter > 2 & cvg2 < 0) {
-        if(control$trace) msg.kem=c(msg.kem,paste("iter=",iter," LogLike DROPPED in x0 update. logLik old=", loglike.old, " new=", loglike.new, sep=""))
-        msg.kem = "MARSSkem: The soln became unstable and logLik DROPPED at some point in the algorithm.\n"
+    # Get new R subject to its constraints
+    ################################################################
+    #Start the testing for 0s along the diagonal of R
+    elem = "R"; thedim = n
+    if(not.fixed[[elem]] && control$allow.degen && iter>control$min.degen.iter){ 
+      names.diag = paste(elem,free[[elem]][1L + 0L:(thedim - 1L) * (thedim + 1L)],sep=".") #create a name list that is like that in iter.record
+      names.diag[is.na(free[[elem]][1L + 0L:(thedim - 1L) * (thedim + 1L)])]=NA   #any NAs should be NA not Q.NA
+      diag.param = get(elem)[1L + 0L:(thedim - 1L) * (thedim + 1L)]
+      diag.fixed = fixed[[elem]][1L + 0L:(thedim - 1L) * (thedim + 1L)]
+      if(any(diag.param<control$degen.lim & is.na(diag.fixed)) && iter>=control$min.iter.conv.test && iter<control$minit) # run conv test 
+          conv.test = loglog.conv.test(iter.record, iter, deltaT=control$conv.test.deltaT, tol=control$conv.test.slope.tol)
+      degen.elements = diag.param<control$degen.lim & is.na(diag.fixed) & names.diag%in%conv.test$not.converged.param
+      if( any( degen.elements ) ){
+        #if R=0, then corresponding A and Z rows must be fixed
+        allowed.to.be.degen = !is.na(fixed$A) & !apply(is.na(fixed$Z),1,any)
+        if(any(!allowed.to.be.degen & degen.elements)) msg.kf=c(msg.kf,paste("Warning: At iter=",iter," attempt to set 0 diagonals for R blocked for elements where corresponding rows of A or Z are not fixed.\n", sep="") ); 
+         degen.elements = degen.elements & allowed.to.be.degen
+      }
+      if( any( degen.elements ) ){
+        #if R=0, then corresponding A and Z rows must be fixed
+        degen.param=get(elem)
+        degen.param[degen.elements,]=0; degen.param[,degen.elements]=0  #set variances and corr covariances to 0         
+        current.params =  list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )
+        current.params[[elem]]=degen.param
+        loglike.old = loglike.new
+        new.kf = MARSSkf(y, current.params, missing.matrix=M, init.state=kf.x0, debugkf=control$trace)
+        if(!new.kf$ok) msg.kf=c(msg.kf,paste("Warning: kf returned error at iter=",iter," in attempt to set 0 diagonals for ", elem,"\n", new.kf$errors,"\n Perhaps Q and R are both going to 0?\n", sep="") ); 
+        if(new.kf$ok && is.finite(loglike.old) && is.finite(new.kf$logLik) ) tmp.cvg2 = new.kf$logLik - loglike.old  else tmp.cvg2=Inf
+        if(new.kf$ok && tmp.cvg2 < -sqrt(.Machine$double.eps)) {
+          msg.kem=c(msg.kem,paste("Warning: setting diagonal to 0 blocked at iter=",iter,". logLik was lower in attempt to set 0 diagonals on ",elem," logLik old=", loglike.old, " new=", new.kf$logLik,"\n", sep=""))
         }
-    }
-
-    ################
-    # Get new A subject to its constraints (update of R will use this)
-    ##############################################################
-    A.last.iter = A     
-    if(FALSE %in% is.na(free$A)){ #if there is anything to update
-      tmp=table(free$A, exclude=c(NA,NaN))  #free$A is a numeric matrix with NA for those elements that are not updated
-      A.est.levels = names(tmp)
-      A.numGroups <- length(A.est.levels)
-      ZA = matrix(0, n, A.numGroups)   # matrix to allow shared and fixed growth rates; will be 0 where fixed (called F in my write-up)
-      for(i in A.est.levels) ZA[which(free$A==i),which(A.est.levels==i)] <- 1 
-      Rinv = chol2inv(chol(R))    # this is calculated here because used twice below      
-      Rinv = (Rinv+t(Rinv))/2     #enforce symmetry
-      sum1 <- 0        
-      for (i in 1:TT) {
-        A.if.y.missing = (makediag(1,nrow=n)-M[,,i]) %*% A.last.iter  #A.last.iter if missing otherwise 0
-        A.if.y.present = M[,,i] %*% (y[,i] - Z %*% kf$xtT[,i]) #put zeros where values are missing
-        sum1 <- sum1 + A.if.y.present + A.if.y.missing
-      }	 #end for loop over TT
-      numer = t(ZA)%*%Rinv%*%sum1
-      denom = chol2inv(chol( t(ZA)%*%Rinv%*%ZA ) )
-      A.update = ZA%*%(denom%*%numer)/TT   #this will be 0 where A is fixed
-    }
-    else A.update=0
-    A = fixed0$A + A.update     #fixed0$A is a matrix with 0 for values that will be updated and fixed values otherwise
-    #Call kf again if safe = TRUE
-    if( control$safe & !is.fixed(fixed$A) ) {
-      updated.iter.params=list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )  
-      kf <- MARSSkf(y, updated.iter.params, missing.matrix=M, init.state="x10",debugkf=control$trace)
-      if(!kf$ok){ 
-          msg.kf=c(msg.kf,paste("iter=",iter," A update ",kf$errors,sep="") ); 
-          stop.msg = paste("Stopped at iter=",iter," in MARSSkem after A update: numerical errors generated in MARSSkf\n",sep="")
-          stopped.with.errors=TRUE;  break}
-      loglike.new = kf$logLik
-      if(iter>1 && is.finite(loglike.old) == TRUE && is.finite(loglike.new) == TRUE ) cvg2 = loglike.new - loglike.old  
-      if(iter > 2 & cvg2 < 0) {
-        if(control$trace) msg.kem=c(msg.kem,paste("iter=",iter," LogLike DROPPED in A update. logLik old=", loglike.old, " new=", loglike.new, sep=""))
-        msg.kem = "MARSSkem: The soln became unstable and logLik DROPPED at some point in the algorithm.\n"
+        if(new.kf$ok && tmp.cvg2 > -sqrt(.Machine$double.eps)) { #this means degenerate R has lower LL, so accept it
+          assign(elem, degen.param)
+          fixed[[elem]][degen.elements,]=0; fixed[[elem]][,degen.elements]=0           
+          free[[elem]][degen.elements,]=NA; free[[elem]][,degen.elements]=NA           
+          design = as.design(fixed[[elem]],free[[elem]]); d[[elem]] = design$D; f[[elem]] = design$f
+          not.fixed[[elem]]=!is.fixed(fixed[[elem]])
+          #update the kf and hatyt values with the new Q with 0s         
+          kf=new.kf
+          if(control$demean.states) {
+            xbar = apply(cbind(kf$x0T,kf$xtT),1,mean)
+            kf$xtT = kf$xtT-xbar
+            kf$x0T = kf$x0T-xbar
+          }
+          Ey = MARSShatyt(y, current.params, kf, missing.matrix=M)
+          cvg2=tmp.cvg2
+          loglike.new=kf$logLik
         }
       }
-    if( control$trace & !is.fixed(fixed$A) ) {
-        Ck = kappa(R)
-        if(Ck>condition.limit) msg.kem=c(msg.kem,paste("iter=",iter," Unstable A estimate because R is ill-conditioned. C =",round(Ck), sep=""))
-        }
-    ################
-    # Get new U subject to its constraints (update of Q and B will use this)
-    ################################################################
-    # if some state processes share a u, then we need to take the average across processes sharing a u, 
-    # taking into account the variance of each process
-    if(FALSE %in% is.na(free$U)){ #if there is anything to update
-      X1B0 = 0
-      for (i in 2:TT) X1B0 = X1B0 + kf$xtT[,i] - B%*%kf$xtT[,i-1]      
-      Qinv = chol2inv(chol(Q))    # this is calculated here because used twice below      
-      Qinv = (Qinv+t(Qinv))/2     #enforce symmetry
-      ## Construct the constraints matrix ZU
-      tmp=table(free$U, exclude=c(NA,NaN))  #free$U is a numeric matrix with NA for those elements that are not updated
-      U.est.levels = names(tmp)
-      U.numGroups <- length(U.est.levels)
-      ZU = matrix(0,m,U.numGroups)   # matrix to allow shared growth rates (called F in my write-up)
-      for(i in U.est.levels) ZU[which(free$U==i),which(U.est.levels==i)] <- 1 
-      numer = t(ZU)%*%Qinv%*%X1B0
-      denom = chol2inv(chol( t(ZU)%*%Qinv%*%ZU ) )
-      ## The ZU bit is taking the average across values that are shared
-      U.update = ZU%*%(denom%*%numer) / (TT-1)     #U.update will be 0 when that value is not updated
     }
-    else U.update=0
-    U = fixed0$U + U.update     #fixed0$U is a matrix with 0 for values that will be updated and fixed values otherwise
-    if(control$safe & !is.fixed(fixed$U) ) {
-      updated.iter.params=list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )  
-      kf <- MARSSkf(y, updated.iter.params, missing.matrix=M, init.state="x10",debugkf=control$trace)
-      if(!kf$ok){ 
-          msg.kf=c(msg.kf,paste("iter=",iter," U update ",kf$errors, sep="") ); 
-          stop.msg = paste("Stopped at iter=",iter," in MARSSkem after U update: numerical errors generated in MARSSkf\n",sep="")
-          stopped.with.errors=TRUE;  break}
-      loglike.new = kf$logLik
-      if(iter>1 && is.finite(loglike.old) == TRUE && is.finite(loglike.new) == TRUE ) cvg2 = loglike.new - loglike.old  
-      if(iter > 2 & cvg2 < 0) {
-        if(control$trace) msg.kem=c(msg.kem,paste("iter=",iter," LogLike DROPPED in U update. logLik old=", loglike.old, " new=", loglike.new, sep=""))
-        msg.kem = "MARSSkem: The soln became unstable and logLik DROPPED at some point in the algorithm.\n"
-        }
-    }
-    if( control$trace & !is.fixed(fixed$U) ) {
-        Ck = kappa(Q)
-        if(Ck>condition.limit) msg.kem=c(msg.kem,paste("iter=",iter," Unstable U estimate because Q is ill-conditioned. C =",Ck, sep=""))
-        }
-        
-    ################
-    # Get new R subject to its constraints
-    # S&S 6.72 with addition of grouping and diagonal constraint variants
-    ################################################################
-    if(FALSE %in% is.na(free$R)){
-      sum1 <- 0
+    #Now run the standard EM update equations
+    R.update = 0
+    if(not.fixed$R){
+      sum1 = 0
+      t.Z = t(Z); t.A = t(A) #pull out of for loop
+      t.hatxt = t(kf$xtT); t.hatyt = t(Ey$ytT)
       for (i in 1:TT) {
-     	## This is the updating equation for R
-      ## EH 7.10.08 THIS NEXT LINE IS THE PART THAT IS PREVENTING ESTIMATION OF R COVARIANCES WHEN THERE ARE MISSING VALUES
-        R.if.y.missing <- (makediag(1,nrow=n) - M[,,i])%*%R   
-        ## This is going to give 0 if have val and R from last iteration if not
-        err <- y[,i]- M[,,i]%*%(Z%*%kf$xtT[,i] + A)  #residuals: this will be zero when y[j] is missing]
-        R.if.y.present <- err%*%t(err) + (M[,,i]%*%Z)%*%kf$VtT[,,i]%*%t(M[,,i]%*%Z) 
-        ## Updated R estimate if have y data
-        sum1 <- sum1 + R.if.y.present + R.if.y.missing 
-      } #end for loop
+        hatyt = Ey$ytT[,i,drop=FALSE]; hatyxt=matrix(Ey$yxtT[,,i],n,m); hatOt = Ey$OtT[,,i]
+        hatPt = kf$VtT[,,i]+kf$xtT[,i,drop=FALSE]%*%t.hatxt[i,,drop=FALSE]
+        hatxt = kf$xtT[,i,drop=FALSE] 
+        sum1 = sum1 + hatOt - hatyxt%*%t.Z - Z%*%t(hatyxt)- hatyt%*%t.A - A%*%t.hatyt[i,,drop=FALSE] + 
+            Z%*%hatPt%*%t.Z + Z%*%hatxt%*%t.A + A%*%t.hatxt[i,,drop=FALSE]%*%t.Z + A%*%t.A
+      }      
       sum1 = (sum1+t(sum1))/2 #enforce symmetry
-      R = sum1/TT #this provides the estimate of the R matrix with diagonal and non-diagonal elements
-      ## Now add the constraints.  The unfixed values are updated while the fixed values are fixed
-      ## This allows shared values on diagonal and shared covariances
-      tmp=table(free$R, exclude=c(NA,NaN))  #free$R is a numeric matrix with NA for those elements that are not updated
-      R.est.levels = names(tmp)
-      R.numGroups <- length(R.est.levels)
-      ZR <- matrix(0,n*n,R.numGroups)  # matrix to allow shared measurement errs
-      for(i in R.est.levels) ZR[which(as.vector(free$R)==i),which(R.est.levels==i)] = 1 
-      R.element.update = array((t(ZR)%*%array(t(R),dim=c(n*n,1)))/colSums(ZR),dim=c(R.numGroups,1))
-      R.update = array(ZR%*%R.element.update, dim=c(n,n))  #R.update is 0 if that element is not updated
+      R.update = chol2inv(chol(t(d$R)%*%d$R))%*%t(d$R)%*%vec(sum1/TT)
+      R.update = d$R%*%R.update   #zeros where no estimate
     }
-    else R.update=0
-    R = fixed0$R + R.update     #fixed0$R is a matrix with 0 for values that will be updated and fixed values otherwise
-    ##### Catch errors
-        if(any(eigen(R)$values<0)) {
-          stop.msg=paste("Stopped at iter=",iter," in MARSSkem: solution became unstable and R update is not positive definite.\n",sep="")
-          stopped.with.errors=TRUE;  
-          break}      
-    ##### Use kf call after each update safe
-    if(control$safe & !is.fixed(fixed$R) ) {
-      updated.iter.params=list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )  
-      kf <- MARSSkf(y, updated.iter.params, missing.matrix=M, init.state="x10",debugkf=control$trace)
-      if(!kf$ok){ 
-          msg.kf=c(msg.kf,paste("iter=",iter," R update ",kf$errors,sep="") ); 
-          stop.msg = paste("Stopped at iter=",iter," in MARSSkem after R update: numerical errors generated in MARSSkf\n",sep="")
-          stopped.with.errors=TRUE;  break}
-      loglike.new = kf$logLik
-      if(iter>1 && is.finite(loglike.old) == TRUE && is.finite(loglike.new) == TRUE ) cvg2 = loglike.new - loglike.old  
-      if(iter > 2 & cvg2 < 0) {
-        if(control$trace) msg.kem=c(msg.kem,paste("iter=",iter," LogLike DROPPED in R update. logLik old=", loglike.old, " new=", loglike.new, sep=""))
-        msg.kem = "MARSSkem: The soln became unstable and logLik DROPPED at some point in the algorithm.\n"
-        }
-    }
-    
-    	# S10, S00, and S11 calculations required for Q, B and Z updates
-      # This is  different than S&S1 Eqn 4.76 (S&S2 Eqn 6.67-69); theirs is based on the likelihood
-    	# as written in Eqn 4.69 (6.64) & and Harvey 4.2.19
-    	# We don't have a prior on x0 and what you set V0 at affects the Q M-step calculation
-    	# to its detriment.  
-    	# Instead I'm using the likelihood calculation from Ghahramani and Hinton which is does 
-    	# the sum for the Q bit from 2 to T not 1 to T.  This treats the estimated first state as t=1 not t=0.
-      # As a result, x0 and V0 drop out of the likelihood. See notes by EH
-    	# This seems to work better although we should be able to rewrite this with V0=0 for the case where x0 is treated
-    	# as fixed but unknown.
-    	# S&S and Harvey would start here
-    	# S00 <- kf$V0T + kf$x0T%*%t(kf$x0T)
-      # S11 <- kf$VtT[,,1] + (kf$xtT[,1]-U)%*%t(kf$xtT[,1]-U)
-      # S10 <- kf$Vtt1T[,,1] + (kf$xtT[,1]-U)%*%t(kf$x0T);
-      # I switched on 7/22/08 to this since it seems less sensitive to V0 and finds Q with max L with lower tol setting
-      # with S&S it climbs Q at more slowly and cvg hits tol before max is reached
-      # Note that because of this difference, the treatment of x0 in the Kalman filter and smoother is different than in S&S
-      ################################################################
-    S00 = 0; S11 = 0; S10 = 0; X1 = 0; X0 = 0
-    for (i in 2:TT) {
-      S00 = S00 + (kf$VtT[,,i-1] + kf$xtT[,i-1]%*%t(kf$xtT[,i-1]));   #sum 2:T E(xt1T%*%t(xt1T))
-      S10 = S10 + (kf$Vtt1T[,,i] + kf$xtT[,i]%*%t(kf$xtT[,i-1]));     #sum 2:T E(xtT%*%t(xt1T))
-      S11 = S11 + (kf$VtT[,,i] + kf$xtT[,i]%*%t(kf$xtT[,i]));         #sum 2:T E(xtT%*%t(xt1T))
-      X0 = X0 + kf$xtT[,i-1]                                          #sum 2:T E(xt1T)
-      X1 = X1 + kf$xtT[,i]                                            #sum 2:T E(xtT)
-    }
+    R = unvec(f$R + R.update, dim=dim(R))
 
-    ################
-    # Get new B subject to its constraints
-    ################################################################
-    # 11-2-09 EEH  There are only 3 options for B (currently)
-    # B.is.fixed, B.is.unconstrained, B.is.diagonal (means only diagonal is estimated and off-diagonals == 0)
-    ## fixed$B without names
-    #d = fixed$B
-    #rownames(d) = colnames(d) = NULL
-                  
-    if( FALSE %in% is.na(free$B) ) {
-      ok=FALSE
-      if(constr.type$B=="unconstrained") {
-        B = (S10-U%*%t(X0))%*%chol2inv(chol(S00)); ok=TRUE  #The unconstrained update equation        
-        }
-      if(constr.type$B=="diagonal and unequal" || constr.type$B=="scalar") {
-        B = makediag(takediag(S10-U%*%t(X0))/takediag(S00)); ok=TRUE
-        }	 #the unconstrained diagonal B  update eqn; != to diag of above
-      if(!ok) stop("MARSSkem: Code bug. B didn't get updated and that shouldn't happen.")
-        ## Now add the constraints and grouping.  This is generic code; doesn't depend on B structure
-	      B.est.levels = names(table(as.character(free$B)))
-        B.numGroups <- length(B.est.levels)
-        ZB <- matrix(0, m*m, B.numGroups)  # matrix to allow shared values
-        for(i in B.est.levels) ZB[which(as.vector(free$B)==i),which(B.est.levels==i)] <- 1  
-        B.element.update = array((t(ZB)%*%array(B,dim=c(m*m,1)))/colSums(ZB),dim=c(B.numGroups,1))
-        B.update=array(ZB%*%B.element.update, dim=c(m,m))  #B.update is 0 if that element is not updated
+    #Start~~~~~~~~Error checking   
+    if(any(eigen(R)$values<0)) {
+      stop.msg=paste("Stopped at iter=",iter," in MARSSkem: solution became unstable. R update is not positive definite.\n",sep="")
+      stopped.with.errors=TRUE;  
+      break }      
+    if(control$safe && !is.fixed(fixed$R) ){  
+      current.params =  list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )
+      new.kf=rerun.kf("R", iter, y, current.params, M, control, loglike.new, cvg2, kf.x0)
+      if(!new.kf$ok){
+       stopped.with.errors=TRUE
+       msg.kf=c(msg.kf, new.kf$msg.kf); stop.msg=new.kf$stop.msg
+       break
+      }else{
+        kf=new.kf$kf
+        Ey = MARSShatyt(y, current.params, kf, missing.matrix=M)
+        loglike.new=kf$logLik
+        cvg2=new.kf$cvg2
+        msg.kem=c(msg.kem, new.kf$msg.kem)
+      }
     }
-    else B.update=0
-    B = fixed0$B + B.update
-    
-    if(control$safe & !is.fixed(fixed$B) ) {
-      updated.iter.params=list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )  
-      kf <- MARSSkf(y, updated.iter.params, missing.matrix=M, init.state="x10", debugkf=control$trace)
-      if(!kf$ok){ 
-          msg.kf=c(msg.kf,paste("iter=",iter," B update ",kf$errors,sep="") ); 
-          stop.msg = paste("Stopped at iter=",iter," in MARSSkem after B update: numerical errors generated in MARSSkf\n",sep="")
-          stopped.with.errors=TRUE;  break}
-      loglike.new = kf$logLik
-      if(iter>1 && is.finite(loglike.old) == TRUE && is.finite(loglike.new) == TRUE ) cvg2 = loglike.new - loglike.old  
-      if(iter > 2 & cvg2 < 0) {
-        if(control$trace) msg.kem=c(msg.kem,paste("iter=",iter," LogLike DROPPED in B update. logLik old=", loglike.old, " new=", loglike.new, sep=""))
-        msg.kem = "MARSSkem: The soln became unstable and logLik DROPPED at some point in the algorithm.\n"
-        }
-    }
-    if( control$trace & !is.fixed(fixed$B) ) {
-        Ck = kappa(S00)
-        if(Ck>condition.limit) msg.kem=c(msg.kem,paste("iter=",iter," Unstable B estimate because P_{t-1,t-1} is ill-conditioned. C =",round(Ck), sep=""))
-        }
-    
     ################
     # Get new Q subject to its constraints
     ################################################################
-    if(FALSE %in% is.na(free$Q)){
-      Q = (S11 - B%*%t(S10) - S10%*%t(B) + B%*%S00%*%t(B)
-          -U%*%t(X1) - X1%*%t(U) + U%*%t(B%*%X0) + B%*%X0%*%t(U))/(TT-1) + U%*%t(U);    
-      ## Now add the constraints and grouping.  The unfixed values are updated while the fixed values are fixed
-      tmp=table(free$Q, exclude = c(NA, NaN))
-      Q.est.levels=names(tmp)
-      Q.numGroups <- length(Q.est.levels)
-      ZQ <- matrix(0,m*m,Q.numGroups)  # matrix to allow shared q's
-      for(i in Q.est.levels) ZQ[which(as.vector(free$Q)==i),which(Q.est.levels==i)] <- 1   #as.vector unzips by column
-      Q.element.update = array((t(ZQ)%*%array(t(Q),dim=c(m*m,1)))/colSums(ZQ),dim=c(Q.numGroups,1))
-      Q.update = array(ZQ%*%Q.element.update, dim=c(m,m))
-    }
-    else Q.update = 0
-    Q = fixed0$Q + Q.update     #fixed0$Q is a matrix with 0 for values that will be updated and fixed values otherwise
-    ##### Catch errors
-        if(any(eigen(Q)$values<0)) {
-          stop.msg=paste("Stopped at iter=",iter," in MARSSkem: solution became unstable and Q update is not positive definite.\n",sep="")
-          stopped.with.errors=TRUE;  
-          break}      
-    ##### Use kf call after each update safe
-    if(control$safe & !is.fixed(fixed$Q) ) {
-      updated.iter.params=list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )  
-      kf <- MARSSkf(y, updated.iter.params, missing.matrix=M, init.state="x10", debugkf=control$trace)
-      if(!kf$ok){ 
-        msg.kf=c(msg.kf,paste("iter=",iter," Q update ",kf$errors,sep="") ); 
-        stop.msg = paste("Stopped at iter=",iter," in MARSSkem after Q update: numerical errors generated in MARSSkf\n",sep="")
-        stopped.with.errors=TRUE;  break}
-      loglike.new = kf$logLik
-      if(iter>1 && is.finite(loglike.old) == TRUE && is.finite(loglike.new) == TRUE ) cvg2 = loglike.new - loglike.old  
-      if(iter > 2 & cvg2 < 0) {
-        if(control$trace) msg.kem=c(msg.kem,paste("iter=",iter," LogLike DROPPED in Q update. logLik old=", loglike.old, " new=", loglike.new, "\n", sep=""))
-        msg.kem = "MARSSkem: The soln became unstable and logLik DROPPED at some point in the algorithm.\n"
+    #Start the testing for 0s along the diagonal of Q
+    elem = "Q"; thedim = m
+    #Test if elements of Q are going to zero; allow.degen must be TRUE and B must be fixed
+    if(not.fixed[[elem]] && !not.fixed$B && control$allow.degen && iter>control$min.degen.iter){ 
+      names.diag = paste(elem,free[[elem]][1L + 0L:(thedim - 1L) * (thedim + 1L)],sep=".") #create a name list that is like that in iter.record
+      names.diag[is.na(free[[elem]][1L + 0L:(thedim - 1L) * (thedim + 1L)])]=NA   #any NAs should be NA not Q.NA
+      diag.param = get(elem)[1L + 0L:(thedim - 1L) * (thedim + 1L)]
+      diag.fixed = fixed[[elem]][1L + 0L:(thedim - 1L) * (thedim + 1L)]
+      if(any(diag.param<control$degen.lim & is.na(diag.fixed)) && iter>=control$min.iter.conv.test && iter<control$minit) # run conv test 
+          conv.test = loglog.conv.test(iter.record, iter, deltaT=control$conv.test.deltaT, tol=control$conv.test.slope.tol)
+      degen.elements = diag.param<control$degen.lim & is.na(diag.fixed) & names.diag%in%conv.test$not.converged.param
+      #need to test that B^(0) is diagonal for any u^(0) or x0^(0) that are estimated
+      B.degen.and.is.est.u.x0 = B[(is.na(fixed$U) | is.na(fixed$x0)) & degen.elements, (is.na(fixed$U) | is.na(fixed$x0)) & degen.elements]
+      B.degen.off.diag1 = B[(is.na(fixed$U) | is.na(fixed$x0)) & degen.elements, !((is.na(fixed$U) | is.na(fixed$x0)) & degen.elements)]
+      B.degen.off.diag2 = B[!((is.na(fixed$U) | is.na(fixed$x0)) & degen.elements), (is.na(fixed$U) | is.na(fixed$x0)) & degen.elements]
+      if(length(B.degen.off.diag1)==0)  B.degen.off.diag1=B.degen.off.diag2=0
+      if( any( degen.elements ) & is.diagonal(B.degen.and.is.est.u.x0) & all(B.degen.off.diag1==0) & all(B.degen.off.diag2==0) ){  
+      #if B^0 is not diagonal then cannot make Q^0 0
+        degen.param=get(elem)
+        degen.param[degen.elements,]=0; degen.param[,degen.elements]=0           
+        current.params =  list( Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )
+        current.params[[elem]]=degen.param
+        loglike.old = loglike.new
+        new.kf = MARSSkf(y, current.params, missing.matrix=M, init.state=kf.x0, debugkf=control$trace)
+        if(!new.kf$ok) msg.kf=c(msg.kf,paste("Warning: kf returned error at iter=",iter," in attempt to set 0 diagonals for ", elem,"\n", new.kf$errors,"\n Perhaps Q and R are both going to 0?\n", sep="") ); 
+        if(new.kf$ok && is.finite(loglike.old) && is.finite(new.kf$logLik) ) tmp.cvg2 = new.kf$logLik - loglike.old  else tmp.cvg2=Inf
+        if(new.kf$ok && tmp.cvg2 < -sqrt(.Machine$double.eps)) {
+          msg.kem=c(msg.kem,paste("Warning: setting diagonal to 0 blocked at iter=",iter,". logLik was lower in attempt to set 0 diagonals on ",elem," logLik old=", loglike.old, " new=", new.kf$logLik,"\n", sep=""))
+
         }
+        if(new.kf$ok && tmp.cvg2 > -sqrt(.Machine$double.eps)) { #this means degenerate Q has lower LL, so accept it
+          assign(elem, degen.param)
+          fixed[[elem]][degen.elements,]=0; fixed[[elem]][,degen.elements]=0           
+          free[[elem]][degen.elements,]=NA; free[[elem]][,degen.elements]=NA           
+          design = as.design(fixed[[elem]],free[[elem]]); d[[elem]] = design$D; f[[elem]] = design$f
+          not.fixed[[elem]]=!is.fixed(fixed[[elem]])
+          #update the kf and hatyt values with the new Q with 0s         
+          kf=new.kf
+          if(control$demean.states) {
+            xbar = apply(cbind(kf$x0T,kf$xtT),1,mean)
+            kf$xtT = kf$xtT-xbar
+            kf$x0T = kf$x0T-xbar
+          }
+          Ey = MARSShatyt(y, current.params, kf, missing.matrix=M)
+          cvg2=tmp.cvg2
+          loglike.new=kf$logLik
+        }
+      }
+    }
+    #Then do the regular EM update
+    Q.update = 0
+    if( not.fixed$Q ){
+      # If you treat x0 as at t=1 then 
+      # S00 = 0; S11 = 0; S10 = 0; X1 = 0; X0 = 0; TT.numer = TT-1
+      # Otherwise if x0 is at t=0 follow Shumway and Stoffer (S&S2006 Eqn 6.67-69)
+    	t.U = t(U); t.B = t(B) #pull out of for loop
+      if(x0.is.stochastic){  #meaning x0 is the mean and V0 is the var of x[t=t0]
+        X0 = kf$x0T 
+        S00 = kf$V0T + kf$x0T%*%t(kf$x0T)
+        S10 = matrix(kf$Vtt1T[,,1],m,m) + kf$xtT[,1,drop=FALSE]%*%t(kf$x0T);
+      }else{       #meaning x0 is x[t=t0] and V0 is 0
+        X0 = x0
+        S00 = x0%*%t(x0)
+        S10 = kf$xtT[,1,drop=FALSE]%*%t(x0) # kf$Vtt1T[,,1] = 0 in this case
+      }
+      hatxt = kf$xtT[,1,drop=FALSE]
+      t.hatxt = t(kf$xtT)
+      S11 = matrix(kf$VtT[,,1],m,m) + kf$xtT[,1,drop=FALSE]%*%t.hatxt[1, ,drop=FALSE]
+      X1 = kf$xtT[,1,drop=FALSE]; 
+      TT.numer = TT
+      if(kf.x0=="x10"){
+        S00 = 0; S11 = 0; S10 = 0; X1 = 0; X0 = 0; TT.numer = TT-1
+        #Gharamani treatment of initial condition; the initial condition specifies x at t=1
+      }
+      for (i in 2:TT) {
+        S00 = S00 + kf$VtT[,,i-1] + kf$xtT[,i-1,drop=FALSE]%*%t.hatxt[i-1, ,drop=FALSE]   #sum 2:T E(xt1T%*%t(xt1T))
+        if(m!=1) S00 = (S00 + t(S00))/2  #enforce symmmetry
+        S10 = S10 + kf$Vtt1T[,,i] + kf$xtT[,i,drop=FALSE]%*%t.hatxt[i-1, ,drop=FALSE]     #sum 2:T E(xtT%*%t(xt1T))
+        S11 = S11 + kf$VtT[,,i] + kf$xtT[,i,drop=FALSE]%*%t.hatxt[i, ,drop=FALSE]         #sum 2:T E(xtT%*%t(xt1T))
+        if(m!=1) S11 = (S11 + t(S11))/2  #enforce symmetry
+        X0 = X0 + kf$xtT[,i-1,drop=FALSE]                                          #sum 2:T E(xt1T)
+        X1 = X1 + kf$xtT[,i,drop=FALSE]                                            #sum 2:T E(xtT)
+      }
+      Q.update = (S11 - B%*%t(S10) - S10%*%t.B + B%*%S00%*%t.B
+          -U%*%t(X1) - X1%*%t.U + U%*%t(B%*%X0) + B%*%X0%*%t.U)/TT.numer + U%*%t.U  #TT.numer is T-1 if x0 is at t=1
+      Q.update = vec(Q.update + t(Q.update))/2 #ensure symmetry  
+      Q.update = chol2inv(chol(t(d$Q)%*%d$Q))%*%t(d$Q)%*%Q.update #same as vec((T-1)S) in the derivation write-up
+      Q.update = d$Q%*%Q.update  #zeros where no estimated value     
+    }
+    Q = unvec(f$Q + Q.update, dim=dim(Q))
+
+    #Start~~~~~~~~~~~~Error checking
+    if(any(eigen(Q)$values<0)) {
+      stop.msg=paste("Stopped at iter=",iter," in MARSSkem: solution became unstable. Q update is not positive definite.\n",sep="")
+      stopped.with.errors=TRUE;  
+      break }      
+    if( control$safe &&  !is.fixed(fixed$Q) ){
+      current.params =  list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )
+      new.kf=rerun.kf("Q", iter, y, current.params, M, control, loglike.new, cvg2, kf.x0)
+      if(!new.kf$ok){
+        stopped.with.errors=TRUE
+        msg.kf=c(msg.kf, new.kf$msg.kf); stop.msg=new.kf$stop.msg
+        break
+      }else{
+        kf=new.kf$kf
+        Ey = MARSShatyt(y, current.params, kf, missing.matrix=M)
+        cvg2=new.kf$cvg2
+        loglike.new=kf$logLik
+        msg.kem=c(msg.kem, new.kf$msg.kem)
+      }
+    }  
+    #Set up the variance matrices needed for the degenerate case
+    OMGp=OMGz=star=list()  #OMGp referes to the Omega^+ matrices; OMGz is Omega^0
+    for(elem in c("Q", "R")){
+        if(all(takediag(get(elem))==0)){
+           OMGp[[elem]] = matrix(0,1,dim(get(elem))[1])
+           OMGz[[elem]] = makediag(1,dim(get(elem))[1])
+           star[[elem]] = matrix(0,dim(get(elem))[1],dim(get(elem))[1])
+        }else{
+          OMGp[[elem]]=makediag(1,dim(get(elem))[1])[takediag(get(elem))!=0, , drop=FALSE]
+          if(all(takediag(get(elem))!=0)){ OMGz[[elem]]=matrix(0,1,dim(get(elem))[1]) }else{
+            OMGz[[elem]]=makediag(1,dim(get(elem))[1])[takediag(get(elem))==0, , drop=FALSE] }
+          tmpInv=try(chol2inv(chol(OMGp[[elem]]%*%get(elem)%*%t(OMGp[[elem]]))))
+          if(inherits(tmpInv, "try-error")){ 
+            stop.msg = paste("Stopped at iter=",iter," in MARSSkem. Inverse of ",elem, ".plus not possible.\n",sep="")
+            stopped.with.errors=TRUE;  break}
+          star[[elem]] = t(OMGp[[elem]])%*%tmpInv%*%OMGp[[elem]]
+          star[[elem]] = (star[[elem]]+t(star[[elem]]))/2     #enforce symmetry
+        }
+        if( control$trace && !is.fixed(fixed[[elem]]) && kappa(OMGp[[elem]]%*%get(elem)%*%t(OMGp[[elem]]))>condition.limit)
+         msg.kem=c(msg.kem,paste("iter=",iter," Unstable estimates because ",elem," is ill-conditioned. C =", kappa(OMGp[[elem]]%*%get(elem)%*%t(OMGp[[elem]])),"\n", sep=""))
+    }
+    star$Sigma = t(Z)%*%star$R%*%Z+star$Q
+    Id$q0 = Id$m-t(OMGp$Q)%*%OMGp$Q
+    Id$qplus = t(OMGp$Q)%*%OMGp$Q
+    star$R.diam = star$R.sharp = matrix(0,m,m)
+    if(any(Id$q0==1)){
+      star$B.zero = star$B.zero.1 = Id$q0%*%B%*%Id$q0
+      star$B.zero.1[star$B.zero.1==1]=0   #setting the B==1 to 0, deals with (1-b^t)/(1-b) = 1 case when b=1
+      star$I.B.Inv = solve(Id$m-star$B.zero.1) #B is not nec symmetric so chol2inv won't work here
+      if(kf.x0=="x10"){ 
+        B.diam=Id$q0
+        B.sharp = matrix(0,m,m) 
+      }else{ 
+        B.diam = star$B.zero
+        B.sharp = (Id$q0 - star$B.zero.1)%*%star$I.B.Inv
+        B.sharp[star$B.zero==1]=1 #by definition
+        }      
+      star$R.diam = B.diam %*% t(Z)%*%star$R%*%Z%*% B.diam
+      star$R.sharp = B.sharp %*% t(Z)%*%star$R%*%Z%*% B.sharp
+      for(i in 2:TT){
+         if(kf.x0=="x10") ii=i-1 else ii=i
+         B.diam = star$B.zero^ii
+         B.sharp = (Id$q0 - star$B.zero.1^ii)%*%star$I.B.Inv
+         B.sharp[star$B.zero==1]=ii #by definition
+         star$R.diam = star$R.diam + B.diam %*% t(Z)%*%star$R%*%Z%*% B.diam
+         star$R.sharp = star$R.sharp + B.sharp %*% t(Z)%*%star$R%*%Z%*% B.sharp
+         }
+    }
+        
+    ################
+    # Get new x0 subject to its constraints
+    ################################################################
+    x0.update = 0
+    if(!is.fixed(fixed$x0)){  # some element needs estimating
+       if( x0.is.stochastic & !(kf.x0=="x10" & all(R==0)) ){
+          x0.update = kf$x0T
+          if(constr.type$x0!="unconstrained"){
+            V0inv = chol2inv(chol(V0))          
+            V0inv = (V0inv+t(V0inv))/2     #enforce symmetry
+            x0.update = chol2inv(chol(t(d$x0)%*%V0inv%*%d$x0))%*%t(d$x0)%*%V0inv%*%(kf$x0T-f$x0)
+            x0.update = d$x0%*%x0.update
+          }
+       }
+       if( !x0.is.stochastic & !(kf.x0=="x10" & all(R==0)) ){
+          if(kf.x0=="x10"){ denom = chol2inv(chol(t(d$x0)%*%(t(Z)%*%star$R%*%Z + star$R.diam + t(B)%*%star$Q%*%B)%*%d$x0))
+            }else{ denom = chol2inv(chol(t(d$x0)%*%(star$R.diam + t(B)%*%star$Q%*%B)%*%d$x0)) }
+          numer1 = 0
+          if(any(Id$q0==1)){
+            if(kf.x0=="x10"){ 
+              B.diam=Id$q0
+              B.sharp = matrix(0,m,m) 
+            }else{ 
+              B.diam = star$B.zero
+              B.sharp = (Id$q0 - star$B.zero.1)%*%star$I.B.Inv
+              B.sharp[star$B.zero==1]=1 #by definition
+            }
+              numer1 = Id$q0%*%B.diam%*%t(Z)%*%star$R%*%(Ey$ytT[,1,drop=FALSE]-Z%*%Id$qplus%*%kf$xtT[,1,drop=FALSE]-Z%*%B.sharp%*%U 
+              - Z%*%B.diam%*%f$x0-A) 
+              for(i in 2:TT){
+                if(kf.x0=="x10") ii=i-1 else ii=i
+                B.diam = star$B.zero^ii
+                B.sharp =  Id$q0%*%(Id$m-star$B.zero.1^ii)%*%star$I.B.Inv%*%Id$q0
+                B.sharp[star$B.zero==1]=ii #by definition
+                numer1 = numer1 + Id$q0%*%B.diam%*%t(Z)%*%star$R%*%(Ey$ytT[,i,drop=FALSE]-Z%*%Id$qplus%*%kf$xtT[,i,drop=FALSE]-Z%*%B.sharp%*%U 
+              - Z%*%B.diam%*%f$x0-A)
+              }
+          }
+          if(kf.x0=="x10"){ 
+            numer2 = Id$qplus%*%t(B)%*%star$Q%*%(kf$xtT[,2,drop=FALSE] - B%*%f$x0 - U) + t(Z)%*%star$R%*%(Ey$ytT[,1,drop=FALSE] -  Z%*%f$x0 - A)
+          }else { 
+            numer2 = Id$qplus%*%t(B)%*%star$Q%*%(kf$xtT[,1,drop=FALSE] - B%*%f$x0 - U) }
+          x0.update = d$x0%*%denom%*%t(d$x0)%*%(numer1 + numer2)
+          if( kf.x0=="x10" & any(takediag(R)==0) ){ 
+            denom = try( solve(OMGz$R%*%Z%*%t(OMGz$R)) )
+            if(inherits(denom, "try-error")){ 
+              stop.msg = paste("Stopped at iter=",iter," in MARSSkem. OMGz$R%*%Z%*%t(OMGz$R) is not invertable in x0 update.\n", sep="")
+              stopped.with.errors=TRUE;  break }
+            x0.update[takediag(R)==0] = denom%*%OMGz$R%*%Ey$ytT[,1,drop=FALSE]
+          }
+       }
+       if(kf.x0=="x10" & all(R==0)){
+          denom = try(solve(Z))
+          if(inherits(denom, "try-error")){ 
+            stop.msg = paste("Stopped at iter=",iter," in MARSSkem. Z is not invertable in x0 update.\n", sep="")
+            stopped.with.errors=TRUE;  break }
+          x0.update = denom%*%Ey$ytT[,1,drop=FALSE]   
+       }
+    }
+    x0 = f$x0 + x0.update
+    #~~~~~~~~Error checking
+    if(control$safe & !is.fixed(fixed$x0) ){ 
+      current.params = list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )
+      new.kf=rerun.kf("x0", iter, y, current.params, M, control, loglike.new, cvg2, kf.x0)
+      if(!new.kf$ok){
+        stopped.with.errors=TRUE
+        msg.kf=c(msg.kf, new.kf$msg.kf); stop.msg=new.kf$stop.msg
+        break
+      }else{
+        kf=new.kf$kf
+        Ey = MARSShatyt(y, current.params, kf, missing.matrix=M)
+        cvg2=new.kf$cvg2
+        loglike.new=kf$logLik
+        msg.kem=c(msg.kem, new.kf$msg.kem)
+      }    
+    }
+    ################
+    # Get new V0 subject to its constraints
+    ################################################################
+    V0.update = 0
+    if(!is.fixed(fixed$V0)){  # some element needs estimating (obviously V0!=0)
+      V0.update = vec(kf$V0T)
+      if(constr.type$V0!="unconstrained"){
+        V0.update = chol2inv(chol(t(d$V0)%*%d$V0))%*%t(d$V0)%*%V0.update
+        V0.update = d$V0%*%V0.update
+        }
+    V0 = unvec(f$V0 + V0.update,dim=dim(V0))
+    }
+    #~~~~~~~~Error checking
+    if(any(eigen(V0)$values<0)) {
+      stop.msg=paste("Stopped at iter=",iter," in MARSSkem: solution became unstable. V0 update is not positive definite.\n",sep="")
+      stopped.with.errors=TRUE;  
+      break } 
+    if(control$safe & !is.fixed(fixed$V0) ){ 
+      current.params = list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )
+      new.kf=rerun.kf("V0", iter, y, current.params, M, control, loglike.new, cvg2, kf.x0)
+      if(!new.kf$ok){
+        stopped.with.errors=TRUE
+        msg.kf=c(msg.kf, new.kf$msg.kf); stop.msg=new.kf$stop.msg
+        break
+      }else{
+        kf=new.kf$kf
+        Ey = MARSShatyt(y, current.params, kf, missing.matrix=M)
+        cvg2=new.kf$cvg2
+        loglike.new=kf$logLik
+        msg.kem=c(msg.kem, new.kf$msg.kem)
+      }    
     }
     
     ################
+    # Get new A subject to its constraints (update of R will use this)
+    ##############################################################
+    A.last.iter = A
+    A.update=0     
+    if( not.fixed$A ){ #if there is anything to update
+      sum1 = (Ey$ytT - Z %*% kf$xtT)%*%matrix(1,dim(kf$xtT)[2],1)-TT*f$A
+      numer = t(d$A)%*%star$R%*%sum1
+      denom = try(chol2inv(chol( t(d$A)%*%star$R%*%d$A ) ))
+      if(inherits(denom, "try-error")){
+        stop.msg = paste("Stopped at iter=",iter," in MARSSkem. t(d$A)%*%star$R%*%d$A is not invertable.\n", sep="")
+        stopped.with.errors=TRUE;  break }
+      A.update = d$A%*%(denom%*%numer)/TT  #this will be 0 where A is fixed
+    }
+    A = f$A + A.update     #f$A is a matrix with 0 for values that will be updated and fixed values otherwise
+    #~~~~~~~~Error checking
+    if( control$safe & !is.fixed(fixed$A) ){
+      current.params = list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )
+      new.kf=rerun.kf("A", iter, y, current.params, M, control, loglike.new, cvg2, kf.x0)
+      if(!new.kf$ok){
+        stopped.with.errors=TRUE
+        msg.kf=c(msg.kf, new.kf$msg.kf); stop.msg=new.kf$stop.msg
+        break
+      }else{
+        kf=new.kf$kf
+        Ey = MARSShatyt(y, current.params, kf, missing.matrix=M)
+        cvg2=new.kf$cvg2
+        loglike.new=kf$logLik
+        msg.kem=c(msg.kem, new.kf$msg.kem)
+      } 
+    }    
+    ################
+    # Get new U subject to its constraints (update of Q and B will use this)
+    ################################################################
+    U.update=0
+    if( not.fixed$U ){ #if there is anything to update
+      if(x0.is.stochastic) E.x0 = kf$x0T else E.x0 = x0
+      if(kf.x0=="x10") numer1 = 0 else numer1 = kf$xtT[,1,drop=FALSE] - B%*%E.x0 - f$U
+      for (i in 2:TT) numer1 = numer1 + kf$xtT[,i,drop=FALSE] - B%*%kf$xtT[,i-1,drop=FALSE] - f$U
+      numer1 = Id$qplus%*%star$Q%*%numer1
+      numer2 = 0
+      if(any(Id$q0==1)){
+        if(kf.x0=="x10") { B.diam=Id$m; B.sharp=matrix(0,m,m) 
+        }else{ B.diam = star$B.zero; B.sharp = Id$q0%*%Id$m%*%Id$q0 }
+        numer2 = B.sharp%*%t(Z)%*%star$R%*%(Ey$ytT[,1,drop=FALSE] - Z%*%Id$qplus%*%kf$xtT[,1,drop=FALSE] - Z%*%B.diam%*%E.x0 - Z%*%B.sharp%*%f$U-A)
+        for (i in 2:TT){
+          if(kf.x0=="x10") ii=i-1 else ii = i  #superscript changes depending on x10 or x00
+          B.diam = star$B.zero^ii  
+          B.sharp =  Id$q0%*%(Id$m-star$B.zero.1^ii)%*%star$I.B.Inv%*%Id$q0
+          B.sharp[star$B.zero==1]=ii #by definition
+          numer2 = numer2 + B.sharp%*%t(Z)%*%star$R%*%(Ey$ytT[,i,drop=FALSE] - Z%*%Id$qplus%*%kf$xtT[,i,drop=FALSE] - Z%*%B.diam%*%E.x0 - Z%*%B.sharp%*%f$U-A)
+          }    
+      }     
+      numer = numer1 + numer2
+      if(kf.x0=="x10") TT.u = TT-1 else TT.u = TT #summation indexing in 2nd sum is 2:TT if kf.x0=x10
+      denom = try(chol2inv(chol( t(d$U)%*%(star$R.sharp + TT.u*star$Q)%*%d$U ) ))
+      if(inherits(denom, "try-error")){ 
+            stop.msg = paste("Stopped at iter=",iter," in MARSSkem. t(d$U)%*%(star$R.sharp + T*star$Q)%*%d$U is not invertable.\n", sep="")
+            stopped.with.errors=TRUE;  break }
+      U.update = d$U%*%denom%*%t(d$U)%*%numer     #U.update will be 0 when that value is not updated
+    }
+    U = f$U + U.update     #f$U is a matrix with 0 for values that will be updated and fixed values otherwise
+    #~~~~~~~~Error checking  
+    if(control$safe & !is.fixed(fixed$U) ){
+      current.params = list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )
+      new.kf=rerun.kf("U", iter, y, current.params, M, control, loglike.new, cvg2, kf.x0)
+      if(!new.kf$ok){
+        stopped.with.errors=TRUE
+        msg.kf=c(msg.kf, new.kf$msg.kf); stop.msg=new.kf$stop.msg
+        break
+      }else{
+        kf=new.kf$kf
+        Ey = MARSShatyt(y, current.params, kf, missing.matrix=M)
+        cvg2=new.kf$cvg2
+        loglike.new=kf$logLik
+        msg.kem=c(msg.kem, new.kf$msg.kem)
+      } 
+    }
+    ################
+    # Get new B subject to its constraints
+    ################################################################
+    B.update=0 
+    if( not.fixed$B ) {
+        t.kf.xtT = t(kf$xtT) #more t() out of for loop
+        Qinv = chol2inv(chol(Q))
+        if(x0.is.stochastic){   #meaning x0 is mean and V0 is var
+          hatxtm =  kf$x0T; t.hatxtm = t(kf$x0T); hatVtm = kf$V0T 
+        }else{  #meaning x0 is x[t=t0] and V0=0
+          hatxtm =  x0; t.hatxtm = t(x0); hatVtm = V0 }
+        if(kf.x0=="x00"){  #prior is defined as being E[x(t=0)|y(t=0)]; xtt[0]=x0; Vtt[0]=V0
+          hatxt = kf$xtT[,1,drop=FALSE]
+          Ptm = hatVtm + hatxtm%*%t.hatxtm
+          Pttm = kf$Vtt1T[,,1] + hatxt%*%t.hatxtm
+          Sum1 = kronecker(Ptm,Qinv)
+          Sum2 = Qinv%*%(Pttm - U%*%t.hatxtm)
+        }else{ #prior is defined as being E[x(t=1)|y(t=0)]; xtt1[1]=x0; Vtt1[1]=V0
+          Sum1 = Sum2 = 0 #see Ghahramani and Hinton treatment.  Summation starts at t=2
+        }        
+
+        for (i in 2:TT) { 
+          hatxtm = kf$xtT[,i-1,drop=FALSE]
+          t.hatxtm = t.kf.xtT[i-1, ,drop=FALSE]
+          hatVtm = kf$VtT[,,i-1] 
+          hatxt = kf$xtT[,i,drop=FALSE]
+          Ptm = hatVtm + hatxtm%*%t.hatxtm
+          Pttm = kf$Vtt1T[,,i] + hatxt%*%t.hatxtm
+          Sum1 = Sum1 + kronecker(Ptm,Qinv)
+          Sum2 = Sum2 + Qinv%*%(Pttm - U%*%t.hatxtm)
+          }
+        denom = try( chol2inv(chol(t(d$B)%*%Sum1%*%d$B)) )
+        if(inherits(denom, "try-error")){
+            stop.msg = paste("Stopped at iter=",iter," in MARSSkem. t(d$B)%*%Qinv%*%d$B is not invertable.\n", sep="")
+            stopped.with.errors=TRUE;  break }
+        B.update = denom%*%t(d$B)%*%(vec(Sum2)-Sum1%*%f$B)
+        B.update = d$B%*%B.update
+    }
+    B = unvec(f$B + B.update,dim=dim(B))
+    #~~~~~~~~Error checking      
+    if(control$safe & not.fixed$B ){
+      current.params = list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )
+      new.kf=rerun.kf("B", iter, y, current.params, M, control, loglike.new, cvg2, kf.x0)
+      if(!new.kf$ok){
+        stopped.with.errors=TRUE
+        msg.kf=c(msg.kf, new.kf$msg.kf); stop.msg=new.kf$stop.msg
+        break
+    }else{
+      kf=new.kf$kf
+      Ey = MARSShatyt(y, current.params, kf, missing.matrix=M)
+      cvg2=new.kf$cvg2
+      loglike.new=kf$logLik
+      msg.kem=c(msg.kem, new.kf$msg.kem)
+      }
+    }
+    if( control$trace && !is.fixed(fixed$B) ) {
+        Ck = kappa(t(d$B)%*%Sum1%*%d$B)
+        if(Ck>condition.limit) msg.kem=c(msg.kem,paste("iter=",iter," Unstable B estimate because P_{t-1,t-1} is ill-conditioned. C =",round(Ck), "\n", sep=""))
+        if(any(abs(eigen(B)$values)>1)) msg.kem=c(msg.kem,paste("iter=",iter," B update is outside the unit circle.", "\n", sep=""))
+    }
+ 
+    ################
     # Get new Z subject to its constraints
     ################################################################
-    # 2-17-10 EEH  There are only 3 options for Z (currently)
-    # Z.is.fixed, Z.is.unconstrained, Z.is.diagonal (means only diagonal is estimated and off-diagonals == 0)
-    if(FALSE %in% is.na(free$Z)){
-      ok=FALSE
-      Z.S11 = S11 + kf$VtT[,,1] + kf$xtT[,1]%*%t(kf$xtT[,1])
-      if(constr.type$Z=="unconstrained") {
-        sum1 <- 0
-        Z.S11.inv = chol2inv(chol(Z.S11))    #sum 1:TT
-        for (i in 1:TT) {
-          Z.if.y.missing <- (makediag(1,nrow=n) - M[,,i])%*%Z   #zero out rows where y(t) is present
-          Z.if.y.present <- ((y[,i]-M[,,i]%*%A)%*%t(kf$xtT[,i]))%*%Z.S11.inv 
-          ## Updated Z estimate if have y data
-          sum1 <- sum1 + Z.if.y.present + Z.if.y.missing 
-        } #end for loop
-        Z = array(sum1, dim=c(n,m)) #this provides the estimate of the Z matrix unconstrained
-        ok=TRUE
+    Z.update=0
+    if( not.fixed$Z ){
+      hatyxt = matrix(Ey$yxtT[,,1], n, m); #funny array call to prevent R from restructuring dims
+      Sum1 = Sum2 = 0
+      for (i in 1:TT) {
+        Pt = kf$VtT[,,i] + kf$xtT[,i,drop=FALSE]%*%t(kf$xtT[,i,drop=FALSE])
+        hatyxt = matrix(Ey$yxtT[,,i],n,m); #to prevent R from restructuring dims
+        Sum1 = Sum1 + kronecker( Pt, star$R )
+        Sum2 = Sum2 + star$R%*%(hatyxt-A%*%t(kf$xtT[,i,drop=FALSE]))
+        }
+      denom = try(chol2inv(chol(t(d$Z)%*%Sum1%*%d$Z)))
+      if(inherits(denom, "try-error")){ 
+        stop.msg = paste("Stopped at iter=",iter," in MARSSkem. chol2inv(chol(t(d$Z)%*%Sum1%*%d$Z)) is not invertable.\n", sep="")
+        stopped.with.errors=TRUE;  break }
+      Z.update =denom%*%t(d$Z)%*%(vec(Sum2)-Sum1%*%f$Z)            
+    }
+    Z = unvec(f$Z + d$Z%*%Z.update, dim=dim(Z))     
+    #Start~~~~~~~~~~~~Error checking
+    if(control$safe & !is.fixed(fixed$Z) ){ 
+      current.params = list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )
+      new.kf=rerun.kf("Z", iter, y, current.params, M, control, loglike.new, cvg2, kf.x0)
+      if(!new.kf$ok){
+        stopped.with.errors=TRUE
+        msg.kf=c(msg.kf, new.kf$msg.kf); stop.msg=new.kf$stop.msg
+        break
+      }else{
+        kf=new.kf$kf
+        Ey = MARSShatyt(y, current.params, kf, missing.matrix=M)
+        cvg2=new.kf$cvg2
+        loglike.new=kf$logLik
+        msg.kem=c(msg.kem, new.kf$msg.kem)
       }
-      if(constr.type$Z=="diagonal and unequal") { #not the same as the diagonal of the unconstrained matrix
-        sum1 <- 0
-        for (i in 1:TT) {
-          Z.if.y.missing <- (makediag(1,nrow=n) - M[,,i])%*%Z   #zero out rows where y(t) is present
-          Z.if.y.present <- takediag((y[,i]-M[,,i]%*%A)%*%t(kf$xtT[,i]))/Z.S11 
-          sum1 <- sum1 + Z.if.y.present + Z.if.y.missing 
-        } #end for loop
-        Z = array(sum1, dim=c(n,m)) #this provides the estimate of the Z matrix unconstrained
-        ok=TRUE        
-        }
-      if(!ok) stop("MARSSkem: Code bug. Z didn't get updated and that shouldn't happen.")
-      ## Now add the constraints.  This is generic code that doesn't depend on the Z constraints
-      tmp=table(free$Z, exclude=c(NA,NaN))  #free$Z is a numeric matrix with NA for those elements that are not updated
-      Z.est.levels = names(tmp)
-      Z.numGroups <- length(Z.est.levels)
-      ZZ <- matrix(0,n*m,Z.numGroups)  # matrix to allow shared values
-      for(i in Z.est.levels) ZZ[which(as.vector(free$Z)==i),which(Z.est.levels==i)] = 1 
-      Z.element.update = array((t(ZZ)%*%array(Z,dim=c(n*m,1)))/colSums(ZZ),dim=c(Z.numGroups,1))
-      Z.update = array(ZZ%*%Z.element.update, dim=c(n,m))  #Z.update is 0 if that element is not updated
-    }
-    else Z.update=0
-    Z = fixed0$Z + Z.update     #fixed0$Z is a matrix with 0 for values that will be updated and fixed values otherwise
-    if(control$safe & !is.fixed(fixed$Z) ) {
-      updated.iter.params=list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )  
-      kf <- MARSSkf(y, updated.iter.params, missing.matrix=M, init.state="x10", debugkf=control$trace)
-      if(!kf$ok){ 
-        msg.kf=c(msg.kf,paste("iter=",iter," Z update ",kf$errors,sep="") ); 
-        stop.msg = paste("Stopped at iter=",iter,"in MARSSkem after Z update: numerical errors generated in MARSSkf",sep="")
-        stopped.with.errors=TRUE;  break}
-      loglike.new = kf$logLik
-      if(iter>1 && is.finite(loglike.old) == TRUE && is.finite(loglike.new) == TRUE ) cvg2 = loglike.new - loglike.old  
-      if(iter > 2 & cvg2 < 0) {
-        if(control$trace) msg.kem=c(msg.kem,paste("iter=",iter," LogLike DROPPED in Z update. logLik old=", loglike.old, " new=", loglike.new, "\n", sep=""))
-        msg.kem = "MARSSkem: The soln became unstable and logLik DROPPED at some point in the algorithm.\n"
-        }
-    }
+    } 
     if( control$trace & !is.fixed(fixed$Z) ) {
-        Ck = kappa(Z.S11)
+        Ck = kappa(Sum1)
         if(Ck>condition.limit) msg.kem=c(msg.kem,paste("iter=",iter," Unstable Z estimate because P_{t,t} is ill-conditioned. C =",round(Ck), sep=""))
         }
                
@@ -488,10 +705,10 @@ MARSSkem = function(MLEobj) {
     if(is.matrix(Q)==FALSE) Q = as.matrix(Q,nrow=m, ncol=m)
     if(is.matrix(R)==FALSE) R = as.matrix(R,nrow=n, ncol=n)
     if(is.matrix(Z)==FALSE) Z = as.matrix(Z,nrow=n, ncol=m)
-    U=array(U,dim=c(m,1))
-    A=array(A,dim=c(n,1))
-    x0=array(x0,dim=c(m,1))
-    
+    if(is.matrix(U)==FALSE)U=matrix(U,m,1)
+    if(is.matrix(A)==FALSE)A=matrix(A,n,1)
+    if(is.matrix(x0)==FALSE)x0=matrix(x0,m,1)
+    iter.params=list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=V0 )    #the parameter list at iteration iter    
   }  # end inner iter loop
   
   #prepare the MLEobj to return which has the elements set here
@@ -503,18 +720,6 @@ MARSSkem = function(MLEobj) {
   MLEobj.return$numIter = iter
   MLEobj.return$method = "kem"
   
-  # Checks if the initial condition is treated as fixed but unknown (in which case $fixed$V0 = 0)
-  if(!stopped.with.errors && identical(unname(fixed$V0),array(0,dim=c(m,m)))) {
-    iter.params=list(Z=Z, A=A, R=R, B=B, U=U, Q=Q, x0=x0, V0=fixed$V0 )
-    kf = MARSSkf(y, iter.params, missing.matrix=M, init.state="x10", debugkf=control$trace)
-    if(!kf$ok){ 
-    msg.kf=c(msg.kf,paste("Final MARSSkf call with V0=V0: ",kf$errors,sep="") ); 
-        stop.msg = paste("Converged successfully but stopped at final MARSSkf call with V0=V0 in MARSSkem.",sep="")
-        stopped.with.errors=TRUE} 
-    loglike=kf$logLik
-  }
-  else loglike=loglike.new
-  
   if(stopped.with.errors){
     if( control$silent==2 ) cat("Stopped due to numerical instability or errors. Print $errors from output for info or set silent=FALSE.\n")      
     #print brief msg.  Full msg printed if silent=F
@@ -523,7 +728,7 @@ MARSSkem = function(MLEobj) {
         msg=c(msg,"Try control$safe=TRUE which uses a slower but slightly more robust algorithm.\n")
         }
     if(!control$trace) {
-        msg=c(msg,"Use control$trace=TRUE to generate a detailed error report. See manual for insight.\n")
+        msg=c(msg,"Use control$trace=1 to generate a detailed error report. See user guide for insight.\n")
         }
     ## Attach any algorithm errors to the MLEobj
     if(control$trace && !is.null(msg.kem)) msg=c(msg,"\nMARSSkem errors\n",msg.kem)
@@ -541,7 +746,7 @@ MARSSkem = function(MLEobj) {
   ########### Did not stop with errors 
   ## Set the convergence information
   ## Output depends on how it converged and how iterations were determined
-    if(!is.null(control$abstol) || conv.test$convergence==3){  #loglog test has not been run
+    if(!is.null(control$abstol) || conv.test$convergence==3){  #loglog test has not been run because either abstol used or min.iter.conv not reached
         loglog.test = loglog.conv.test(iter.record, iter, deltaT=control$conv.test.deltaT, tol=control$conv.test.slope.tol)
     }else loglog.test = conv.test
     
@@ -583,7 +788,7 @@ MARSSkem = function(MLEobj) {
   MLEobj.return$par=iter.params
   MLEobj.return$kf = kf
   MLEobj.return$states = kf$xtT
-  MLEobj.return$logLik = loglike
+  MLEobj.return$logLik = loglike.new
 
   ## Calculate confidence intervals based on state std errors, see caption of Fig 6.3 (p337) Shumway & Stoffer
   if(!is.null(kf$VtT)){
@@ -597,7 +802,7 @@ MARSSkem = function(MLEobj) {
 
   if(!is.null(msg.kem)){ msg.kem=c("\nMARSSkem warnings\n", msg.kem); msg=c(msg, msg.kem) }
   if(!is.null(msg.kf)) { msg.kf=c("\nMARSSkf warnings\n", msg.kf); msg=c(msg, msg.kf) }
-  if((!is.null(msg.kem) || !is.null(msg.kf)) && !control$trace){  msg = c(msg,  "\nUse control$trace=TRUE to generate a more detailed error report.\n") }
+  if((!is.null(msg.kem) || !is.null(msg.kf)) && !control$trace){  msg = c(msg,  "\nUse control$trace=1 to generate a more detailed error report.\n") }
   if((!is.null(msg.kem) || !is.null(msg.kf)) && (!control$silent || control$silent==2) ){
         cat("Alert: Numerical warnings were generated. Print the $errors element of output to see the warnings.\n")
         }
@@ -618,7 +823,8 @@ loglog.conv.test = function(iter.record, iter, params.to.test=c("U","x0","R","Q"
     return( list(convergence=-1, messages=msg) )
   }else {
     if("logLik" %in% params.to.test){
-       iter.record.par = cbind(iter.record$par,logLik=exp(iter.record$logLik)) #exp because we don't want the log of the log
+       #iter.record.par = cbind(iter.record$par,logLik=exp(iter.record$logLik)) #exp because we don't want the log of the log
+       iter.record.par = cbind(iter.record$par,logLik=iter.record$logLik) 
        }else iter.record.par=iter.record$par 
     names.iter=colnames(iter.record.par)
     names.sub=strsplit(names.iter,"\\.")
@@ -634,17 +840,43 @@ loglog.conv.test = function(iter.record, iter, params.to.test=c("U","x0","R","Q"
         test.len=(iter-min(test.len2-1, deltaT)):iter 
         test.par = abs(iter.record.par[test.len1:test.len2,j])
         if(any(test.par==0)) test.par = test.par+1   
-        test.loglog=lm(log(test.par)~log(test.len))
-        test.conv[j]=test.loglog$coef[2]
+        #test.loglog=lm(log(test.par)~log(test.len))
+        test.loglog=(log(test.par[length(test.par)])-log(test.par[1]))/(log(test.len[length(test.len)])-log(test.len[1]))
+        #test.conv[j]=test.loglog$coef[2]
+        test.conv[j]=test.loglog
       }
     }   
   }
   if(any(is.na(test.conv))) {
-    msg="The log-log degeneracy test produced NAs. Try using control$abstol instead. See manual.\n"
+    msg="The log-log degeneracy test produced NAs. Try using control$abstol instead. See user guide.\n"
     return( list(convergence=-2, messages=msg) )
   } 
   if(!is.null(test.conv) && !any(is.na(test.conv)) && any(abs(test.conv)>tol)){
-      msg=paste("Warning: the ",names.iter[abs(test.conv)>tol]," parameter value has not converged.\n")
-      return( list(convergence=1, messages=msg) ) 
-   }else { return( list(convergence=0, messages=NULL ) ) }
+    msg=paste("Warning: the ",names.iter[abs(test.conv)>tol]," parameter value has not converged.\n")
+    return( list(convergence=1, messages=msg, not.converged.params=names.iter[abs(test.conv)>tol], converged.params=names.iter[abs(test.conv)<=tol]) ) 
+   }else { return( list(convergence=0, messages=NULL, not.converged.params=names.iter[abs(test.conv)>tol], converged.params=names.iter[abs(test.conv)<=tol] ) ) }  #0 means converged successfully
 }
+
+rerun.kf = function(elem, iter, y, parList, M, control, loglike.new, cvg2, kf.x0){    #Start~~~~~~~~Error checking
+      loglike.old = loglike.new
+      msg.kem=NULL 
+      kf = MARSSkf(y, parList, missing.matrix=M, init.state=kf.x0,debugkf=control$trace)
+      if(control$demean.states) {
+        xbar = apply(cbind(kf$x0T,kf$xtT),1,mean)
+        kf$xtT = kf$xtT-xbar
+        kf$x0T = kf$x0T-xbar
+      }
+      if(!kf$ok){ 
+          msg.kf=c(msg.kf,paste("iter=",iter," ", elem," update ",kf$errors,sep="") ); 
+          stop.msg = paste("Stopped at iter=",iter," in MARSSkem after ", elem," update: numerical errors in MARSSkf\n",sep="")
+          return(list(ok=FALSE, msg.kf=msg.kf, stop.msg=stop.msg)) }
+      loglike.new = kf$logLik
+      if(iter>1 && is.finite(loglike.old) == TRUE && is.finite(loglike.new) == TRUE ) cvg2 = loglike.new - loglike.old  
+      if(iter > 2 & cvg2 < -sqrt(.Machine$double.eps)) {
+        if(control$trace){ 
+          msg.kem=c(msg.kem,paste("iter=",iter," LogLike DROPPED in ",elem," update. logLik old=", loglike.old, " new=", loglike.new,"\n", sep=""))
+        }else msg.kem = paste("MARSSkem: The soln became unstable and logLik DROPPED in the",elem, "updates.\n")
+        }
+    return(list(kf=kf, cvg2=cvg2, loglike.new=loglike.new, msg.kem=msg.kem, ok=TRUE))
+}
+

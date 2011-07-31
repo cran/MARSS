@@ -7,7 +7,7 @@
 \usage{
 CSEGriskfigure(data, te = 100, absolutethresh = FALSE, threshold = 0.1, 
   datalogged = FALSE, silent = FALSE, return.model = FALSE, 
-  CI.method = "hessian", CI.sim = 1000)
+  CI.method = "hessian", CI.sim = 1000, miss.value=NA)
 }
 \arguments{
   \item{data}{ A data matrix with 2 columns; time in first column and counts in second column. Note time is down rows, which is different than the base \code{\link{MARSS-package}} functions.}
@@ -19,6 +19,7 @@ CSEGriskfigure(data, te = 100, absolutethresh = FALSE, threshold = 0.1,
   \item{return.model}{ Return state-space model as \code{\link{marssMLE}} object? (T/F)}
   \item{CI.method}{ Confidence interval method: "hessian", "parametrc", "innovations", or "none". See \code{\link{MARSSparamCIs}}. }
   \item{CI.sim}{ Number of simulations for bootstrap confidence intervals (positive integer). }
+  \item{miss.value}{ missing value (default is NA) }
 }
 \details{
   Panel 1: Time-series plot of the data.
@@ -32,7 +33,7 @@ CSEGriskfigure(data, te = 100, absolutethresh = FALSE, threshold = 0.1,
   If \code{return.model=TRUE}, an object of class \code{\link{marssMLE}}.
 }
 \references{ 
-Holmes, E. E. and E. J. Ward. 2010. Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science Center, 2725 Montlake Blvd E., Seattle, WA 98112; this is the user manual accesses via \code{show.doc(MARSS, manual)}
+Holmes, E. E. and E. J. Ward. 2010. Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science Center, 2725 Montlake Blvd E., Seattle, WA 98112; this is the user guide accessed via \code{RShowDoc("UserGuide",package="MARSS")}
 
 (theory behind the figure) Holmes, E. E., J. L. Sabo, S. V. Viscido, and W. F. Fagan. (2007) A statistical approach to quasi-extinction forecasting. Ecology Letters 10:1182-1198.
 

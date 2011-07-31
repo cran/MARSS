@@ -4,13 +4,14 @@
 \alias{as.marssm}
 \title{ Model Objects }
 \description{
-These are model objects and utility functions for model objects in the package \code{\link{MARSS-package}}.
+These are model objects and utility functions for model objects in the package \code{\link{MARSS-package}}.  
+Users would not normally work directly with these functions.
   \code{marssm()} creates multivariate autoregressive state space model objects. 
   \code{is.marssm()} ensures model consistency.
   \code{as.marssm()} attempts to coerce its argument to a marssm object.
 }
 \usage{
-marssm(data = NULL, fixed, free, miss.value = -99)
+marssm(data = NULL, fixed, free, miss.value = NA)
 is.marssm(modelObj)
 as.marssm(wrapperObj)
 }
@@ -51,7 +52,7 @@ In the marssm object, the MARSS model is specified by fixed/free pairs of matric
   Elements in \code{free} will be interpreted as names for the free elements (even if they are numbers). 
   Identical elements within a parameter matrix will be constrained to have the same value. Non-free (i.e. fixed) values should 
   be denoted with NA, not 0, since the code will interpret 0 as "0" and assume that the user wants those parameters to be 
-  coded with the name "0" and to be estimated.    See the manual (\code{show.doc(MARSS, manual)}) for many examples of MARSS models and their specification.
+  coded with the name "0" and to be estimated.    See the user guide (\code{RShowDoc("UserGuide",package="MARSS")}) for many examples of MARSS models and their specification.
 }
 \value{
   An object of class "marssm".
@@ -59,7 +60,7 @@ In the marssm object, the MARSS model is specified by fixed/free pairs of matric
   \item{fixed}{ A list with 8 matrices Z, A, R, B, U, Q, x0, V0. }
   \item{free}{ A list with 8 matrices Z, A, R, B, U, Q, x0, V0. }
   \item{M}{ An array of dim n x n x t (an n x n missing values matrix for each time point).  Each matrix is diagonal with 0 at the i,i value if the i-th value of y is missing, and 1 otherwise.} 
-  \item{miss.value}{ Specifies missing value representation. Default is -99}
+  \item{miss.value}{ Specifies missing value representation. Default is NA}
 }
 \author{ 
   Kellie Wills, NOAA, Seattle, USA.  
@@ -72,7 +73,8 @@ In the marssm object, the MARSS model is specified by fixed/free pairs of matric
   n = m = 5
   fixed = free = vector("list")
 
-  free$Q=array(seq(1,m*m),dim=c(m,m)); fixed$Q=array(NA,dim=c(m,m))
+  free$Q=array(NA,dim=c(n,n)); diag(free$Q)=1:m
+  fixed$Q=array(0,dim=c(n,n)); diag(fixed$Q)=NA
   free$R=array(NA,dim=c(n,n)); diag(free$R)=1
   fixed$R=array(0,dim=c(n,n)); diag(fixed$R)=NA
   free$Z=array(NA,dim=c(m,m))

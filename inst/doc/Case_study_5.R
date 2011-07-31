@@ -1,5 +1,5 @@
 ###################################################
-### chunk number 114: Cs5_code
+### code chunk number 16: Cs5_code
 ###################################################
 ###############################################################
 #    GCDF FUNCTION
@@ -40,14 +40,14 @@ dat = t(dat)
 # over the range of latitudes that the turtles are moving
 # That's not true.  There is about a 10% difference across
 # their range of latitude movement.
-Q.constraint="diagonal and unequal"
-R.constraint="diagonal and unequal"
-U.constraint="unequal"
-Z.constraint="identity" 
+Q.model="diagonal and unequal"
+R.model="diagonal and unequal"
+U.model="unequal"
+Z.model="identity" 
 
 # Fit a random walk model for lon/lat to the lon/lat data
-kem = MARSS(dat, constraint=list(Z = Z.constraint, 
-   Q = Q.constraint, R = R.constraint, U = U.constraint))
+kem = MARSS(dat, model=list(Z = Z.model, 
+   Q = Q.model, R = R.model, U = U.model))
 pred.lon = kem$states[1,]
 pred.lat = kem$states[2,]
 
@@ -80,7 +80,7 @@ lines(c(-75,-76,-76,-75,-75),c(38,38,37,37,38),
 # the function GCDF defined above
 # You must select and run the GCDF code first
 ###########################################
-distance = array(-99, dim=c(dim(dat)[2]-1,1))
+distance = array(NA, dim=c(dim(dat)[2]-1,1))
 for(i in 2:dim(dat)[2])
    distance[i-1]=GCDF(pred.lon[i-1],pred.lon[i],
    pred.lat[i-1],pred.lat[i])
@@ -92,7 +92,7 @@ print(paste("KalmanEM estimate of ave. mile per day for ",
   turtlename," = ", mean(distance) ))
 
 # Compare to the distance traveled per day if you used the raw data
-distance = array(-99, dim=c(dim(dat)[2]-1,1))
+distance = array(NA, dim=c(dim(dat)[2]-1,1))
 for(i in 2:dim(dat)[2])
    distance[i-1]=GCDF(dat[1,i-1],dat[1,i],dat[2,i-1],dat[2,i])
 hist(distance) #make a histogram of distance traveled per day

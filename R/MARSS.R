@@ -3,23 +3,23 @@
 
 MARSS = function(y,
     inits=NULL,
-    constraint=NULL,
-    fixed=NULL, free=NULL, 
-    miss.value=-99,
+    model=NULL,
+    miss.value=NA,
     method = "kem",
     fit=TRUE, 
     silent = FALSE,
     control = NULL 
     ) 
 {
+  fixed=NULL; free=NULL
 
   ## The popWrap() call does the following:  
   ## Set up default if some params left off
   ## Check that the user didn't pass in any illegal arguments (via call to checkMARSS())
   ## Set the initial conditions and make them the correct dimensions
-  ## Translate Z constraint to fixed/free
+  ## Translate Z model structure to fixed/free
   ## wrapperObj is an object of class "popWrap":
-  ## list(data, m, inits, constraint, fixed, free, miss.value, control)
+  ## list(data, m, inits, model, fixed, free, miss.value, control)
 
   if(!(method %in% allowed.methods)){
     msg=paste(" ", method, "is not among the allowed methods. See ?MARSS.\n")
@@ -29,10 +29,10 @@ MARSS = function(y,
   
   this.method.allows = allowed[[method]]
   
-  wrapperObj <- popWrap(y=y, this.method.allows, inits=inits, constraint=constraint, fixed=fixed, free=free, miss.value=miss.value, method=method, control=control, silent=silent)
+  wrapperObj <- popWrap(y=y, this.method.allows, inits=inits, model=model, fixed=fixed, free=free, miss.value=miss.value, method=method, control=control, silent=silent)
 
   ## The as.marssm() call does the following: 
-  ## Translate constraints names (shortcuts) to full fixed and free matrices
+  ## Translate model strucuture names (shortcuts) to full fixed and free matrices
   ## modelObj is an obj of class "marssm":
   ## list(fixed, free, data, M, miss.value)
 
@@ -46,9 +46,9 @@ MARSS = function(y,
     }
 
     X.names=NA
-    #popWrap may have changed/set constraint$Z so need to use the wrapperObj$constraint$Z
-    if(is.factor(wrapperObj$constraint$Z) ) X.names=unique(wrapperObj$constraint$Z)
-    if( (identical(wrapperObj$constraint$Z,"use fixed/free") || is.matrix(wrapperObj$constraint$Z)) && !is.null(colnames(modelObj$fixed$Z)))
+    #popWrap may have changed/set model$Z so need to use the wrapperObj$model$Z
+    if(is.factor(wrapperObj$model$Z) ) X.names=unique(wrapperObj$model$Z)
+    if( is.matrix(wrapperObj$model$Z) && !is.null(colnames(modelObj$fixed$Z)))
       X.names=colnames(modelObj$fixed$Z)
     #apply some generic naming
     modelObj = MARSSapplynames(modelObj, X.names=X.names)
@@ -77,7 +77,7 @@ MARSS = function(y,
         cat(tmp)
         cat(" The incomplete/inconsistent MLE object is being returned.\n")
         }
-      cat("Error: Stopped in MARSS() due to marssMLE object incomplete or inconsistent.\n\n")
+      cat("Error: Stopped in MARSS() due to marssMLE object incomplete or inconsistent. \nPass in silent=FALSE to see the errors.\n\n")
       MLEobj$convergence=2
       return(MLEobj)
     }

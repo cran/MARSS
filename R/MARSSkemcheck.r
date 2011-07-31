@@ -10,49 +10,48 @@ errmsg = " Try using foo=MARSS(..., fit=FALSE), then print(foo$model) to see wha
   if(TT<=2)
     stop("Stopped in MARSSkemcheck() because the number of time steps is <=2.\nMore than 2 data points are needed to estimate parameters.\n", call.=FALSE)
 
-  # Check V0 setting and set to fixed value
-  if(!is.fixed(fixed$V0)){  # No part of V0 is ever estimated in our EM algorithm; either it's a prior (non-zero value) or 0 
-      msg=c(" fixed$V0 has NAs.  No part of V0 is ever estimated in our EM algorithm.  Use fixed$V0 to set a prior.\n", errmsg)
-      cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
-      stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
-  }
-  if(!is.fixed(fixed$x0) &  !(identical(unname(fixed$V0), array(0,dim=c(m,m))))){ 
-      msg=c(" Part of x0 is being estimated.  In this case, fixed$V0 must equal zero so x0 is treated as fixed but unknown. Use fixed x0 and V0 to set a prior.\n", errmsg)
+  ############ Check that B is within the unit circle
+   if(is.fixed(fixed$B) && !all(abs(eigen(fixed$B)$values)<=1)){ 
+      msg=c(" In MARSS 2.0 all the eigenvalues of B must be within the unit circle: all(abs(eigen(fixed$B)$values)<=1)\n", errmsg)
       cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
       stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
       }
+      
+   
+   ############ Check that if R has 0s, then the corresponding row of A and Z are fixed
+   diag.R=takediag(fixed$R);  diag.R[is.na(diag.R)]=1
+   R.degen.elements=(diag.R==0)
+   if(any(R.degen.elements)){
+      allowed.to.be.degen = !is.na(fixed$A[R.degen.elements]) & !apply(is.na(fixed$Z[R.degen.elements,,drop=FALSE]),1,any)
+      if(any(!allowed.to.be.degen & R.degen.elements)) {
+      msg=c(" If an element of the diagonal of R is 0, the corresponding row of A and Z must be fixed.\n", errmsg)
+      cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
+      stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
+      }
+   }
+   
+   ############ Check that R and Q don't have 0s in the same place 
+   #Z where 0=0 and !0=1
+   Z.01 = fixed$Z; Z.01[is.na(Z.01)]=1; Z.01=(Z.01!=0)
+   diag.Q=diag(fixed$Q);  diag.Q[is.na(diag.Q)]=TRUE; diag.Q[diag.Q!=0]=TRUE; diag.Q[diag.Q==0]=FALSE
+   Q.degen.elements=!(Z.01%*%diag.Q)
+   if(any(Q.degen.elements & R.degen.elements)) {
+      msg=c(" Warning: an element of the diagonal of R is 0, and the corresponding row of Q is also 0.\n This might lead to MARSS errors.\n", errmsg)
+      cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
+      #stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
+      }
+  
+  ############ Check that the B sub matrix for Q=0 is diagonal  
+    diag.Q=takediag(modelObj$fixed$Q)
+    if( any(diag.Q==0,na.rm=TRUE) ){
+       B.0 = fixed$B[diag.Q==0, diag.Q==0]
+       if(!is.diagonal(B.0, na.rm=TRUE)){ 
+          msg=c(" The B sub matrix, corresponding to Q diagonal = 0, must be diagonal.\n", errmsg)
+          cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
+          stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
+       }
+    }    
 
-  constr.type = describe.marssm(modelObj)
-
-  ############ MARSS 1.0 does not allow B to be estimated and it must be diagonal (even if fixed)
-   if(!is.fixed(fixed$B) && method=="kem"){
-      msg=" MARSS 1.0 does not allow B to be estimated.\n"
-      cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
-      stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
-      }
-   if(method=="kem" && !all(abs(eigen(fixed$B)$values)<=1)){ 
-      msg=c(" In MARSS 1.0 all the eigenvalues of B must be within the unit circle: all(abs(eigen(fixed$B)$values)<=1)\n", errmsg)
-      cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
-      stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
-      }
-              
-  ############ Check that Z form does not conflict with R form
-   if(!is.fixed(fixed$Z) ){
-      msg=c(" MARSS 1.0 does not allow Z to be estimated.\n", errmsg)
-      cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
-      stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
-      }
-
-  ############ Check that R is diagonal if there are missing values
-  if((modelObj$miss.value %in% modelObj$data) && !is.fixed(fixed$R) && n!=1) {
-    #Then it must be diagonal
-    R.first.word=substr(constr.type$R,1,8)
-    if(R.first.word != "diagonal"){
-      msg=c(" If there are missing values, R must be scalar, diagonal or fixed.\n", errmsg)
-      cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
-      stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
-     }
-    }
-    
+constr.type = describe.marssm(modelObj)   
 return(constr.type)
 }

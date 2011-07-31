@@ -1,4 +1,4 @@
-CSEGriskfigure=function(data, te=100, absolutethresh=FALSE, threshold=0.1, datalogged=FALSE, silent=FALSE, return.model=FALSE, CI.method="hessian", CI.sim=1000) {
+CSEGriskfigure=function(data, te=100, absolutethresh=FALSE, threshold=0.1, datalogged=FALSE, silent=FALSE, return.model=FALSE, CI.method="hessian", CI.sim=1000, miss.value=NA) {
 if(!(CI.method %in% c("hessian","parametric","innovations","none"))) 
   stop("Stopped in CSEGriskfigure because allowed CI methods are none, hessian, parametric, and innovations.\n", call.=FALSE)
 
@@ -23,14 +23,15 @@ par(mfrow=c(3,2))
 #a=read.table(data, skip=dataskip)
 a=as.matrix(data)
 if(dim(a)[2]!=2) stop("Stopped in CSEGriskfigure() because this function requires a data file with 2 columns; time in first column.", call.=FALSE)
-a[a==-99]=NA               #replace the NAs for plotting above with -99
+if(!is.na(miss.value)) a[a==miss.value]=NA               #replace miss values with NAs for plotting
 if(datalogged) a[,2]=exp(a[,2]) #plot unlogged
 nyr=length(a[,1])
 
 #estimate parameters
-dat=a[,2]; dat=log(dat); 
-dat[is.na(dat)]=-99 
-kem = MARSS(dat, silent=TRUE) 
+dat=a[,2]
+if(!is.na(miss.value)){ dat[dat!=miss.value]=log(dat[dat!=miss.value])
+}else{ dat=log(dat) } 
+kem = MARSS(dat, silent=TRUE, miss.value=miss.value) 
 kem = MARSSparamCIs(kem)	
 
 #PANEL #1 plot the data

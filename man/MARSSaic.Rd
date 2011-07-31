@@ -32,7 +32,7 @@ When \code{output} includes both \code{"AICbp"} and \code{"boot.params"}, the bo
 }
 \references{
 Holmes, E. E. and E. J. Ward. 2010. Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
-Center, 2725 Montlake Blvd E., Seattle, WA 98112; this is the user manual accesses via \code{show.doc(MARSS, manual)}
+Center, 2725 Montlake Blvd E., Seattle, WA 98112; this is the user guide accessed via \code{RShowDoc("UserGuide",package="MARSS")}
  
 Bengtsson, T., and J. E. Cavanaugh. 2006. An improved Akaike information criterion for state-space model selection. Computational Statistics & Data Analysis 50:2635-2654.
 
@@ -47,7 +47,7 @@ Cavanaugh, J. E., and R. H. Shumway. 1997. A bootstrap variant of AIC for state-
 \examples{
   dat = t(harborSealWA)
   dat = dat[2:3,]
-  kem = MARSS(dat, constraint=list(Z=factor(c(1,1)), 
+  kem = MARSS(dat, model=list(Z=factor(c(1,1)), 
     R="diagonal and equal"))
   kemAIC = MARSSaic(kem, output=c("AIC","AICc"))
 }

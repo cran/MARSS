@@ -22,7 +22,7 @@
 is.blockdiag(x)
 is.blockequaltri(x, uniqueblocks=FALSE)
 is.blockunconst(x, uniqueblocks=FALSE)
-is.diagonal(x)
+is.diagonal(x, na.rm=FALSE)
 is.equaltri(x)
 makediag(x, nrow=NA)
 takediag(x)
@@ -37,6 +37,7 @@ Imat(x)
 }
 \arguments{
   \item{x}{ A matrix (or vector for '\code{makediag}'). }
+  \item{na.rm}{ How to treat NAs in the block diag test. }
   \item{dim}{ Matrix dimensions. }
   \item{fixed}{ A fixed matrix per the MARSS specification for fixed matrix syntax. }
   \item{free}{ A free matrix per the MARSS specification for free matrix syntax. }

@@ -11,7 +11,7 @@ print.marssm <- function (x, ...)
       cat(paste("\nModel Structure is\n","m: ", m," state process(es)\n", "n: ", n," observation time series\n",sep=""))
       tmp = NULL
 
-      ## Print constraints for each parameter
+      ## Print model structure for each parameter
       rpt = describe.marssm(x)
       if(is.design(x$fixed$Z)){
         ## Print sites by group
@@ -26,7 +26,7 @@ print.marssm <- function (x, ...)
         }
 	  
       for (el in names(x$fixed)) {
-	# if constraint is in English, print it
+	# if model structure is in English, print it
   cat(el, ": ", rpt[[el]], "\n")
       }  
 }

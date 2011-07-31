@@ -40,7 +40,7 @@ for(pname in param){
   tmp.MLEobj$model$free[[el]][which(MLEobj$model$free[[el]]==gname)]=NA
   if(!is.marssm(tmp.MLEobj$model)) next
   if(!is.null(x[[el]])){
-     prange=x
+     prange=x[[el]]
      for(p in prange){
       tmp.MLEobj$model$fixed[[el]][which(MLEobj$model$free[[el]]==gname)]=p
       if(method=="kem") this.LL=MARSSkem(tmp.MLEobj)$logLik 

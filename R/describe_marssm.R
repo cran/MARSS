@@ -6,7 +6,7 @@ m=dim(fixed$Z)[2]; n=dim(fixed$Z)[1]
 
 constr.type = list(Q="none",R="none", B="none", U="none", A="none", Z="none", "x0"="none", "V0"="none")
 
-  ############ Set the constraint type for U, A, and Z
+  ############ Set the model structure for U, A, and Z
   for(elem in c("U","A","x0")) {
     dimm = dim(free[[elem]])[1]
     while(constr.type[[elem]]=="none") {

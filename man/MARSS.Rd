@@ -3,22 +3,21 @@
 \alias{MARSSsettings}
 \title{ Interface MARSS Model Specification and Estimation }
 \description{
-  A top-level \code{\link{MARSS-package}} function to perform model specification and estimation for multivariate autoregressive state-space (MARSS) models.  To open the manual from the command line, type \code{show.doc(MARSS, manual)}.  To open an overview page with package information, type \code{show.doc(MARSS, index)}.    
+  A top-level \code{\link{MARSS-package}} function to perform model specification and estimation for multivariate autoregressive state-space (MARSS) models.  To open the user guide from the command line, type \code{RShowDoc("UserGuide",package="MARSS")}.  To open an overview page with package information, type \code{RShowDoc("index",package="MARSS")}.    
   
 MARSS models take the form:
 \describe{
 \item{x(t+1) = B x(t) + U + w(t), where w(t) ~ MVN(0,Q)}{}
 \item{y(t) = Z x(t) + A + v(t), where v(t) ~ MVN(0,R)}{}
-\item{x(1) ~ MVN(x0, V0)}{} 
+\item{x(1) ~ MVN(x0, V0) or x(0) ~ MVN(x0, V0)}{} 
 }
 \code{MARSS} provides an interface to the base \code{\link{MARSS-package}} functions so that users do not need to directly construct \code{\link{marssm}} and \code{\link{marssMLE}} objects.
 }
 \usage{
 MARSS(y, 
     inits=NULL,
-    constraint=NULL,
-    fixed=NULL, free=NULL, 
-    miss.value=-99,
+    model=NULL,
+    miss.value=NA,
     method = "kem",
     fit=TRUE, 
     silent = FALSE,
@@ -36,24 +35,26 @@ The default settings for the optional arguments are set in \code{MARSSsettings.R
     \item \code{Q }  Initial value(s) for process error variance(s) (length 1 or m x m) 
     \item \code{A }  Initial value(s) for observation bias (length 1 or n x 1) 
     \item \code{R }  Initial value(s) for non-process (observation) error variance(s) (length 1 or n x n) 
-    \item \code{x0} Initial value(s) for hidden state(s) at time=1 (length 1 or m x 1) 
-    \item \code{V0} Initial variance(s) for hidden state(s) at time=1 (length 1 or m x m) 
+    \item \code{x0} Initial value(s) for hidden state(s) at time=1 or 0 (length 1 or m x 1) 
+    \item \code{V0} Initial variance(s) for hidden state(s) at time=1 or 0 (length 1 or m x m) 
     }
   }
-  \item{constraint}{ Model specification using parameter constraint descriptions. See Details. }
-  \item{fixed}{ Optional model specification using matrices of fixed and free parameters. See Details. }
-  \item{free}{ Optional model specification using matrices of fixed and free parameters. See Details. }
+  \item{model}{ Model specification using parameter model descriptions. See Details. }
   \item{miss.value}{ How are missing values represented in the data? }
-  \item{method}{ Estimation method. MARSS 1.0 allows method="kem" and "BFGS". }
+  \item{method}{ Estimation method. MARSS 1.0 allows method="kem" (see \code{\link{MARSSkem}} for more info) and "BFGS" (see \code{\link{MARSSoptim}} for more info). }
   \item{fit}{ TRUE/FALSE Whether to fit the model to the data. If FALSE, a marssMLE object with only the model is returned. }
   \item{silent}{ TRUE/FALSE Suppresses printing of full error messages, warnings, progress bars and convergence information. }
-  \item{control}{ Estimation options for the maximization algorithm. The control options for method="kem" are
+  \item{control}{ Estimation options for the maximization algorithm. The typically used control options for method="kem" are below but see  \code{\link{marssMLE}} for the full list of control options.  Note many of these are not allowed if method="BFGS"; see  \code{\link{MARSSoptim}} for the allowed control options for this method.
     \itemize{
       \item{\code{minit}}{   The minimum number of iterations to do in the maximization routine (if needed by method). If \code{method="kem"}, this is an easy way to up the iterations and see how your estimates are converging. (positive integer)} 
-      \item{\code{maxit}}{   Maximum number of iterations to be used in the maximization routine (if needed by method) (positive integer). } 
-      \item{\code{abstol}}{   Convergence tolerance for the maximization routine. (default is 0.01 which is a bit high.) } 
-      \item{\code{iter.V0}}{   The value of V0 to be used in place of 0 when x0 is treated as fixed and V0=0. See manual for discussion of initial state variance. (default is 10 which works well)}
-      \item{\code{trace}}{   A positive integer.  If not 0, a record will be created during maximization iterations (what's recorded depends on the method of maximization). }
+      \item{\code{maxit}}{   Maximum number of iterations to be used in the maximization routine (if needed by method) (positive integer). }
+      \item{\code{kf.x0}}{ Whether to set the prior at t=0 ("x00") or at t=1 ("x10"). The default is "x00". } 
+      \item{\code{min.iter.conv.test}}{ Minimum iterations to run before testing convergence via the slope of the log parameter versus log iterations.} 
+      \item{\code{conv.test.deltaT=9}}{ Number of iterations to use for the testing convergence via the slope of the log parameter versus log iterations. }
+      \item{\code{conv.test.slope.tol}}{ The slope of the log parameter versus log iteration to use as the cut-off for convergence.  The default is 0.5 which is a bit high.  For final analyses, this should be set lower. }
+      \item{\code{abstol}}{ Optional convergence tolerance for the maximization routine. If set to something other than NULL, then the absolute tolerance will be used as the convergence test.  Otherwise, the slope of the log of the parameters versus the log iteration is used as the test.} 
+      \item{\code{allow.degen}}{ Whether to try setting Q or R elements to zero if they appear to be going to zero. }
+      \item{\code{trace}}{   A positive integer.  If not 0, a record will be created during maximization iterations (what's recorded depends on the method of maximization). See \code{\link{MARSSkem}} and \code{\link{MARSSoptim}} for trace options and output details.}
       \item{\code{MCInit}}{   If TRUE, do a Monte Carlo search of the initial condition space. (T/F) } 
       \item{\code{numInits}}{   Number of random initial value draws if MCInit=TRUE (ignored otherwise). (positive integer)} 
       \item{\code{numInitSteps}}{   Number of EM iterations for each random initial value draw if MCInit=TRUE (ignored otherwise). (positive integer)}
@@ -63,31 +64,31 @@ The default settings for the optional arguments are set in \code{MARSSsettings.R
 }
 }
 \details{
- MARSS provides an interface to the base \code{\link{MARSS-package}} functions and allows specification and fitting of MARSS models. In \code{\link{MARSS-package}} 1.0, the available estimation methods are maximum-likelihood via a Kalman-EM algorithm (\code{method="kem"}) or via a quasi-Newton algorithm provided by function \code{optim} (\code{method="BFGS"}).  The function \code{MARSS()} allows the user to specify models using text strings for common classes of parameter matrices via the argument \code{constraint}.  It allows the user to specify fixed values for matrices by passing in numeric matrices in the \code{constraint} list.  If the model classes available via the \code{constraint} strings are not sufficient, MARSS also allows specification using matrix pairs specified with argument \code{fixed} and \code{free}. If \code{fixed/free} matrices are specified for some parameters, these will override any constraints for those parameters.  See \code{\link{marssm}} or the manual (\code{show.doc(MARSS, manual)}) for documentation and instructions on specifying fixed and free matrices.   
+ MARSS provides an interface to the base \code{\link{MARSS-package}} functions and allows specification and fitting of MARSS models. In \code{\link{MARSS-package}} 1.0, the available estimation methods are maximum-likelihood via a Kalman-EM algorithm (\code{method="kem"}) or via a quasi-Newton algorithm provided by function \code{optim} (\code{method="BFGS"}).  The function \code{MARSS()} allows the user to specify models using text strings for common classes of parameter matrices via the argument \code{model}.  It allows the user to specify fixed values for matrices by passing in numeric matrices in the \code{model} list.  Models with a combination of fixed values and shared estimated values can be specified using list matrices. See \code{\link{marssm}} or the user guide (reference and link below) for documentation and instructions on specifying list matrices for the model parameters.   
 
-Valid constraints for \code{method="kem"} are below.  See the manual (\code{show.doc(MARSS, manual)}) for details and type \code{allowed$kem} to see the allowed list specified in \code{MARSSsettings.R}.
+Valid model structures for \code{method="kem"} are below.  See the user guide (reference and link below) for details and type \code{allowed$kem} to see the allowed list specified in \code{MARSSsettings.R}.
 \itemize{
-    \item{\code{Z}} {"identity" or a vector of factors specifying which of the m hidden state time series correspond to which of the n observation time series.   May also be specified as a numeric n x m matrix to use a custom fixed Z.}
-    \item{\code{B}} {"identity" or a vector of factors specifying shared diagonal elements.   May also be specified as a numeric m x m matrix to use custom fixed B, but in this case all the eigenvalues of B must fall in the unit circle.}
-    \item{\code{U}} {"unconstrained", "equal", "unequal" or "zero". May also be a vector of factors specifying shared u terms.   May also be specified as a numeric m x 1 matrix to use a custom fixed U.  NAs can be put in this matrix to allow some elements to be fixed and others (the NAs) to be estimated.}
-    \item{\code{Q}} {"unconstrained", "diagonal and unequal", "diagonal and equal", or "equalvarcov". May also be a vector of factors specifying shared diagonal elements.  May also be specified as a numeric m x m matrix to use a custom fixed Q.  If the matrix is diagonal (off-diagonals all zeros), then NAs may appear on the diagonal to allow some diagonal elements to be fixed while other elements (the NAs) are estimated.}
-    \item{\code{A}} {"scaling" This treats A as an intercept or "zero" which sets A to a fixed value of all zeros.   May also be specified as a numeric n x 1 matrix to use a custom fixed A.  NAs can be put in this matrix to allow some elements to be fixed and others (the NAs) to be estimated.  Note all NAs in A would mean all A elements are estimated and would typically result in an under-constrained and unsolveable model; at least one A element per X state needs to be fixed.}
-    \item{\code{R}} {"unconstrained", "diagonal and unequal", "diagonal and equal", or "equalvarcov". May also be a vector of factors specifying shared diagonal elements.  May also be specified as a numeric n x n matrix to use a custom fixed R.  If the matrix is diagonal (off-diagonals all zeros), then NAs may appear on the diagonal to allow some diagonal elements to be fixed while other elements (the NAs) are estimated.}
-    \item{\code{x0}} {"unconstrained", "equal", "unequal" or "zero". May also be a vector of factors specifying shared initial state values.  May also be specified as a numeric m x 1 matrix to use a custom fixed x0. NAs can be put in this matrix to allow some elements to be fixed and others (the NAs) to be estimated.}
+    \item{\code{Z}} {"identity" or a vector of factors specifying which of the m hidden state time series correspond to which of the n observation time series.   May be specified as a n x m list matrix for general specification of both fixed and shared elements within the matrix.  May also be specified as a numeric n x m matrix to use a custom fixed Z.}
+    \item{\code{B}} {"identity", "unconstrained", "diagonal and unequal", "diagonal and equal", "equalvarcov", "zero". Specified as a list matrix for general specification of both fixed and shared elements within the matrix.  May also be specified as a numeric m x m matrix to use custom fixed B, but in this case all the eigenvalues of B must fall in the unit circle.}
+    \item{\code{U}, \code{A} and \code{x0}} {"unconstrained", "equal", "unequal" or "zero". May be specified as a m x 1 list matrix for general specification of both fixed and shared elements within the matrix. May also be specified as a numeric m x 1 matrix to use a custom fixed U.  NAs can be put in this matrix to allow some elements to be fixed and others (the NAs) to be estimated.}
+    \item{\code{Q}, \code{R} and \code{V0}} {"identity", "unconstrained", "diagonal and unequal", "diagonal and equal", "equalvarcov", "zero". May be specified as a list matrix for general specification of both fixed and shared elements within the matrix.  May also be specified as a numeric m x m matrix to use a custom fixed Q.  If the matrix is diagonal (off-diagonals all zeros), then NAs may appear on the diagonal to allow some diagonal elements to be fixed while other elements (the NAs) are estimated.}
+    \item{special \code{A} option and comments} {The default setting for A is "scaling". This is used to treat A as an intercept where one A for each X is fixed at 0 and anyother Ys associated with that X have an estimated A value.   Care must be taken when specifying A so that the model is not under-constrained and unsolveable model; i.e. at least one A element per X state needs to be fixed.}
   }       
-  Valid constraints for \code{method="BFGS"} are the same as for \code{method="kem"} except that the Q and R matrices must be diagonal if estimated.  Thus \code{"unconstrained"} and \code{"equalvarcov"} are not allowed for Q or R.  Type \code{allowed$BFGS} to see the allowed list specified in \code{\link{MARSSsettings}}.
+  Valid model structures for \code{method="BFGS"} are the same as for \code{method="kem"}.  See  \code{\link{MARSSoptim}} for the allowed options for this method.
 
- The default estimation method, \code{method="kem"}, is the "Kalman-EM" algorithm described in the manual.  The default settings for the optional arguments are set via \code{alldefaults$kem} in \code{MARSSsettings}.  For this method, they are:
+ The default estimation method, \code{method="kem"}, is the "Kalman-EM" algorithm described in the user guide.  The default settings for the optional arguments are set via \code{MARSS:::alldefaults$kem} in \code{MARSSsettings.R}.  For this method, they are:
 \itemize{
     \item{inits = list(B=1, U=0, Q=0.05, A=0, R=0.05, x0=-99, V0=10)}
-    \item{constraint = list(Z="identity", A="scaling", R="diagonal and equal", B="identity", U="unconstrained", Q="diagonal and unequal", x0="unconstrained")}
-    \item{miss.value = -99}
-    \item{control=list(minit=1, maxit=5000, abstol=0.01, iter.V0=10, trace=0, safe=FALSE, MCInit=FALSE, numInits = 500, numInitSteps = 10, boundsInits=list(B=c(0,1), U=c(-1,1), 
-      logQ = c(log(1.0e-05),log(1.0)), Z=c(0,1), A=c(-1,1), logR = c(log(1.0e-05),log(1.0))))}
+    \item{model = list(Z="identity", A="scaling", R="diagonal and equal", B="identity", U="unconstrained", Q="diagonal and unequal", x0="unconstrained")}
+    \item{miss.value = NA}
+    \item{control=list(minit=15, maxit=500, abstol=NULL, trace=0,
+safe=FALSE, allow.degen=TRUE, min.degen.iter=50, degen.lim=1.0e-04, MCInit=FALSE, numInits = 500, numInitSteps = 10, min.iter.conv.test=15, conv.test.deltaT=9, conv.test.slope.tol= 0.5,
+boundsInits=list(B=c(0,1), U=c(-1,1), logQ = c(log(1.0e-05),log(1.0)),
+Z=c(0,1), A=c(-1,1), logR = c(log(1.0e-05),log(1.0)) ) )}
   }
-For \code{method="BFGS"}, type  \code{alldefaults$BFGS} to see the defaults.
+For \code{method="BFGS"}, type  \code{MARSS:::alldefaults$BFGS} to see the defaults.
       
- The likelihood surface for MARSS models can be highly multimodal.  It is  recommended that for final analyses the ML estimates are checked by using the Monte Carlo initial conditions search using \code{MCInit=TRUE} in the \code{control} list.  This requires more computation time, but reduces the chance of the algorithm terminating at a local maximum and not reaching the true MLEs.
+ The likelihood surface for MARSS models can be  multimodal.  It is  recommended that for final analyses the ML estimates are checked by using the Monte Carlo initial conditions search using \code{MCInit=TRUE} in the \code{control} list.  This requires more computation time, but reduces the chance of the algorithm terminating at a local maximum and not reaching the true MLEs.
 }
 
 \value{
@@ -107,9 +108,9 @@ For \code{method="BFGS"}, type  \code{alldefaults$BFGS} to see the defaults.
   \item{AICc}{ Sample size corrected AIC. }
 }
 \references{ 
-The user manual:  Holmes, E. E. and E. J. Ward (2010) Analysis of multivariate time-series
+The user guide:  Holmes, E. E. and E. J. Ward (2010) Analysis of multivariate time-series
 using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
-Center, 2725 Montlake Blvd E., Seattle, WA 98112   type \code{show.doc(MARSS, manual)} to see.          
+Center, 2725 Montlake Blvd E., Seattle, WA 98112   type \code{RShowDoc("UserGuide",package="MARSS")} to see.          
 }
 \author{ 
   Eli Holmes and Kellie Wills, NOAA, Seattle, USA.  
@@ -124,31 +125,21 @@ Center, 2725 Montlake Blvd E., Seattle, WA 98112   type \code{show.doc(MARSS, ma
 dat = t(harborSealWA)
 dat = dat[2:nrow(dat),] #remove the year row
 #fit a model with 1 hidden state and 5 observation time series
-kemfit = MARSS(dat, constraint=list(Z=factor(c(1,1,1,1,1)), 
+kemfit = MARSS(dat, model=list(Z=factor(c(1,1,1,1,1)), 
    R="diagonal and equal"))
 kemfit$model #This gives a description of the model
 print(kemfit$model) # same as kemfit$model
 summary(kemfit$model) #This shows the model structure
-show(kemfit$model)    #shows the raw object
-
-#Look at the log-log convergence plots for the variances
-find.degenerate(kemfit)
-
-#Increase the number of iterations to ensure convergence
-kemfit100 = MARSS(dat, constraint=list(Z=factor(c(1,1,1,1,1)), 
-   R="diagonal and equal"), control=list(minit=100))
-find.degenerate(kemfit100)  #now check log-logconvergence of variances
-#plot is flat; that's good
 
 #fit the model using quasi-Newton algorithm
 \dontrun{ #takes a long time
-bfgsfit = MARSS(dat, constraint=list(Z=factor(c(1,1,1,1,1)), 
+bfgsfit = MARSS(dat, model=list(Z=factor(c(1,1,1,1,1)), 
    R="diagonal and unequal"), method="BFGS")
 }
 
 #add CIs to a marssMLE object
 #default uses an estimated Hessian matrix
-kem.with.hess.CIs = MARSSparamCIs(kemfit100)   
+kem.with.hess.CIs = MARSSparamCIs(kemfit)   
 kem.with.hess.CIs #print with se's and CIs
 
 #estimate CIs using a parametric bootstrap
@@ -162,25 +153,27 @@ kem.with.boot.CIs #print with se's, CIs, and bias est
 #fit a model with 5 hidden states (default)
 kemfit = MARSS(dat, silent=TRUE)  #suppress printing
 kemfit #print information on the marssMLE object
-show(kemfit) #look at the raw marssMLE object
 
 #fit a model with 5 correlated hidden states 
 # with one variance and one  covariance using the delta logLik convergence test
 # by setting abstol.  This is fast, but does not actually test convergence (i.e. that 
 # log param value versus log iteration is flat
-kemfit = MARSS(dat, constraint=list(Q="equalvarcov"), control=list(abstol=0.1))
+kemfit = MARSS(dat, model=list(Q="equalvarcov"), control=list(abstol=0.1))
 
 #fit a model with 5 correlated hidden states
 #abstol set rather huge and many of the Q's are not converged based on log-log test  
-kemfit = MARSS(dat, constraint=list(Q="unconstrained"), control=list(abstol=0.1))
+kemfit = MARSS(dat, model=list(Q="unconstrained"), control=list(abstol=0.1))
 
 #fit a model with 5 independent hidden states 
 #where each observation time series is independent
 #the hidden trajectories 1-3 & 4-5 share their U parameter
-kemfit = MARSS(dat, constraint=list(U=factor(c("N","N","N","S","S"))))
+kemfit = MARSS(dat, model=list(U=matrix(c("N","N","N","S","S"),5,1)))
 
 #same model, but with fixed independent observation errors
-kemfit = MARSS(dat, constraint=list(U=factor(c("N","N","N","S","S")), 
+#and the 4th and 5th x processes are forced to have a U=0
+#Notice how a list matrix is used to combine fixed and estimated elements
+#all parameters can be specified in this way using list matrices
+kemfit = MARSS(dat, model=list(U=matrix(list("N","N","N",0,0),5,1), 
    R=diag(0.01,5)),control=list(minit=100))
 
 #fit a model with 2 hidden states (north and south) 
@@ -188,7 +181,7 @@ kemfit = MARSS(dat, constraint=list(U=factor(c("N","N","N","S","S")),
 #Make the hidden state process independent with same process var
 #Make the observation errors different but independent
 #Make the growth parameters (U) the same
-kemfit = MARSS(dat, constraint=list(Z=factor(c("N","N","N","S","S")),
+kemfit = MARSS(dat, model=list(Z=factor(c("N","N","N","S","S")),
    Q="diagonal and equal",R="diagonal and unequal",U="equal"),
    control=list(minit=100))
 

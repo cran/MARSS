@@ -32,6 +32,10 @@ is.marssMLE <- function(MLEobj)
   n = dim(MLEobj$model$fixed$Z)[1]
   m = dim(MLEobj$model$fixed$Z)[2]
   dat = MLEobj$model$data
+
+  ## if control$diffuse, method="BFGS" and control$kf.x0="x10"
+  if( identical(MLEobj$control$diffuse,TRUE) & !(MLEobj$method=="BFGS" & MLEobj$control$kf.x0=="x10") ) 
+    msg = c(msg, "If you specify a diffuse prior, method must be BFGS and control$kf.x0 set to x10.\n")
   
   ## bug 584: check for T=1
   if( !is.null(dim(dat)) && !is.numeric(dat) ) msg = c(msg, "Data must be numeric.\n")
@@ -66,7 +70,7 @@ is.marssMLE <- function(MLEobj)
       msg = c(msg, paste("Missing or non-numeric initial value", en[init.null],"\n"))
     }
     if(any(dim.init)) {
-      msg = c(msg, paste("Dims for initial value ", en[dim.init], " do not match Z. Dims should be ", correct.dim1[dim.init], " x ", correct.dim2[dim.init],"based on Z dims.\n", sep=""))
+      msg = c(msg, paste("Dims for initial value ", en[dim.init], " do not match data and/or other state parameters. Dims should be ", correct.dim1[dim.init], " x ", correct.dim2[dim.init],"based on Z dims.\n", sep=""))
     }    
   }
 
@@ -81,17 +85,18 @@ is.marssMLE <- function(MLEobj)
     if(!is.list(MLEobj$control)) stop("Stopped in is.marssMLE() because control must be passed in as a list.\n", call.=FALSE)
   control = MLEobj$control
   en = names(alldefaults[[MLEobj$method]]$control)[!(names(alldefaults[[MLEobj$method]]$control) %in% c("boundsInits"))]
-
+  ok.null=c("abstol", "REPORT", "reltol", "fnscale", "parscale", "ndeps", "alpha", "beta", "gamma", "type", "lmm", "factr",
+      "pgtol", "tmax", "temp", "lower", "upper")
   for (el in en) {
-    null.flag <- ( is.null(control[[el]]) && !(el %in% c("abstol") ) )  #abstol can be NULL
+    null.flag <- ( is.null(control[[el]]) && !(el %in% ok.null ) )  #those in ok.null can be NULL
     if(null.flag) msg = c(msg, paste(el,"is missing from the control list\n"))
 
-    if( !is.null(control[[el]]) ) {
-      if( el %in% en[!(en %in% c("safe", "MCInit"))] ) {
+    if( !is.null(control[[el]]) ) { #everything must be numeric except these
+      if( el %in% en[!(en %in% c("safe", "MCInit", "allow.degen", "demean.states", "kf.x0", "diffuse"))] ) {
         null.flag <- (!is.numeric(control[[el]]))
         if(null.flag) msg = c(msg, paste("control list element", el,"is non-numeric\n"))
       }
-      if( (el %in% en[!(en %in% c("safe", "MCInit", "trace"))])  && is.numeric(control[[el]]) ) {
+      if( (el %in% en[!(en %in% c("safe", "MCInit", "trace", "allow.degen", "demean.states", "kf.x0", "diffuse"))])  && is.numeric(control[[el]]) ) {
         null.flag <- ( control[[el]] <= 0)
         if(null.flag) msg = c(msg, paste("control list element", el,"less than or equal to zero\n"))
       }
@@ -99,7 +104,7 @@ is.marssMLE <- function(MLEobj)
         null.flag <- ( control[[el]] < 0)
         if(null.flag) msg = c(msg, paste("control list element", el,"less than zero\n"))
       }
-      if (el %in% c("numInits", "numInitSteps", "trace", "minit", "maxit", "min.iter.conv.test", "conv.test.deltaT") && is.numeric(control[[el]])) {
+      if (el %in% c("numInits", "numInitSteps", "trace", "minit", "maxit", "min.iter.conv.test", "conv.test.deltaT", "min.degen.iter") && is.numeric(control[[el]])) {
         null.flag <- ( !is.wholenumber(control[[el]]) )
         if(null.flag) msg = c(msg, paste("control list element", el,"is not a whole number\n"))
       }
@@ -109,11 +114,15 @@ is.marssMLE <- function(MLEobj)
       }
       if (el %in% c("conv.test.deltaT") && is.numeric(control[[el]]) ) {
         null.flag <- ( control[[el]] < 2)
-        if(null.flag) msg = c(msg, "control list element conv.test.deltaT must be greater than 1\n")
+        if(null.flag) msg = c(msg, "control list element conv.test.deltaT must be greater than 2\n")
       }
-      if (el %in% c("safe", "MCInit")) {
+      if (el %in% c("safe", "MCInit", "allow.degen", "demean.states", "diffuse")) {
         null.flag <- !(control[[el]] %in% c(TRUE, FALSE) )	  
         if(null.flag) msg = c(msg, paste("control list element", el,"is not TRUE or FALSE\n"))
+      }
+      if (el %in% c("kf.x0")) {
+        null.flag <- !(control[[el]] %in% c("x00", "x10") )	  
+        if(null.flag) msg = c(msg, paste("control list element", el,"is not x00 or x10\n"))
       }
     } # el is not null     
   }      # for el in en

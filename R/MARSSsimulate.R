@@ -40,7 +40,7 @@ MARSSsimulate = function(parList, tSteps=100, nsim=1, silent=TRUE, miss.loc=NULL
     cat("\nErrors were caught in MARSSsimulate\n", msg) 
     stop("Stopped in MARSSsimulate() due to argument problem(s).\n", call.=FALSE)
   }
-  if( !is.null(miss.loc) && identical(NA,miss.value) ){ miss.loc.TF = (is.na(miss.loc) & !is.nan(miss.loc)) }
+  if( !is.null(miss.loc) && identical(as.numeric(NA),miss.value) ){ miss.loc.TF = (is.na(miss.loc) & !is.nan(miss.loc)) }
   if( !is.null(miss.loc) && identical(NaN,miss.value) ){ miss.loc.TF = is.nan(miss.loc) }
   if( !is.null(miss.loc) && !is.na(miss.value) ){ miss.loc.TF = (miss.loc==miss.value) }
        
@@ -65,14 +65,46 @@ MARSSsimulate = function(parList, tSteps=100, nsim=1, silent=TRUE, miss.loc=NULL
   ##### Set up holders
   newData = matrix(NA, n,tSteps)
   newStates = matrix(NA, m, tSteps+1) # States = years x subpops
-  
+
+  ##### Construct needed permutation matrices when there are 0s on diag of var-cov matrices
+    Omg1=t.Omg1=n.not0=Omg0=t.Omg0=list()
+    for(elem in c("Q","R","V0")){
+    diag.par = diag(parList[[elem]])
+    n.not0[[elem]]=sum(diag.par!=0)
+    dim.par = dim(parList[[elem]])[1]
+    I.mat = diag(1,dim.par)
+    if(n.not0[[elem]]==dim.par){ 
+      Omg1[[elem]]=t.Omg1[[elem]]=I.mat
+      Omg0[[elem]]=t.Omg0[[elem]]=matrix(0,dim.par,dim.par)
+    }else{
+      Omg1[[elem]]=I.mat[diag.par!=0, , drop=FALSE]
+      Omg0[[elem]]=I.mat[diag.par==0, , drop=FALSE]
+      t.Omg1[[elem]] = t(Omg1[[elem]])
+      t.Omg0[[elem]] = t(Omg0[[elem]])
+    } 
+    }
+      
   for( i in 1:nsim){
     newStates[,1] = parList$x0 # t = 0
-    # create a matrices for observation error
-    obs.error = t(rmvnorm(tSteps, mean = rep(0, n), sigma = parList$R, method="chol"))
-    pro.error = t(rmvnorm(tSteps, mean = rep(0, m), sigma = parList$Q, method="chol"))
+    if(n.not0$V0!=0){
+       V0.mat = Omg1$V0%*%parList$V0%*%t.Omg1$V0  
+       x0.new = rmvnorm(1, mean = Omg1$V0%*%parList$x0, sigma = V0.mat, method="chol")
+       newStates[,1] = t.Omg1$V0%*%x0.new + t.Omg0$V0%*%Omg0$V0%*%parList$x0
+    }else{ newStates[,1] = parList$x0 }
+  # create a matrices for observation error
+    if(n.not0$R!=0){
+       R.mat = Omg1$R%*%parList$R%*%t.Omg1$R
+       obs.error = t(rmvnorm(tSteps, mean = rep(0, n.not0$R), sigma = R.mat, method="chol"))
+       obs.error = t.Omg1$R%*%obs.error
+    }else{ obs.error = matrix(0,n,1) }
+  # create a matrices for process error 
+    if(n.not0$Q!=0){
+       Q.mat = Omg1$Q%*%parList$Q%*%t.Omg1$Q
+       pro.error = t(rmvnorm(tSteps, mean = rep(0, n.not0$Q), sigma = Q.mat, method="chol"))
+       pro.error = t.Omg1$Q%*%pro.error
+    }else{ pro.error = matrix(0,m,1) }
     for(j in 2:(tSteps+1)) {
-      newStates[,j] = parList$B %*% newStates[,j-1] + parList$U + pro.error[,j-1]
+      newStates[,j] = parList$B %*% newStates[,j-1] + parList$U + pro.error[,j-1] #indexing is j=1 is t=0, j is t-1
       newData[,j-1] = parList$Z %*% newStates[,j] + parList$A + obs.error[,j-1]
     }
     if(!is.null(miss.value)) newData[miss.loc.TF[,,i]] = miss.value

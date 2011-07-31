@@ -21,33 +21,33 @@ checkPopWrap = function(wrapperObj, wrapper.el, allowed, silent=FALSE)
      cat("\n","Errors were caught in checkPopWrap \n", msg, sep="")
      stop("Stopped in checkPopWrap() due to specification problem(s).\n", call.=FALSE)
     }
-#Check constraints (b497)
-  constraint = wrapperObj$constraint
-  if (is.null(constraint)){ #previous line should have caught this
-     cat("\n","Errors were caught in checkPopWrap \n", " Constraint should not be NULL here. Look in popWrap for problem.\n", sep="")
+#Check model structures (b497)
+  model = wrapperObj$model
+  if (is.null(model)){ #previous line should have caught this
+     cat("\n","Errors were caught in checkPopWrap \n", " model should not be NULL here. Look in popWrap for problem.\n", sep="")
      stop("Stopped in checkPopWrap() due to specification problem(s).\n", call.=FALSE)
   }
   else {
-    if (!is.list(constraint)){
-      msg=" Constraint must be passed in as a list.\n"
+    if (!is.list(model)){
+      msg=" model must be passed in as a list.\n"
       cat("\n","Errors were caught in checkPopWrap \n", msg, sep="")
       stop("Stopped in checkPopWrap() due to specification problem(s).\n", call.=FALSE)
     }
-    if( !all(names(constraint) %in% model.elem.w.V0 ) ){
-      msg=" Incorrect element name(s) in constraint list (something misspelled?).\n"
+    if( !all(names(model) %in% model.elem ) ){
+      msg=" Incorrect element name(s) in model list (something misspelled?).\n"
       cat("\n","Errors were caught in checkPopWrap \n", msg, sep="")
       stop("Stopped in checkPopWrap() due to specification problem(s).\n", call.=FALSE)
       }
-    if( !all(model.elem %in% names(constraint)) ){ 
-      msg=" A constraint name is missing.  This should have been caught in popWrap.\n"
+    if( !all(model.elem %in% names(model)) ){ 
+      msg=" A model name is missing.  This should have been caught in popWrap.\n"
       cat("\n","Errors were caught in checkPopWrap \n", msg, sep="")
       stop("Stopped in checkPopWrap() due to specification problem(s).\n", call.=FALSE)
       }
   }
   
-#check that constraint list doesn't have any duplicate names
-  if(any(duplicated(names(constraint)))){
-      msg=" Some of the constraint names are duplicated.\n"
+#check that model list doesn't have any duplicate names
+  if(any(duplicated(names(model)))){
+      msg=" Some of the model names are duplicated.\n"
       cat("\n","Errors were caught in checkPopWrap \n", msg, sep="")
       stop("Stopped in checkPopWrap() due to specification problem(s).\n", call.=FALSE)
    }
@@ -55,40 +55,45 @@ checkPopWrap = function(wrapperObj, wrapper.el, allowed, silent=FALSE)
 #Series of checks on the model specification
 problem = FALSE
 msg=NULL
-#check constraints only have allowed cases
+#check model structures only have allowed cases
   for (el in model.elem) {
     bad.str = FALSE
     #if length=1, then it must be a character string and that string must be in allowed. vectors length>1 are not allowed
-    if(!is.factor(constraint[[el]]) && !is.matrix(constraint[[el]])) {
-        if(length(constraint[[el]])!=1) bad.str=TRUE
-        else if(!(constraint[[el]] %in% allowed[[el]]) ) bad.str=TRUE
+    if(!is.factor(model[[el]]) && !is.matrix(model[[el]])) {
+        if(length(model[[el]])!=1) bad.str=TRUE
+        else if(!(model[[el]] %in% allowed[[el]]) ) bad.str=TRUE
     }
     if(bad.str) {
       problem=TRUE
-      if(identical(constraint[[el]],"use fixed/free"))
-      msg = c(msg, paste(" Use of fixed/free matrices to specify constraints is not allowed for ", el, "\n", sep=""))
-      else msg = c(msg, paste(" The constraint value for ", el, " is not allowed.\n If you are trying to set a fixed parameter value, wrap value in matrix().\n If you are trying to set shared parameter elements, wrap in factor().\n If you are trying to set a text string, see ?MARSS for the allowed strings.\n", sep=""))
+      if(identical(model[[el]],"use fixed/free"))
+      msg = c(msg, paste(" Use of fixed/free matrices to specify model struct. is not allowed for ", el, "\n", sep=""))
+      else msg = c(msg, paste(" The model value for ", el, " is not allowed.\n If you are trying to set a fixed parameter value, wrap value in matrix().\n If you are trying to set shared parameter elements, wrap in factor().\n If you are trying to set a text string, see ?MARSS for the allowed strings.\n", sep=""))
       }
     #if factor, must be allowed to be factor
-    if(is.factor(wrapperObj$constraint[[el]]) && !(el %in% allowed$factors)) {
+    if(is.factor(wrapperObj$model[[el]]) && !(el %in% allowed$factors)) {
       problem=TRUE
-      msg = c(msg, paste(" Constraint$",el," is not allowed to be a factor.\n", sep=""))
+      msg = c(msg, paste(" model$",el," is not allowed to be a factor.\n", sep=""))
       }
     #if matrix must be allowed to be matrix
-    if(is.matrix(wrapperObj$constraint[[el]]) && !(el %in% allowed$matrices)){
+    if(is.matrix(wrapperObj$model[[el]]) && !(el %in% allowed$matrices)){
       problem=TRUE
-      msg = c(msg, paste(" Constraint$",el," is not allowed to be a matrix.\n", sep=""))
+      msg = c(msg, paste(" model$",el," is not allowed to be a matrix.\n", sep=""))
       }     
     #if matrix then no NAs if character or list; this would be caught in is.marssm but would be hard for user to understand problem
-    if(is.matrix(wrapperObj$constraint[[el]]) && (el %in% allowed$matrices)){
-      if( is.character(wrapperObj$constraint[[el]]) && any(is.na(wrapperObj$constraint[[el]])) ){
+    if(is.matrix(wrapperObj$model[[el]]) && (el %in% allowed$matrices)){
+      if( is.character(wrapperObj$model[[el]]) && any(is.na(wrapperObj$model[[el]])) ){
         problem=TRUE
-        msg = c(msg, paste(" Constraint$",el," is a character matrix. No NAs allowed in this case.\n", sep=""))
+        msg = c(msg, paste(" model$",el," is a character matrix. No NAs allowed in this case.\n", sep=""))
         }
-      if( is.list(wrapperObj$constraint[[el]]) && any(is.na(wrapperObj$constraint[[el]])) ){
+      if( is.list(wrapperObj$model[[el]]) && any(is.na(wrapperObj$model[[el]])) ){
         problem=TRUE
-        msg = c(msg, paste(" Constraint$",el," is a list matrix. No NAs allowed in this case.\n", sep=""))
+        msg = c(msg, paste(" model$",el," is a list matrix. No NAs allowed in this case.\n", sep=""))
         }
+      if( is.list(wrapperObj$model[[el]]) && any(sapply(wrapperObj$model[[el]],length)!=1) ){
+        problem=TRUE
+        msg = c(msg, paste(" model$",el," is a list matrix. No NAs allowed in this case.\n", sep=""))
+        }
+
       } # is matrix  
     } # end for (el in model.elem)
 
@@ -110,12 +115,12 @@ msg=NULL
   }  #check of fixed and free
   
   #Check that if A is scaling, then Z spec will lead to a design matrix b589
-  if(identical(constraint$A,"scaling")){
-   if(is.matrix(constraint$Z) && !is.design(constraint$Z)) {
+  if(identical(model$A,"scaling")){
+   if(is.matrix(model$Z) && !is.design(model$Z)) {
         problem=TRUE
         msg = c(msg, " If A is scaling(the default), then Z must be a design matrix:(0,1) and rowsums=1.\n")
         }
-   if(identical(constraint$Z,"use fixed/free") || !is.null(wrapperObj$fixed$Z))
+   if(identical(model$Z,"use fixed/free") || !is.null(wrapperObj$fixed$Z))
         if(!is.design(wrapperObj$fixed$Z)){
         problem=TRUE
         msg = c(msg, " If A is scaling(the default), then Z must be a design matrix:(0,1) and rowsums=1.\n")
@@ -130,7 +135,8 @@ msg=NULL
   }
   if(!is.numeric(wrapperObj$data)) {problem=TRUE; msg = c(msg, " Data must be numeric.\n")}
 
-#check that miss.value is numeric or NA
+#check that miss.value is numeric or NA; make sure R doesn't think miss.value=NA is logical
+  if(is.na(wrapperObj$miss.value)) wrapperObj$miss.value = as.numeric(wrapperObj$miss.value)
   if( !(length(wrapperObj$miss.value)==1) || !(is.na(wrapperObj$miss.value) || is.numeric(wrapperObj$miss.value))){
     problem=TRUE
     msg = c(msg, " miss.value must be length 1 and numeric (or NA).\n")
@@ -149,30 +155,30 @@ msg=NULL
           stop("Stopped in checkPopWrap() due to specification problem(s).\n", call.=FALSE)
         }
 
-#If a constraint is passed in as a factor, make sure it is the correct length otherwise as.marssm will break
+#If a model is passed in as a factor, make sure it is the correct length otherwise as.marssm will break
 problem = FALSE
 msg=NULL
   n = ifelse(is.null(dim(wrapperObj$data)), 1, dim(wrapperObj$data)[1])
   m = wrapperObj$m
 
-  ## Check constraints that are passed in as factors
+  ## Check model structures that are passed in as factors
   correct.factor.len = list(A=n, B=m, Q=m, R=n, U=m, x0=m, Z=n)  
   for (el in model.elem) {
     #if a factor then it needs to have the correct length otherwise as.marssm() won't work and no NAs
-    if( is.factor(constraint[[el]]) ) {
-      if(length(constraint[[el]]) != correct.factor.len[[el]]) {
+    if( is.factor(model[[el]]) ) {
+      if(length(model[[el]]) != correct.factor.len[[el]]) {
           problem=TRUE
-          msg = c(msg, paste(" The constraint$", el, " is being passed as a factor and should be length ", correct.factor.len[[el]], " based on data dims and Z. It's not. See help file.\n", sep=""))
+          msg = c(msg, paste(" The model$", el, " is being passed as a factor and should be length ", correct.factor.len[[el]], " based on data dims and Z. It's not. See help file.\n", sep=""))
           }
-      if(NA.in.fac <- NA %in% constraint[[el]]) {
+      if(NA.in.fac <- NA %in% model[[el]]) {
           problem=TRUE
-          msg = c(msg, paste(" NAs are not allowed in constraint factor for ", el, ". See help file.\n", sep=""))
+          msg = c(msg, paste(" NAs are not allowed in model factor for ", el, ". See help file.\n", sep=""))
           }
       }    
   } # end for (el in model.elem)
 #if el == Z then factor needs to have m levels
-    if( is.factor(constraint$Z) ) {
-      if(length(levels(constraint$Z)) != m) {
+    if( is.factor(model$Z) ) {
+      if(length(levels(model$Z)) != m) {
             problem=TRUE
             msg=c(msg," When Z is a factor, the number of levels must equal the number of state processes (m).\n")
             }
@@ -181,7 +187,7 @@ msg=NULL
 #If there are errors in the factors
   if(problem)  {
           cat("\n","Errors were caught in checkPopWrap \n", msg, sep="")
-          stop("Stopped in checkPopWrap() due to problem(s) with factors in constraint list.\n", call.=FALSE)
+          stop("Stopped in checkPopWrap() due to problem(s) with factors in model list.\n", call.=FALSE)
         }
 
   ## Check initial values consistency 

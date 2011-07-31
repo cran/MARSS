@@ -8,7 +8,7 @@
 \usage{
 popWrap(y, allowed,
     inits=NULL,
-    constraint=NULL,
+    model=NULL,
     fixed=NULL, free=NULL, 
     miss.value=NULL,
     control=NULL,
@@ -17,7 +17,7 @@ popWrap(y, allowed,
 }
 \arguments{
   \item{y}{ A matrix (not dataframe), observations (rows) x time steps (columns), of data. }
-  \item{allowed}{ Allowed constraints. This is determined by the method used for parameter estimation.  \code{allowed$kem} (specified in \code{MARSSsettings} is the set of allowed constraints for the Kalman-EM algorithm under MARSS 1.0. \code{allowed$BFGS} are the allowable constraints for BFGS.}
+  \item{allowed}{ Allowed model structures. This is determined by the method used for parameter estimation.  \code{allowed$kem} (specified in \code{MARSSsettings} is the set of allowed model structures for the Kalman-EM algorithm under MARSS 1.0. \code{allowed$BFGS} are the allowable model structures for BFGS.}
   \item{inits}{ List with up to 8 matrices Z, A, R, B, U, Q, x0, V0, specifying initial values for parameters to use in iterative ML estimation algorithms, such as Kalman-EM and quasi-Newton methods. These are ignored if the specified parameter is not being estimated.  If not passed in by the user, \code{\link{MARSS}} creates generic inits using \code{\link{MARSSinits}}.
     \describe{
     \item{\code{B}}{ Initial value(s) for B parameter (length 1 or m x m). If length 1, \code{inits$B} constructed as \code{diag(value, m)}.}
@@ -30,9 +30,9 @@ popWrap(y, allowed,
     \item{\code{V0}}{ Initial variance(s) for hidden states (length 1 or m x m). Ignored in MARSS 1.0; included for forward compatibility.}
     }
     }
-  \item{constraint}{ Model specification using parameter constraint descriptions (recommended). See \code{\link{MARSS}} for details. }
-  \item{fixed}{ Optional model specification using matrices of fixed and free parameters. See manual for details. }
-  \item{free}{ Optional model specification using matrices of fixed and free parameters. See manual for details. }
+  \item{model}{ Model specification as a list. See \code{\link{MARSS}} for details. }
+  \item{fixed}{ Optional model specification using matrices of fixed and free parameters. See user guide for details. }
+  \item{free}{ Optional model specification using matrices of fixed and free parameters. See user guide for details. }
   \item{miss.value}{ How are missing values represented in the data? }
   \item{method}{ The method used for estimation.  This is needed for setting default values for \code{control}. }
   \item{control}{ Control options for maximization algorithms. 
@@ -40,7 +40,7 @@ popWrap(y, allowed,
       \item{\code{minit}}{ Minimum number of EM iterations. } 
       \item{\code{maxit}}{ Maximum number of EM iterations. } 
       \item{\code{abstol}}{ Optional tolerance for log-likelihood change.  If log-likelihood changes less than this amount relative to the previous iteration, the algorithm exits. } 
-      \item{\code{iter.V0}}{ This is the value to which V0 will be set during the algorithm iterations (!=0). See \code{\link{MARSSkem}}. }
+      \item{\code{allow.degen}}{ Whether to try setting Q or R elements to zero if they appear to be going to zero. }
       \item{\code{trace}}{ Positive integer. If not 0, a record will be created of each variable over the maximization iterations. The information recorded depends on the maximization method.}
       \item{\code{safe}}{ If TRUE, \code{\link{MARSSkem}} will rerun \code{\link{MARSSkf}} after each individual parameter update rather than only after all parameters are updated.  }
       \item{\code{MCInit}}{ Use Monte Carlo initialization? See discussion in \code{\link{MARSSkem}} and \code{\link{MARSSmcinit}}. } 
@@ -54,13 +54,13 @@ popWrap(y, allowed,
 \details{
 Wrapper functions e.g. \code{\link{MARSS}} call \code{popWrap()} to create a 'popWrap' object, then \code{\link{is.marssm}} to coerce this object to class 'marssm' for the estimation function.  The popWrap() function calls \code{\link{checkPopWrap}} to check user inputs.
 
-If arguments \code{inits}, \code{constraint}, or \code{control} are not provided by the user, they will be set by the \code{alldefaults[[method]]} object specified in \code{MARSSsettings}.  Argument \code{constraint} is a convenient way to specify model structure for certain common cases.  If \code{fixed} is included, it provides matrices for some parameters, these will override any constraints for those parameters.  See \code{\link{marssm}} or the manual for instructions on how to specify fixed and free matrices.
+If arguments \code{inits}, \code{model}, or \code{control} are not provided by the user, they will be set by the \code{alldefaults[[method]]} object specified in \code{MARSSsettings}.  Argument \code{model} specifies the model structure using a list of matrices; see \code{\link{MARSS}} or the user guide for instructions on how to specify model structure.
 }
 \value{
   An object of class 'popWrap'.
   \item{data}{ Data supplied by user. }
   \item{m}{ Number of hidden state trajectories. }
-  \item{constraint}{ A list with up to 8 elements Z, A, R, B, U, Q, x0, V0 (unless some of these are specified in "fixed"). See \code{\link{MARSS}} for details on what values are allowed. }
+  \item{model}{ A list with up to 8 elements Z, A, R, B, U, Q, x0, V0 (unless some of these are specified in "fixed"). See \code{\link{MARSS}} for details on what values are allowed. }
   \item{fixed}{ A list with (up to) 8 matrices Z, A, R, B, U, Q, x0, V0. }
   \item{free}{ A list with (up to) 8 matrices Z, A, R, B, U, Q, x0, V0. }
   \item{inits}{ A list specifying initial values for parameters to be used at iteration 1 in iterative maximum-likelihood algorithms. }

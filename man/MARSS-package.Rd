@@ -5,13 +5,13 @@
 Multivariate Autoregressive State-Space Model Estimation
 }
 \description{
-The MARSS package fits constrained and unconstrained multivariate autoregressive time-series models to multivariate time series data.  To open the manual from the command line, type \code{show.doc(MARSS, manual)}.  To open an overview page with package information, type \code{show.doc(MARSS, index)}.    
+The MARSS package fits constrained and unconstrained multivariate autoregressive time-series models to multivariate time series data.  To open the user guide from the command line, type \code{RShowDoc("UserGuide",package="MARSS")}.  To open an overview page with package information, type \code{RShowDoc("index",package="MARSS")}.    
 
 The MARSS model is
 \describe{
 \item{x(t+1) = B x(t) + U + w(t), where w(t) ~ MVN(0,Q)}{}
 \item{y(t) = Z x(t) + A + v(t), where v(t) ~ MVN(0,R)}{}
-\item{x(1) ~ MVN(x0, V0)}{} 
+\item{x(1) ~ MVN(x0, V0) or x(0) ~ MVN(x0, V0) }{} 
 }
 The parameters, hidden state processes (x), and observations (y) are matrices:
   \itemize{
@@ -26,7 +26,7 @@ The parameters, hidden state processes (x), and observations (y) are matrices:
     \item x0 is m x 1 
     \item V0 is m x m 
   }
-The package functions estimate the parameters U, Q, A, R, and x0 using a Kalman-EM algorithm (primarily but see \code{\link{MARSSoptim}}).  Parameters may be constrained to have shared elements (elements which are constrained to have the same value) or fixed elements (with the other elements estimated).  The states and smoothed state estimates are provided via a Kalman filter and smoother.  Bootstrapping, confidence interval estimation, bias estimation, model selection and simulation functions are provided.   The main user interface to the package is the top-level function \code{\link{MARSS}}.  
+The package functions estimate the model parameters using a Kalman-EM algorithm (primarily but see \code{\link{MARSSoptim}}).  Parameters may be constrained to have shared elements (elements which are constrained to have the same value) or fixed elements (with the other elements estimated).  The states and smoothed state estimates are provided via a Kalman filter and smoother.  Bootstrapping, confidence interval estimation, bias estimation, model selection and simulation functions are provided.   The main user interface to the package is the top-level function \code{\link{MARSS}}.  
 }
 \details{
 Important MARSS functions:
@@ -34,7 +34,7 @@ Important MARSS functions:
       \item{\code{\link{MARSS}}}{ Top-level function for specifying and fitting MARSS models. } 
       \item{\code{\link{MARSSsimulate}}}{ Produces simulated data from a MARSS model. } 
       \item{\code{\link{MARSSkem}}}{ Estimates MARSS parameters using an Kalman-EM algorithm. } 
-      \item{\code{\link{MARSSkf}}}{ Kalman filter and smoother. } 
+      \item{\code{\link{MARSSkf}} and \code{\link{MARSSkfas}}}{ Kalman filter and smoother. } 
       \item{\code{\link{MARSSoptim}}}{ Estimates MARSS parameters using a quasi-Newton algorithm via \code{\link{optim}}. } 
       \item{\code{\link{MARSSaic}}}{ Calculates AICc, AICc, and various bootstrap AICs. } 
       \item{\code{\link{MARSSboot}}}{ Creates bootstrap MARSS parameter estimates. }
@@ -49,13 +49,13 @@ Important MARSS functions:
   kellie(dot)wills(at)noaa(dot)gov
 }
 \references{
-The MARSS manual:  Holmes, E. E. and E. J. Ward (2010) Analysis of multivariate time-series
+The MARSS user guide:  Holmes, E. E. and E. J. Ward (2010) Analysis of multivariate time-series
 using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
 Center, 2725 Montlake Blvd E., Seattle, WA 98112.         
 
-Type \code{show.doc(MARSS, manual)} at the R command line to open the MARSS Manual.
+Type \code{RShowDoc("UserGuide",package="MARSS")} at the R command line to open the MARSS user guide.
 
-Type \code{show.doc(MARSS, index)} to see all the package documentation, tutorials, and case study scripts.
+Type \code{RShowDoc("index",package="MARSS")} to see all the package documentation, tutorials, and case study scripts.
 }
 
 \keyword{ package }

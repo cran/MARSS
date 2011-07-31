@@ -128,7 +128,7 @@ MARSSaic = function(MLEobj, output=c("AIC","AICc"), Options=list(nboot=1000, ret
       # generate more sim data
       simData2 = rmvnorm(TT, mean = rep(0, n), sigma = diag(n), method="chol")  #make 0,1
       # obtain the logL of theta* under the sim.star data
-      kf.star = MARSSkf(y=t(simData2), parList=boot.MLEobj$par, miss.value=-99) #no missing values
+      kf.star = MARSSkf(y=t(simData2), parList=boot.MLEobj$par, miss.value=MLEobj$model$miss.value) #no missing values
       logL2.AICi[i] = kf.star$logLik
 
       #B&C eqn 8

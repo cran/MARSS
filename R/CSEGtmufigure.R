@@ -5,6 +5,7 @@
 CSEGtmufigure = function(N=20, u= -0.1, s2p=0.01, make.legend=TRUE){
 mu=u 
 sigma2.b=s2p
+if(s2p==0) stop("The CSEGtmufigure function does not work with s2p=0")
 #Set up some figure parameters
 ngrid=100; Tvals=seq(1,110,length=ngrid); 
 #win.graph(6,6); par(mfrow=c(1,1),cex.axis=1.35,cex.lab=1.35,yaxs="i",xaxs="i"); 
@@ -49,8 +50,8 @@ for(j in 1:ngrid) {
 matplot(Tvals,log10(cbind(safe.limits,dead.limits)),ylim=c(-2.2,0),type="l",lty=1,col="white",
 xlim=c(1,100),xlab=xlabs,ylab=ylabs)
 polygon(c(Tvals,rev(Tvals)),log10(c(safe.limits,rev(dead.limits))),col="grey85");
-polygon(c(Tvals,rev(Tvals)),log10(c(dead.limits,rep(1,ngrid))),col="red",density=20);
-polygon(c(Tvals,rev(Tvals)),c(log10(safe.limits),rep(-3,ngrid)),col="green",density=20);
+polygon(c(Tvals,rev(Tvals)),log10(c(dead.limits,rep(1,ngrid))),col="black");
+polygon(c(Tvals,rev(Tvals)),c(log10(safe.limits),rep(-3,ngrid)),col="white");
 
 logRelNe=seq(-3.125,-0.001,length=ngrid); RelNe=10^(logRelNe); 
 CIW=outer(Tvals,RelNe,CIWidth); 
@@ -67,5 +68,5 @@ abline(h=-1); text(5,-1+offset,"90%")
 abline(h=-2); text(5,-2+offset,"99%")
 #title(expression(paste("nyrs = ", N, ", hat(mu), = ", mu, sigma[b]," = ",sigma2.b)));  
 title(paste("nyrs = ", N, "mu = ", format(mu, digits=2), "s2.p = ", format(sigma2.b,digits=2)));  
-if(make.legend) legend("topright",inset=0.02, bg="white", c("high certainty P<0.05","high certainty P>0.95", "uncertain", "highly uncertain"), fill=c("green", "red", "grey85", "grey45"))
+if(make.legend) legend("topright",inset=0.02, bg="white", c("high certainty P<0.05","high certainty P>0.95", "uncertain", "highly uncertain"), fill=c("white", "black", "grey85", "grey45"))
 }

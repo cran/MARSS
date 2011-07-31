@@ -27,7 +27,7 @@ if(method=="hessian")  {
 
     parlen = 0; maxvec = NULL; par.se = NULL; par.upCI = NULL; par.lowCI = NULL
     ## Check length(parvec) matches number of free params
-    for(elem in model.elem.w.V0 ) { #model.elem is speced in MARSSsettings
+    for(elem in model.elem ) { #model.elem is speced in MARSSsettings
       free.mat = free[[elem]]
       if(any(!is.na(free.mat))) { ## if any free params
         this.mat = stderr.model$par[[elem]]
@@ -63,7 +63,7 @@ if(method %in% c("parametric", "innovations"))  {
     par.CI.nboot = nboot
 }
 #set values to NA for fixed elements
-for(elem in model.elem.w.V0) { #model.elem is speced in MARSSsettings
+for(elem in model.elem) { #model.elem is speced in MARSSsettings
    par.se[[elem]][is.na(MLEobj$model$free[[elem]])]=NA
    par.lowCI[[elem]][is.na(MLEobj$model$free[[elem]])]=NA
    par.upCI[[elem]][is.na(MLEobj$model$free[[elem]])]=NA

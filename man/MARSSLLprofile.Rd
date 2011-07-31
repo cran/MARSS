@@ -25,7 +25,7 @@ MARSSLLprofile(MLEobj, param=NULL, x=NULL, LLlim=3, pstep=0.01, max.steps=20, pl
 }
 \references{ 
 Holmes, E. E. and E. J. Ward. 2010. Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
-Center, 2725 Montlake Blvd E., Seattle, WA 98112; this is the user manual accesses via \code{show.doc(MARSS, manual)}
+Center, 2725 Montlake Blvd E., Seattle, WA 98112; this is the user guide accessed via \code{RShowDoc("UserGuide",package="MARSS")}
  }
 \author{ 
   Eli Holmes, NOAA, Seattle, USA.
@@ -37,7 +37,7 @@ Center, 2725 Montlake Blvd E., Seattle, WA 98112; this is the user manual access
 \examples{
   dat = t(harborSealnomiss)
   dat = dat[2:3,]
-  kem = MARSS(dat, constraint=list(Z=factor(c(1,1)), 
+  kem = MARSS(dat, model=list(Z=factor(c(1,1)), 
      R="diagonal and equal",Q=matrix(0.01)))
   profLL = MARSSLLprofile(kem,c("R.1","U.1"),pstep=list(U=0.01,R=0.1))
 }

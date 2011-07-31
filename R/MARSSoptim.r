@@ -5,21 +5,13 @@
 #######################################################################################################
 MARSSoptim = function(MLEobj) {
 # This function does not check if user specified a legal MLE object.
-# free and fixed are list of constraint matrices.  Values that are not fixed must be designated NA in "fixed"; 
+# free and fixed are a list of model matrices.  Values that are not fixed must be designated NA in "fixed"; 
 # Values that are not free must be designated NA in "free"
-  model.el = names(MLEobj$model$free)[names(MLEobj$model$free)!="V0"]
-  model.el.w.V0 = names(MLEobj$model$free)
   tmp = is.marssMLE(MLEobj)
   if(!isTRUE(tmp)) {
       cat(tmp)
       stop("Stopped in MARSSoptim() because marssMLE object is incomplete or inconsistent.\n", call.=FALSE)
     }
-  tmp = describe.marssm(MLEobj$model)  
-  for(elem in c("Q","R")){
-    varcov.type = substr(tmp[[elem]],1,6)
-    if( !is.fixed(MLEobj$model$fixed[[elem]]) && varcov.type!="diagon" && varcov.type!="scalar") {
-       stop(paste("Stopped in MARSSoptim(). If estimated, ",elem," must be diagonal.\n", sep=""), call.=FALSE)  }
-  }
   
   ## attach would be risky here since user might have one of these variables in their workspace    
   y = MLEobj$model$data #must have time going across columns
@@ -40,33 +32,31 @@ MARSSoptim = function(MLEobj) {
   }else lower=control$lower
   if(is.null(control$upper)){ upper = Inf
   }else upper=control$upper
-  
-  ## Disallow V0 estimation
-  if(!is.fixed(fixed$V0)) stop("Stopped in MARSSoptim(). V0 cannot be estimated.\n", call.=FALSE)
-       
-  # If V0 is fixed to be zero, then the Newton algorithms are run with a diag V0 set large.  At end, the kalman filter is rerun with 
-  if(!is.fixed(fixed$x0)){
-   if(!identical(unname(fixed$V0), array(0,dim=c(m,m)))){ 
-      stop("Stopped in MARSSoptim(). If x0 is estimated, V0 must be 0.  See discussion regarding initial conditions in manual.\n",call.=FALSE)
-   }else{
-        D=as.design(fixed$x0, free$x0)$D  #need this many places
-        V0 = control$iter.V0 * D%*%t(D) #if some x0 are shared, they need V0 with 100% correlation
-        }
-   }else { V0 = fixed$V0 }   #if x0 is fixed, x0 is treated as a prior
-  tmp.inits$V0=V0 #set to whatever V0 is fixed to; again for returning; not used
-
     
   #The code is used to set things up to use MARSSvectorizeparam to just select inits for the estimated parameters
   tmp.MLEobj = MLEobj
-  tmp.MLEobj$model$fixed$V0 = V0 #set up the V0 used in optim search
   tmp.MLEobj$par = tmp.inits  #set initial conditions for estimated parameters
   #diagonal elements of Q and R will be logged' need to log both par and fixed
-  diag(tmp.MLEobj$par$Q) = log(diag(tmp.MLEobj$par$Q))
-  diag(tmp.MLEobj$par$R) = log(diag(tmp.MLEobj$par$R))
-  diag(tmp.MLEobj$model$fixed$Q) = log(diag(tmp.MLEobj$model$fixed$Q))
-  diag(tmp.MLEobj$model$fixed$R) = log(diag(tmp.MLEobj$model$fixed$R))
-  # will return the inits only for the estimated parameters and diag elements of Q and R will be logged
+  for(elem in c("Q","R","V0")){
+        the.par=tmp.MLEobj$par[[elem]]
+        is.zero=diag(tmp.MLEobj$par[[elem]])==0
+        if(any(is.zero)) diag(the.par)[is.zero]=1    #so the chol doesn't fail if there are zeros on the diagonal
+        tmp.MLEobj$par[[elem]]=t(chol(the.par))
+        if(any(is.zero)) diag(tmp.MLEobj$par[[elem]])[is.zero]=0
+        tmp.MLEobj$model$free[[elem]][upper.tri(tmp.MLEobj$par[[elem]])]=NA
+        is.na.par=is.na(diag(fixed[[elem]]))
+        the.par= fixed[[elem]][!is.na.par,!is.na.par,drop=FALSE]
+        if(!all(is.na.par)){
+          is.zero= (diag(the.par)==0)
+          if(any(is.zero)) diag(the.par)[is.zero]=1    #so the chol doesn't fail if there are zeros on the diagonal
+          chol.the.par=t(chol(the.par))
+          if(any(is.zero)) diag(chol.the.par)[is.zero]=0    
+          tmp.MLEobj$model$fixed[[elem]][!is.na.par,!is.na.par]=chol.the.par
+        }
+    }
+  # will return the inits only for the estimated parameters
   pars = MARSSvectorizeparam(tmp.MLEobj) 
+
   optim.output = try(optim(pars, neglogLik, MLEobj=tmp.MLEobj, method = MLEobj$method, lower = lower, upper = upper, control = optim.control, hessian = FALSE), silent=TRUE  )
   if(class(optim.output)=="try-error") optim.output = list(convergence=53, message=c(" MARSSkf() call used to compute log likelihood encountered numerical problems\n and could not return logLik. Sometimes better initial conditions helps.\n"))
   MLEobj.return=list(); class(MLEobj.return) = "marssMLE"
@@ -80,13 +70,15 @@ MARSSoptim = function(MLEobj) {
       if((!control$silent || control$silent==2) && optim.output$convergence==1) cat(paste("Warning! Max iterations of ", control$maxit," reached before convergence.\n",sep=""))
       tmp.MLEobj = MARSSvectorizeparam(tmp.MLEobj, optim.output$par)
       #par has the fixed and estimated values with diags of Q and R logged
-      diag(tmp.MLEobj$par$Q) = exp(diag(tmp.MLEobj$par$Q))
-      diag(tmp.MLEobj$par$R) = exp(diag(tmp.MLEobj$par$R))
-      pars = MARSSvectorizeparam(tmp.MLEobj)
+  for(elem in c("Q","R","V0")){
+        L=tmp.MLEobj$par[[elem]]
+        tmp.MLEobj$par[[elem]]=L%*%t(L)
+    } #end for
+    
+      pars = MARSSvectorizeparam(tmp.MLEobj)  #now the pars values are adjusted back to normal scaling
       #now put the estimated values back into MLEobj; fixed values set by $fixed
-      #so V0 is back to zero if it had been set to a temporary value for estimation
       MLEobj.return = MARSSvectorizeparam(MLEobj.return, pars)
-      kf = MARSSkf(MLEobj.return$model$data, MLEobj.return$par, miss.value = MLEobj.return$model$miss.value, init.state="x10")
+      kf.out = MARSSkf(MLEobj.return$model$data, MLEobj.return$par, miss.value = MLEobj.return$model$miss.value, init.state=control$kf.x0)
       }else{
       if(optim.output$convergence==10) optim.output$message=c("degeneracy of the Nelder-Mead simplex\n",optim.output$message)
       optim.output$counts = NULL      
@@ -95,27 +87,27 @@ MARSSoptim = function(MLEobj) {
  
       MLEobj.return$par = NULL
       MLEobj.return$errors = optim.output$message
-      kf = NULL
+      kf.out = NULL
       }
   
-  if(!is.null(kf)){
-    MLEobj.return$kf = kf
-    MLEobj.return$states = kf$xtT
+  if(!is.null(kf.out)){
+    MLEobj.return$kf = kf.out
+    MLEobj.return$states = kf.out$xtT
     MLEobj.return$numIter = optim.output$counts[1]
-    MLEobj.return$logLik = kf$logLik
+    MLEobj.return$logLik = kf.out$logLik
   }
   MLEobj.return$method = MLEobj$method
   
   ## Add AIC and AICc to the object
-  if(!is.null(kf)) MLEobj.return = MARSSaic(MLEobj.return)
+  if(!is.null(kf.out)) MLEobj.return = MARSSaic(MLEobj.return)
 
   ## Calculate confidence intervals based on state std errors, see caption of Fig 6.3 (p337) Shumway and Stoffer
-  if(!is.null(kf)){
+  if(!is.null(kf.out)){
     TT = dim(MLEobj.return$model$data)[2]; m = dim(MLEobj.return$model$fixed$Q)[1]
-    if(m == 1) states.se = sqrt(matrix(kf$VtT[,,1:TT], nrow=1))
+    if(m == 1) states.se = sqrt(matrix(kf.out$VtT[,,1:TT], nrow=1))
     if(m > 1) {
       states.se = matrix(0, nrow=m, ncol=TT)
-      for(i in 1:TT) states.se[,i] = t(sqrt(takediag(kf$VtT[,,i])))
+      for(i in 1:TT) states.se[,i] = t(sqrt(takediag(kf.out$VtT[,,i])))
     }
     MLEobj.return$states.se = states.se
     }
@@ -125,8 +117,14 @@ MARSSoptim = function(MLEobj) {
 
 neglogLik = function(x, MLEobj=NULL){  #NULL assignment needed for optim call syntax
     MLEobj = MARSSvectorizeparam(MLEobj, x)
-    diag(MLEobj$par$Q) = exp(diag(MLEobj$par$Q))
-    diag(MLEobj$par$R) = exp(diag(MLEobj$par$R))
-    negLL = MARSSkf(MLEobj$model$data, MLEobj$par, miss.value = MLEobj$model$miss.value, init.state="x10")$logLik
+  for(elem in c("Q","R","V0")){
+        L=MLEobj$par[[elem]]
+        MLEobj$par[[elem]]=L%*%t(L)
+    } #end for
+    if( MLEobj$control$kf.x0 == "x00"){
+    negLL = MARSSkf(MLEobj$model$data, MLEobj$par, miss.value = MLEobj$model$miss.value, init.state=MLEobj$control$kf.x0 )$logLik    
+    }else{ #must be x10
+    negLL = MARSSkfas(MLEobj$model$data, MLEobj$par, miss.value = MLEobj$model$miss.value, init.state=MLEobj$control$kf.x0, diffuse=MLEobj$control$diffuse )$logLik
+    }
     -1*negLL
      }

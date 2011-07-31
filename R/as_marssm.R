@@ -12,7 +12,7 @@ as.marssm <- function(wrapperObj)
   else fixed = wrapperObj$fixed
   if(is.null(wrapperObj$free)) free = list()
   else free = wrapperObj$free
-  constraint = wrapperObj$constraint
+  model = wrapperObj$model
 
   ## Z dealt with in popWrap() 
   # KW
@@ -23,88 +23,105 @@ as.marssm <- function(wrapperObj)
 
   model.dims = list(Z=c(n,m),U=c(m,1),A=c(n,1),B=c(m,m),Q=c(m,m),R=c(n,n),x0=c(m,1),V0=c(m,m))
 
-  ## Translate the constraints names (shortcuts) into fixed and free
+  ## Translate the model structure names (shortcuts) into fixed and free
   ## fixed NAs for those values that are not fixed
   ## free NAs for those values that are not free and shared numbers for those values that are shared 
 
-    if(is.factor(constraint$Z)) { 
-      X.names = unique(constraint$Z)
+    if(is.factor(model$Z)) { 
+      X.names = unique(model$Z)
       fixed$Z <- matrix(0,model.dims$Z[1], model.dims$Z[2])  
-      for(i in X.names) fixed$Z[which(constraint$Z==i), which(as.vector(X.names)==i)] <- 1
+      for(i in X.names) fixed$Z[which(model$Z==i), which(as.vector(X.names)==i)] <- 1
       free$Z = array(NA, dim=model.dims$Z)
     }
     
-  for(el in model.elem.w.V0) {
-    if(is.factor(constraint[[el]]) && model.dims[[el]][1]==model.dims[[el]][2] && el!="Z") {
+  for(el in model.elem) {
+    if(is.factor(model[[el]]) && model.dims[[el]][1]==model.dims[[el]][2] && el!="Z") {
       free[[el]]=array(NA,dim=model.dims[[el]])
-      diag(free[[el]])=as.character(constraint[[el]])
+      diag(free[[el]])=as.character(model[[el]])
       fixed[[el]]=array(0,dim=model.dims[[el]])
       diag(fixed[[el]])=NA 
     }
-    if(is.factor(constraint[[el]]) && model.dims[[el]][2]==1 && el!="Z") {
-      free[[el]]=array(constraint[[el]],dim=model.dims[[el]])
+    if(is.factor(model[[el]]) && model.dims[[el]][2]==1 && el!="Z") {
+      free[[el]]=array(model[[el]],dim=model.dims[[el]])
       fixed[[el]] = array(NA,dim=model.dims[[el]])
     }
-    if( identical(constraint[[el]],"identity") ) { 
+    if( identical(model[[el]],"identity") ) { 
       free[[el]]=array(NA,dim=model.dims[[el]])
       fixed[[el]]=makediag(1,nrow=model.dims[[el]][1])
     } #m=n
-  if(identical(constraint[[el]],"diagonal and equal")) {
+  if(identical(model[[el]],"diagonal and equal")) {
     free[[el]] = array(NA, dim=model.dims[[el]])
     diag(free[[el]]) = 1
     fixed[[el]] = array(0, dim=model.dims[[el]])
     diag(fixed[[el]]) = NA
   }
-  if(identical(constraint[[el]],"diagonal and unequal")) {
+  if(identical(model[[el]],"diagonal and unequal")) {
     free[[el]]=array(NA,dim=model.dims[[el]])
     diag(free[[el]])=1:model.dims[[el]][1]
     fixed[[el]]=array(0,dim=model.dims[[el]])
     diag(fixed[[el]])=NA 
   }
-  if(identical(constraint[[el]],"unconstrained") || identical(constraint[[el]],"unequal")) {
+  if(identical(model[[el]],"unconstrained")){
+  if(el %in% c("Q","R","V0")){  #variance-covariance matrices
+    dim.mat = model.dims[[el]][1]
+    free[[el]]=array(NA,dim=model.dims[[el]]) 
+    for(i in 1:dim.mat){
+      free[[el]][i,i]=paste("(",i,",",i,")",sep="")
+      for(j in 1:dim.mat) free[[el]][i,j]=free[[el]][j,i]=paste("(",i,",",j,")",sep="")
+    }
+    fixed[[el]]=array(NA,dim=model.dims[[el]])
+  }else{ #not var-cov matrix
+    free[[el]]=array(seq(1,model.dims[[el]][1]*model.dims[[el]][2]),dim=model.dims[[el]])
+    fixed[[el]]=array(NA,dim=model.dims[[el]])
+  } }
+  if( identical(model[[el]],"unequal")) {
     free[[el]]=array(seq(1,model.dims[[el]][1]*model.dims[[el]][2]),dim=model.dims[[el]])
     fixed[[el]]=array(NA,dim=model.dims[[el]])
   }
-  if(identical(constraint[[el]],"equalvarcov")) {
+  if(identical(model[[el]],"equalvarcov")) {
     free[[el]]=makediag(rep(1,model.dims[[el]][1]),nrow=model.dims[[el]][1])+array(1,dim=model.dims[[el]])
     fixed[[el]]=array(NA,dim=model.dims[[el]])
   }
-    if(identical(constraint[[el]],"equal")) { 
+    if(identical(model[[el]],"equal")) { 
     free[[el]]=array(1,dim=model.dims[[el]])
     fixed[[el]] = array(NA,dim=model.dims[[el]]) 
   }
-  if(identical(constraint[[el]],"zero")) { 
+  if(identical(model[[el]],"zero")) { 
     free[[el]]=array(NA,dim=model.dims[[el]])
     fixed[[el]] = array(0,dim=model.dims[[el]]) 
   }
-  if(identical(constraint[[el]],"ones")) { 
+  if(identical(model[[el]],"ones")) { 
     free[[el]]=array(NA,dim=model.dims[[el]])
     fixed[[el]] = array(1,dim=model.dims[[el]])
-    if(el %in% c("Q","R","B")) fixed[[el]] = makediag(1,nrow=model.dims[[el]][1])
+    if(el %in% c("Q","R","B","V0")) fixed[[el]] = makediag(1,nrow=model.dims[[el]][1])
   }
-  if(is.matrix(constraint[[el]])) {
-      if(is.numeric(constraint[[el]])){
-        fixed[[el]] = constraint[[el]]
+  if(is.matrix(model[[el]])) {
+      if(is.numeric(model[[el]])){
+        fixed[[el]] = model[[el]]
         free[[el]] = array(NA,dim=dim(fixed[[el]]))
         if(sum(is.na(fixed[[el]]))!=0) free[[el]][is.na(fixed[[el]])] = 1:sum(is.na(fixed[[el]]))
       }
-      if(is.character(constraint[[el]])){
-        free[[el]] = constraint[[el]]
+      if(is.character(model[[el]])){
+        free[[el]] = model[[el]]
         fixed[[el]] = array(NA,dim=dim(free[[el]]))
       }
-      if(is.list(constraint[[el]])){
-        mat = constraint[[el]]
+      if(is.list(model[[el]])){
+        mat = model[[el]]
         dim.mat = dim(mat)
         free[[el]] = array(NA,dim=dim.mat)
-        free[array(sapply(mat,is.character),dim=dim.mat)]=unlist(mat[array(sapply(mat,is.character),dim=dim.mat)])
+        free[[el]][array(sapply(mat,is.character),dim=dim.mat)]=unlist(mat[array(sapply(mat,is.character),dim=dim.mat)])
         fixed[[el]] = array(NA,dim=dim.mat)
-        fixed[array(sapply(mat,is.numeric),dim=dim.mat)]=unlist(mat[array(sapply(mat,is.numeric),dim=dim.mat)])
+        fixed[[el]][array(sapply(mat,is.numeric),dim=dim.mat)]=unlist(mat[array(sapply(mat,is.numeric),dim=dim.mat)])
       }
       }
 
   } # end for(el in model.elem)
 
-  if(identical(constraint$A, "scaling")) {  
+  #Set the column names on Z; otherwise this information is lost
+    if(is.matrix(model$Z)) colnames(fixed$Z)=colnames(model$Z)
+    if(is.factor(model$Z)) colnames(fixed$Z)=unique(model$Z)
+
+  if(identical(model$A, "scaling")) {  
     ## Construct A from fixed Z matrix   
     fixed$A = matrix(NA,model.dims$A[1],model.dims$A[2])
     free$A = matrix(1:model.dims$A[1],model.dims$A[1],1)
@@ -131,6 +148,9 @@ as.marssm <- function(wrapperObj)
 
   ## Make free character to avoid problems with unique(), table(), etc.
   for (i in 1:length(free)) mode(free[[i]]) = "character"
+
+  ## Ensure that R doesn't interpret NA as logical
+  if(is.na(wrapperObj$miss.value)) wrapperObj$miss.value = as.numeric(wrapperObj$miss.value)
 
   ## Create marssm obj
 

@@ -39,9 +39,9 @@ MARSScheckpar <- function(parList, n, m)
     }
 
     #check that Q and R are proper var-cov matrices
-    if (!(all.equal(parList$Q, t(parList$Q)) && all(eigen(parList$Q)$values >= 0))) 
+    if (!isTRUE(all.equal(parList$Q, t(parList$Q)) && all(eigen(parList$Q)$values >= 0))) 
             msg = c(msg, "Q is not a valid variance matrix.\n")
-    if (!(all.equal(parList$R, t(parList$R)) && all(eigen(parList$R)$values >= 0))) 
+    if (!isTRUE(all.equal(parList$R, t(parList$R)) && all(eigen(parList$R)$values >= 0))) 
             msg = c(msg, "R is not a valid variance matrix.\n")
 
 if(length(msg) == 0){ return(TRUE)

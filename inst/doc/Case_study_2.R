@@ -1,5 +1,5 @@
 ###################################################
-### chunk number 76: Cs2_Exercise1
+### code chunk number 12: Cs2_Exercise1
 ###################################################
 #Read in data
 dat=t(harborSealWA) #Transpose since MARSS needs time ACROSS columns
@@ -9,10 +9,10 @@ dat = dat[2:nrow(dat),]
 legendnames = (unlist(dimnames(dat)[1]))
 
 #estimate parameters
-Z.constraint = factor(c(1,1,1,1,1))
-R.constraint = "diagonal and unequal" 
-kem1 = MARSS(dat, constraint=
-  list(Z=Z.constraint, R=R.constraint))
+Z.model = factor(c(1,1,1,1,1))
+R.model = "diagonal and unequal" 
+kem1 = MARSS(dat, model=
+  list(Z=Z.model, R=R.model))
 
 #make figure
 matplot(years, t(dat),xlab="",ylab="index of log abundance",
@@ -31,13 +31,13 @@ kem1$AIC
 
 
 ###################################################
-### chunk number 82: Cs2_Exercise2
+### code chunk number 18: Cs2_Exercise2
 ###################################################
 #fit model
-Z.constraint = factor(c(1,1,1,1,1))
-R.constraint = "diagonal and equal" 
-kem2 = MARSS(dat, constraint=
-  list(Z=Z.constraint, R=R.constraint))
+Z.model = factor(c(1,1,1,1,1))
+R.model = "diagonal and equal" 
+kem2 = MARSS(dat, model=
+  list(Z=Z.model, R=R.model))
 
 #show parameters
 kem2$par$U       #population growth rate
@@ -47,7 +47,7 @@ kem2$logLik #log likelihood
 c(kem1$AIC,kem2$AIC)
 
 #plot residuals
-plotdat = t(dat); plotdat[plotdat == -99] = NA;
+plotdat = t(dat)
 matrix.of.biases = matrix(kem2$par$A,
   nrow=nrow(plotdat),ncol=ncol(plotdat),byrow=T)
 xs = matrix(kem2$states,
@@ -62,17 +62,17 @@ par(mfrow=c(1,1))
 
 
 ###################################################
-### chunk number 87: Cs2_Exercise3
+### code chunk number 23: Cs2_Exercise3
 ###################################################
 #fit model
-Z.constraint = factor(c(1,1,2,2,2))
-U.constraint = "equal" 
-Q.constraint = "diagonal and equal"
-R.constraint = "diagonal and equal" 
-kem3 = MARSS(dat, constraint=list(Z=Z.constraint, 
-  R=R.constraint, U=U.constraint, Q=Q.constraint))
+Z.model = factor(c(1,1,2,2,2))
+U.model = "equal" 
+Q.model = "diagonal and equal"
+R.model = "diagonal and equal" 
+kem3 = MARSS(dat, model=list(Z=Z.model, 
+  R=R.model, U=U.model, Q=Q.model))
 #plot residuals
-plotdat = t(dat); plotdat[plotdat == -99] = NA;
+plotdat = t(dat)
 matrix.of.biases = matrix(kem3$par$A,
   nrow=nrow(plotdat),ncol=ncol(plotdat),byrow=T)
 par(mfrow=c(2,3))
@@ -87,38 +87,38 @@ par(mfrow=c(1,1))
 
 
 ###################################################
-### chunk number 88: Cs2_Exercise4
+### code chunk number 24: Cs2_Exercise4
 ###################################################
-Z.constraint=factor(c(1,2,3,4,5))
-U.constraint="equal"
-Q.constraint="diagonal and equal"
-R.constraint="diagonal and unequal"
-kem=MARSS(dat, constraint=list(Z=Z.constraint, 
-  U=U.constraint, Q=Q.constraint, R=R.constraint) )
+Z.model=factor(c(1,2,3,4,5))
+U.model="equal"
+Q.model="diagonal and equal"
+R.model="diagonal and unequal"
+kem=MARSS(dat, model=list(Z=Z.model, 
+  U=U.model, Q=Q.model, R=R.model) )
 
 
 ###################################################
-### chunk number 92: Cs2_Exercises5_7
+### code chunk number 30: Cs2_Exercises5_7
 ###################################################
 #Exercise 5
-Z.constraint=factor(c(1,1,2,2,2))
-U.constraint="unequal"
-Q.constraint="diagonal and unequal"
-R.constraint="diagonal and unequal"
-kem = MARSS(dat, constraint=list(Z=Z.constraint, U=U.constraint, Q=Q.constraint, R=R.constraint) )
+Z.model=factor(c(1,1,2,2,2))
+U.model="unequal"
+Q.model="diagonal and unequal"
+R.model="diagonal and unequal"
+kem = MARSS(dat, model=list(Z=Z.model, U=U.model, Q=Q.model, R=R.model) )
 
 #Exercise 6
-Z.constraint=factor(c(1,1,1,1,2))
-U.constraint="unequal"
-Q.constraint="equalvarcov"
-R.constraint="diagonal and unequal"
-kem = MARSS(dat, constraint=list(Z=Z.constraint, U=U.constraint, Q=Q.constraint, R=R.constraint) )
+Z.model=factor(c(1,1,1,1,2))
+U.model="unequal"
+Q.model="equalvarcov"
+R.model="diagonal and unequal"
+kem = MARSS(dat, model=list(Z=Z.model, U=U.model, Q=Q.model, R=R.model) )
 
 #Exercise 7
-Z.constraint=factor(c(1,1,2,2,3))
-U.constraint="unequal"
-Q.constraint="diagonal and unequal"
-R.constraint="diagonal and unequal"
-kem = MARSS(dat, constraint=list(Z=Z.constraint, U=U.constraint, Q=Q.constraint, R=R.constraint) )
+Z.model=factor(c(1,1,2,2,3))
+U.model="unequal"
+Q.model="diagonal and unequal"
+R.model="diagonal and unequal"
+kem = MARSS(dat, model=list(Z=Z.model, U=U.model, Q=Q.model, R=R.model) )
 
 

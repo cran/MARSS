@@ -20,7 +20,7 @@ MARSSboot(MLEobj, nboot = 1000,
     \describe{
       \item{\code{max.iter}}{ Maximum number of EM iterations. } 
       \item{\code{tol}}{ Optional tolerance for log-likelihood change.  If log-likelihood decreases less than this amount relative to the previous iteration, the EM algorithm exits. } 
-      \item{\code{iter.V0}}{ The value of V0 to be used in place of 0 when x0 is treated as fixed and V0=0. See manual for a discussion of the setting of diffuse priors for iterative parts of the maximization algorithms. }    
+      \item{\code{allow.degen}}{ Whether to try setting Q or R elements to zero if they appear to be going to zero. }  
     } 
   }
   \item{silent}{ Suppresses printing of progress bar. }
@@ -43,7 +43,7 @@ Stoffer and Wall (1991) present an algorithm for generating CIs via a non-parame
 }
 \references{ 
 Holmes, E. E. and E. J. Ward. 2010. Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
-Center, 2725 Montlake Blvd E., Seattle, WA 98112; this is the user manual accesses via \code{show.doc(MARSS, manual)}
+Center, 2725 Montlake Blvd E., Seattle, WA 98112; this is the user guide accessed via \code{RShowDoc("UserGuide",package="MARSS")}
 
 Stoffer, D. S., and K. D. Wall. 1991. Bootstrapping state-space models: Gaussian maximum likelihood estimation and the Kalman filter. Journal of the American Statistical Association 86:1024-1033.
 
@@ -64,7 +64,7 @@ Cavanaugh, J. E., and R. H. Shumway. 1997. A bootstrap variant of AIC for state-
   dat = dat[2:4,]
   #normally one would not use the delta logLik test for convergence (abstol)
   #but used here with big abstol and minit to speed up the example
-  kem = MARSS(dat, constraint=list(U="equal",Q="diagonal and equal"), 
+  kem = MARSS(dat, model=list(U="equal",Q="diagonal and equal"), 
      control=list(minit=40,abstol=0.1))
   hess.list = MARSSboot(kem, param.gen="hessian", nboot=5)
   # (no missing values)
@@ -73,7 +73,7 @@ Cavanaugh, J. E., and R. H. Shumway. 1997. A bootstrap variant of AIC for state-
   # Bootstrap CIs for data with missing values
   dat = t(harborSealWA)
   dat = dat[2:4,]
-  kem = MARSS(dat, constraint=list(Q="diagonal and equal"), 
+  kem = MARSS(dat, model=list(Q="diagonal and equal"), 
      control=list(minit=40,abstol=0.1))
   boot.list = MARSSboot(kem, output="all", sim="parametric", nboot=5)
 }

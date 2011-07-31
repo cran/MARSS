@@ -54,7 +54,7 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
       stop("Stopped in MARSSboot() due to problem(s) with function arguments.\n", call.=FALSE)
     }
     EM.null = NULL
-    en = c("minit","maxit","abstol","iter.V0","min.iter.conv.test", "conv.test.deltaT", "conv.test.slope.tol")
+    en = c("minit","maxit","abstol","min.degen.iter","degen.lim","min.iter.conv.test", "conv.test.deltaT", "conv.test.slope.tol")
     for (el in en) {
       null.flag = ( is.null(control[[el]]) )
  

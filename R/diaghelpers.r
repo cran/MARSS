@@ -43,18 +43,33 @@ if(length(tmp)==1){
 return(FALSE) #length(tmp)!=1; must be only 1 number on diagonal
 }
 
-is.diagonal = function(x) {
+is.diagonal = function(x, na.rm=FALSE) {
+#na.rm=TRUE means that NAs on the DIAGONAL are ignored
 #non zero on diagonal; zero on off-diagonals
 x=as.matrix(unname(x))
-if(any(is.na(x))) return(FALSE)
+if(na.rm==FALSE && any(is.na(x))) return(FALSE)
 nr = dim(x)[1]; nc = dim(x)[2];
 if(nr != nc) return(FALSE)
 diagx = takediag(x)
-if(isTRUE( any(diagx==0) ) ) return(FALSE)
+#ok if there are 0s on diagonal
+#if(isTRUE( any(diagx==0) ) ) return(FALSE)
 dimx = dim(x)[1]
 if(length(x)==1) return(TRUE)
 if(isTRUE( all(x[lower.tri(x)]==0) ) && isTRUE( all(x[upper.tri(x)]==0) ) ) return(TRUE) #diagonal
 return(FALSE)
+}
+
+zero.row.col = function(x) {
+#non zero on diagonal; zero on off-diagonals
+x=as.matrix(unname(x))
+if(!is.numeric(x)) return(FALSE)
+diagx=takediag(x)
+if(all(is.na(diagx))) return(FALSE)
+if(!any(diagx==0)) return(FALSE)
+whichzero = which(diagx==0)
+if(!all(x[whichzero,]==0)) return(FALSE)
+if(!all(x[,whichzero]==0)) return(FALSE)
+return(TRUE)
 }
 
 is.identity = function(x) {
@@ -155,7 +170,7 @@ return(TRUE)
 
 vec = function(x) {
 if(!is.matrix(x)) stop("arg must be a matrix")
-return(array(x,dim=c(length(x),1)))
+return(matrix(x,length(x),1))
 }
 
 unvec = function(x,dim=NULL){
@@ -183,9 +198,9 @@ as.design = function(fixed,free) {
   f=vec(fixed); f[is.na(f)]=0
   tmp=table(free, exclude=c(NA,NaN))
   est.levels = names(tmp)
-  numGroups <- length(est.levels)      
+  numGroups = length(est.levels)      
   D.mat = matrix(0,dim(free)[1]*dim(free)[2],numGroups)   # matrix to allow shared growth rates (called F in my write-up)
-  for(i in est.levels) D.mat[which(free==i),which(est.levels==i)] <- 1
+  for(i in est.levels) D.mat[which(free==i),which(est.levels==i)] = 1
   if(all(is.na(free))) D.mat=array(0,dim=c(dim(free)[1]*dim(free)[2],1))
 return(list(f=f, D=D.mat))
 }

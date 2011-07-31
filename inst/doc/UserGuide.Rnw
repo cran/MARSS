@@ -1,4 +1,4 @@
-%\VignetteIndexEntry{User Manual} 
+%\VignetteIndexEntry{User Guide} 
 %\VignettePackage{MARSS}
 \documentclass{article}
 

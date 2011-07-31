@@ -2,7 +2,7 @@
 # marssm function
 # Creates MARSS model object (class marssm).
 ########################################################################
-marssm <- function(data=NULL, fixed, free, miss.value=-99)
+marssm <- function(data=NULL, fixed, free, miss.value=NA)
 {
   M <- NULL
   

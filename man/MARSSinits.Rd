@@ -6,7 +6,7 @@
 }
 \usage{
 MARSSinits(modelObj, inits=list(B=1, U=0, Q=0.05, 
-   A=0, R=0.05, x0=-99, V0=10))
+   A=0, R=0.05, x0=-99, V0=5))
 }
 \arguments{
   \item{modelObj}{ An object of class \code{\link{marssm}}. \code{MARSSinits} uses three elements of the model object.
@@ -28,7 +28,7 @@ MARSSinits(modelObj, inits=list(B=1, U=0, Q=0.05,
     \item{\code{x0}} If \code{inits$x0=-99}, then starting values for x0 are estimated by a linear regression 
     through the count data assuming A=0.  This will be a poor start if \code{inits$A} is not 0. If \code{inits$x0} is a numeric vector or matrix, \code{inits$x0} will be constructed by the command \code{array(inits$x0),dim=c(m,1))}. If x0 is fixed in the model, any \code{inits$x0} values will be overridden and replaced with the fixed value. Default is \code{inits$x0=-99}. 
     \item{\code{Z}} If Z is fixed in the model, \code{inits$Z} set to the fixed value. If Z is not fixed, then the user must supply \code{inits$Z}.  There is no default.
-    \item{elem=\code{V0}} \code{\link{MARSSkem}} and \code{\link{MARSSoptim}} will override \code{inits$V0} and use a diffuse prior (set with \code{marssMLE$control$iter.V0} if any x0 are estimated and will use \code{modelObj$fixed$V0} if x0 is fixed.  The first case corresponds to x0 fixed but unknown and treated as an estimated parameter with V0=0.  The diffuse prior for V0 is used only during the iterations of maximization to all x0 estimation and then V0 is reset to 0 for the final likelihood calculation.  The second case corresponds to using a prior for the initial state.  Although \code{inits$V0} is ignored by the fitting algorithm in MARSS 1.0, it is set here for forward compatibility.  If \code{inits$V0} is a vector or matrix with length equal to the length \code{modelObj$fixed$V0} then \code{inits$V0} will be constructed by the command \code{array(inits$V0,dim=c(m,m))}. If length is 1 or equal to m then inits$V0 will be constructed into a diagonal matrix by the command \code{diag(inits$V0,m)}. If x0 is fixed in the model, \code{inits$V0} values will be overridden and replaced with \code{modelObj$fixed$V0}. Default is \code{diag(10,m)}.
+    \item{elem=\code{V0}} V0 is never estimated, so this is never used.
 }
 }
 \value{
