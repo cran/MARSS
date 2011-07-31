@@ -8,6 +8,6 @@
 
 \newpage
 
-\includepdf[fitpaper=true, pages=-]{Manual.pdf}
+\includepdf[fitpaper=true, pages=-]{./refs/Manual.pdf}
 
 \end{document} 

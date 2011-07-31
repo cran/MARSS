@@ -2,7 +2,7 @@
 \documentclass[12pt]{article}
 \title{Change log}
 \begin{document}
-\section{Changes between versions 2.3 and 2.2}
+\section{Changes between versions 2.4 and 2.2}
 \begin{description}
     \item[factor option for all but Z removed] same functionality is provided via list matrices
     \item[removed fixed/free args from MARSS()] same functionality is provided via list matrices
