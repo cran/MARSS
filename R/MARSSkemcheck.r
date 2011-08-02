@@ -11,7 +11,7 @@ errmsg = " Try using foo=MARSS(..., fit=FALSE), then print(foo$model) to see wha
     stop("Stopped in MARSSkemcheck() because the number of time steps is <=2.\nMore than 2 data points are needed to estimate parameters.\n", call.=FALSE)
 
   ############ Check that B is within the unit circle
-   if(is.fixed(fixed$B) && !all(abs(eigen(fixed$B)$values)<=1)){ 
+   if(is.fixed(fixed$B) && !all(abs(eigen(fixed$B,only.values=TRUE)$values)<=1)){ 
       msg=c(" In MARSS 2.0 all the eigenvalues of B must be within the unit circle: all(abs(eigen(fixed$B)$values)<=1)\n", errmsg)
       cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
       stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)

@@ -229,7 +229,7 @@ kf.x0 = MLEobj$control$kf.x0  #the initial conditions treatment "x00" x0 is at t
     R = unvec(f$R + R.update, dim=dim(R))
 
     #Start~~~~~~~~Error checking   
-    if(any(eigen(R)$values<0)) {
+    if(any(eigen(R,symmetric=TRUE,only.values=TRUE)$values<0)) {
       stop.msg=paste("Stopped at iter=",iter," in MARSSkem: solution became unstable. R update is not positive definite.\n",sep="")
       stopped.with.errors=TRUE;  
       break }      
@@ -343,7 +343,7 @@ kf.x0 = MLEobj$control$kf.x0  #the initial conditions treatment "x00" x0 is at t
     Q = unvec(f$Q + Q.update, dim=dim(Q))
 
     #Start~~~~~~~~~~~~Error checking
-    if(any(eigen(Q)$values<0)) {
+    if(any(eigen(Q,symmetric=TRUE,only.values=TRUE)$values<0)) {
       stop.msg=paste("Stopped at iter=",iter," in MARSSkem: solution became unstable. Q update is not positive definite.\n",sep="")
       stopped.with.errors=TRUE;  
       break }      
@@ -500,7 +500,7 @@ kf.x0 = MLEobj$control$kf.x0  #the initial conditions treatment "x00" x0 is at t
     V0 = unvec(f$V0 + V0.update,dim=dim(V0))
     }
     #~~~~~~~~Error checking
-    if(any(eigen(V0)$values<0)) {
+    if(any(eigen(V0,symmetric=TRUE,only.values=TRUE)$values<0)) {
       stop.msg=paste("Stopped at iter=",iter," in MARSSkem: solution became unstable. V0 update is not positive definite.\n",sep="")
       stopped.with.errors=TRUE;  
       break } 
@@ -656,7 +656,7 @@ kf.x0 = MLEobj$control$kf.x0  #the initial conditions treatment "x00" x0 is at t
     if( control$trace && !is.fixed(fixed$B) ) {
         Ck = kappa(t(d$B)%*%Sum1%*%d$B)
         if(Ck>condition.limit) msg.kem=c(msg.kem,paste("iter=",iter," Unstable B estimate because P_{t-1,t-1} is ill-conditioned. C =",round(Ck), "\n", sep=""))
-        if(any(abs(eigen(B)$values)>1)) msg.kem=c(msg.kem,paste("iter=",iter," B update is outside the unit circle.", "\n", sep=""))
+        if(any(abs(eigen(B,only.values=TRUE)$values)>1)) msg.kem=c(msg.kem,paste("iter=",iter," B update is outside the unit circle.", "\n", sep=""))
     }
  
     ################

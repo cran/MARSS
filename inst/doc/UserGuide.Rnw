@@ -1,7 +1,7 @@
 %\VignetteIndexEntry{User Guide} 
 %\VignettePackage{MARSS}
 \documentclass{article}
-
+\usepackage[nogin]{Sweave}
 \usepackage{pdfpages}
 
 \begin{document}

@@ -1,8 +1,8 @@
 Package: MARSS
 Type: Package
 Title: Multivariate Autoregressive State-Space Modeling
-Version: 2.4
-Date: 2011-7-31
+Version: 2.5
+Date: 2011-8-2
 Depends: MASS, mvtnorm, nlme, time, KFAS
 Author: Eli Holmes, Eric Ward, and Kellie Wills, NOAA, Seattle, USA
 Maintainer: eli.holmes@noaa.gov <eli.holmes@noaa.gov>
@@ -26,6 +26,6 @@ License: GPL-2
 LazyLoad: yes
 LazyData: yes
 BuildVignettes: yes
-Packaged: 2011-07-31 18:06:27 UTC; xholmesel
+Packaged: 2011-08-03 20:41:58 UTC; xholmesel
 Repository: CRAN
-Date/Publication: 2011-08-01 05:13:23
+Date/Publication: 2011-08-05 06:10:52
