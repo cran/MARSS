@@ -2,6 +2,16 @@
 \documentclass[12pt]{article}
 \title{Change log}
 \begin{document}
+\section{Changes between versions 2.6 and 2.5}
+\begin{description}
+    \item[added sections on covariates and lag-p model] added these sections to the user guide.
+    \item[MCInit not working for non-diagonal R and Q] replaced function for randomly drawing matrices with a random draw from a wishart distribution.
+    \item[m not getting assigned] in MARSSPopWrap was missing some of the allowable cases for Z and m was not being set in those cases.
+    \item[added more info re R or Q not positive-definite] If the user specifies an illegal variance covariance structure from a general estimation perspective (nothing to do with MARSS), they can get the "not positive-definite" error.  Added some text in Troubleshooting section to help if they get this error.
+    \item[MARSSsimulate bug] MARSSsimulate was broken for multivariate simulation since I forgot that rmvnorm returns a 1 x p matrix even if the mean is p x 1.  Wrapped the rmvnorm call in a array() to fix the dim setting.
+    \item[error in x0 update when R=0 and x0 fixed] If $x_1$ has fixed elements, estimates should not used for those elements.  Code was missing some \verb@d$x0@ bits.  This means that the user can fix $x_1$ when $R=0$ to a value not equal to the corresponding $y_1$ value.  This would mean an illogical model so a check was added to stop and give warning if that happens.
+\end{description}
+
 \section{Changes between versions 2.5 and 2.2}
 \begin{description}
     \item[factor option for all but Z removed] same functionality is provided via list matrices

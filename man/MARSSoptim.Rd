@@ -38,7 +38,7 @@ Objects of class \code{\link{marssMLE}} may be built from scratch but are easier
       \item{convergence=1}{ Maximum number of iterations \code{MLEobj$control$maxit} was reached before \code{MLEobj$control$abstol} condition was satisfied. } 
       \item{convergence=10}{ Some of the variance elements appear to be degenerate.  T} 
       \item{convergence=52}{ The algorithm was abandoned due to errors from the "L-BFGS-B" method.  } 
-      \item{convergence=53}{ The algorithm was abandoned due to numerical errors in the likelihood calculation from \code{\link{MARSSkf}}.  This happens frequently with "BFGS" and can sometimes be helped with a better initial condition.  Try using the Kalman-EM algorithm first (\code{method="kem"}), and then using the parameter estimates from that to as initial conditions for \code{method="BFGS"}.  } 
+      \item{convergence=53}{ The algorithm was abandoned due to numerical errors in the likelihood calculation from \code{\link{MARSSkf}}.  This happens frequently with "BFGS" and can sometimes be helped with a better initial condition.  Try using the EM algorithm first (\code{method="kem"}), and then using the parameter estimates from that to as initial conditions for \code{method="BFGS"}.  } 
       }
   }
   \item{logLik}{Log-likelihood.}
@@ -47,11 +47,11 @@ Objects of class \code{\link{marssMLE}} may be built from scratch but are easier
   \item{errors}{Any error messages.}
 }
 \section{Discussion}{
- The function only returns parameter estimates.  To compute CIs, use \code{\link{MARSSparamCIs}} but if you use parametric or non-parametric bootstrapping with this function, it will use the Kalman-EM algorithm to compute the bootstrap parameter estimates!  The quasi-Newton estimates are too fragile for the bootstrap routine since one often needs to search to find a set of initial conditions that work (i.e. don't lead to numerical errors).
+ The function only returns parameter estimates.  To compute CIs, use \code{\link{MARSSparamCIs}} but if you use parametric or non-parametric bootstrapping with this function, it will use the EM algorithm to compute the bootstrap parameter estimates!  The quasi-Newton estimates are too fragile for the bootstrap routine since one often needs to search to find a set of initial conditions that work (i.e. don't lead to numerical errors).
  
- Estimates from \code{MARSSoptim} (which come from \code{\link{optim}}) should be checked against estimates from Kalman-EM algorithm.  If the quasi-Newton algorithm works, it will tend to find parameters with higher likelihood faster than the Kalman-EM algorithm.  However, the MARSS likelihood surface can be multimodal with sharp peaks at degenerate solutions where a Q or R diagonal element equals 0.  The quasi-Newton algorithm sometimes gets stuck on these peaks even when they are not the maximum.  Neither an initial conditions search nor starting near the known maximum (or from the parameters estimates after the Kalman-EM algorithm) will necessarily solve this problem.   Thus it is wise to check against Kalman-EM estimates to ensure that the BFGS estimates are close to the MLE estimates (and vis-a-versa, it's wise to rerun with method="BFGS" after using method="kem").  
+ Estimates from \code{MARSSoptim} (which come from \code{\link{optim}}) should be checked against estimates from the EM algorithm.  If the quasi-Newton algorithm works, it will tend to find parameters with higher likelihood faster than the EM algorithm.  However, the MARSS likelihood surface can be multimodal with sharp peaks at degenerate solutions where a Q or R diagonal element equals 0.  The quasi-Newton algorithm sometimes gets stuck on these peaks even when they are not the maximum.  Neither an initial conditions search nor starting near the known maximum (or from the parameters estimates after the EM algorithm) will necessarily solve this problem.   Thus it is wise to check against EM estimates to ensure that the BFGS estimates are close to the MLE estimates (and vis-a-versa, it's wise to rerun with method="BFGS" after using method="kem").  
  
- Note this is mainly a problem if the time series are short or very gappy.  If the time series are long, then the likelihood surface should be nice with a single interior peak.  In this case, the quasi-Newton algorithm works well but it can still be sensitive (and slow) if not started with a good initial condition.  Thus starting it with the estimates from the Kalman-EM algorithm is often desirable.
+ Note this is mainly a problem if the time series are short or very gappy.  If the time series are long, then the likelihood surface should be nice with a single interior peak.  In this case, the quasi-Newton algorithm works well but it can still be sensitive (and slow) if not started with a good initial condition.  Thus starting it with the estimates from the EM algorithm is often desirable.
  
  One should be aware that the prior set on the variance of the initial states at t=0  or t=1 can have catastrophic effects on one's estimates if the presumed prior covariance structure conflicts with the structure implied by the MARSS model.  For example, if you use a diagonal variance-covariance matrix for the prior but the model implies a matrix with non-zero covariances, your MLE estimates can be strongly influenced by the prior variance-covariance matrix.  Setting a diffuse prior does not help because the diffuse prior still has the correlation structure specified by V0.  One way to detect priors effects is to compare the BFGS estimates to the EM estimates.  Persistent differences typically signify a problem with the correlation structure in the prior conflicting with the implied correlation structure in the MARSS model.  If this is the case, using V0=0 and estimating the x0 elements (with control$kf.x0="x10") can often help.
 }
@@ -69,7 +69,7 @@ dat = dat[2:nrow(dat),] #remove the year row
 bfgsfit = MARSS(dat, model=list(Z=factor(c(1,1,1,1,1))), 
    method="BFGS")
 
-#fit a model with Kalman-EM and then use that fit as the start for BFGS
+#fit a model with EM and then use that fit as the start for BFGS
 kemfit = MARSS(dat, model=list(Z=factor(c(1,1,1,1,1))))
 bfgsfit = MARSS(dat, model=list(Z=factor(c(1,1,1,1,1))), 
    inits=kemfit$par, method="BFGS")

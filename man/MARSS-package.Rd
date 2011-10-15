@@ -26,14 +26,14 @@ The parameters, hidden state processes (x), and observations (y) are matrices:
     \item x0 is m x 1 
     \item V0 is m x m 
   }
-The package functions estimate the model parameters using a Kalman-EM algorithm (primarily but see \code{\link{MARSSoptim}}).  Parameters may be constrained to have shared elements (elements which are constrained to have the same value) or fixed elements (with the other elements estimated).  The states and smoothed state estimates are provided via a Kalman filter and smoother.  Bootstrapping, confidence interval estimation, bias estimation, model selection and simulation functions are provided.   The main user interface to the package is the top-level function \code{\link{MARSS}}.  
+The package functions estimate the model parameters using an EM algorithm (primarily but see \code{\link{MARSSoptim}}).  Parameters may be constrained to have shared elements (elements which are constrained to have the same value) or fixed elements (with the other elements estimated).  The states and smoothed state estimates are provided via a Kalman filter and smoother.  Bootstrapping, confidence interval estimation, bias estimation, model selection and simulation functions are provided.   The main user interface to the package is the top-level function \code{\link{MARSS}}.  
 }
 \details{
 Important MARSS functions:
 \describe{
       \item{\code{\link{MARSS}}}{ Top-level function for specifying and fitting MARSS models. } 
       \item{\code{\link{MARSSsimulate}}}{ Produces simulated data from a MARSS model. } 
-      \item{\code{\link{MARSSkem}}}{ Estimates MARSS parameters using an Kalman-EM algorithm. } 
+      \item{\code{\link{MARSSkem}}}{ Estimates MARSS parameters using an EM algorithm. } 
       \item{\code{\link{MARSSkf}} and \code{\link{MARSSkfas}}}{ Kalman filter and smoother. } 
       \item{\code{\link{MARSSoptim}}}{ Estimates MARSS parameters using a quasi-Newton algorithm via \code{\link{optim}}. } 
       \item{\code{\link{MARSSaic}}}{ Calculates AICc, AICc, and various bootstrap AICs. } 

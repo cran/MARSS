@@ -131,25 +131,30 @@ is.marssMLE <- function(MLEobj)
   ## Check control$boundsInits
     if(is.null(control$boundsInits)) msg = c(msg, "control$boundsInits is missing from the control list\n")
     if(!is.null(control$boundsInits)){
-    en = c("B", "U", "logQ", "logR", "A", "Z")
+    en = c("B", "U", "Q", "R", "A", "Z")
 
     for (el in en) {
       target = control$boundsInits
       null.flag <- ( is.null(target[[el]]) )
       if(null.flag) msg = c(msg, paste("control$boundsInits list element", el,"is missing\n"))
 
-      null.flag <- ( !is.null(target[[el]]) && length(target[[el]]) != 2)
-      if(null.flag) msg = c(msg, paste("control$boundsInits list element", el,"is not a 2 element vector\n"))
+      if(el %in% c("R","Q")){ dim.bound = 2 }else{dim.bound=2}
+      null.flag <- ( !is.null(target[[el]]) && length(target[[el]]) != dim.bound)
+      if(null.flag) msg = c(msg, paste("control$boundsInits list element", el,"is not a ",dim.bound,"element vector\n"))
  
       if (!null.flag) {
         null.flag <- (!is.numeric(target[[el]]))	  
         if(null.flag){ msg = c(msg, paste("control$boundsInits list element", el,"is not numeric\n"))
         }else {
+           if(el %in% c("B", "U", "A", "Z")) {
            null.flag <- (target[[el]][1] >= target[[el]][2])
            if(null.flag) msg = c(msg, paste("The first element of control$boundsInits$", el," is not smaller than the second\n",sep=""))
-           if (el == "B") {
+           if (el %in% c("B")) {
               null.flag <- ( any(target[[el]] < 0) )	  
-              if(null.flag) msg = c(msg, "One of the elements if control$boundsInits$B is < 0\n") }	  
+              if(null.flag) msg = c(msg, "One of the elements if control$boundsInits$B is < 0\n") }
+           if (el %in% c("R", "Q")) {
+              null.flag <- ( any(target[[el]] <= 0) )	  
+              if(null.flag) msg = c(msg, "One of the elements if control$boundsInits$", el, " is <= 0\n", sep="") }           }	  
         }
       }      
     }  

@@ -13,7 +13,7 @@ kf.x0 = MLEobj$control$kf.x0  #the initial conditions treatment "x00" x0 is at t
 #kf.x1=x10 prior is defined as being E[x(t=0)|y(t=0)]; xtt1[1]=x0; Vtt1[1]=V0
 
   #Check that model is allowed given the EM algorithm constaints; returns some info on the model structure
-  constr.type=MARSSkemcheck(MLEobj$model, method=MLEobj$method)
+  constr.type=MARSSkemcheck(MLEobj$model, method=MLEobj$method, kf.x0=kf.x0)
   #set up holders for warning messages
   msg=NULL; stop.msg=NULL; msg.kem=NULL; msg.kf=NULL; msg.conv=NULL #error messages
 
@@ -460,6 +460,9 @@ kf.x0 = MLEobj$control$kf.x0  #the initial conditions treatment "x00" x0 is at t
               stop.msg = paste("Stopped at iter=",iter," in MARSSkem. OMGz$R%*%Z%*%t(OMGz$R) is not invertable in x0 update.\n", sep="")
               stopped.with.errors=TRUE;  break }
             x0.update[takediag(R)==0] = denom%*%OMGz$R%*%Ey$ytT[,1,drop=FALSE]
+            #element by element multiplicaton to zero out the fixed x0's
+            #multiplying d$x0 by a p x 1 matrix of 1s to get a m x 1 column vec with 0s where the fixed x0's are
+            x0.update = (d$x0%*%matrix(1,dim(d$x0)[2],1))*x0.update 
           }
        }
        if(kf.x0=="x10" & all(R==0)){
@@ -467,7 +470,10 @@ kf.x0 = MLEobj$control$kf.x0  #the initial conditions treatment "x00" x0 is at t
           if(inherits(denom, "try-error")){ 
             stop.msg = paste("Stopped at iter=",iter," in MARSSkem. Z is not invertable in x0 update.\n", sep="")
             stopped.with.errors=TRUE;  break }
-          x0.update = denom%*%Ey$ytT[,1,drop=FALSE]   
+          x0.update = denom%*%Ey$ytT[,1,drop=FALSE]  #this will be m x 1
+          #element by element multiplicaton to zero out the fixed x0's
+          #multiplying d$x0 by a p x 1 matrix of 1s to get a m x 1 column vec with 0s where the fixed x0's are
+          x0.update = (d$x0%*%matrix(1,dim(d$x0)[2],1))*x0.update 
        }
     }
     x0 = f$x0 + x0.update

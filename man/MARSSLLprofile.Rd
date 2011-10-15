@@ -5,7 +5,8 @@
   Computes log-likelihood profiles for the maximum-likelihood estimates of MARSS model parameters.  This is a base function in the \code{\link{MARSS-package}}.
 }
 \usage{
-MARSSLLprofile(MLEobj, param=NULL, x=NULL, LLlim=3, pstep=0.01, max.steps=20, plot=TRUE)
+MARSSLLprofile(MLEobj, param=NULL, x=NULL, LLlim=3, pstep=0.01, 
+               max.steps=20, plot=TRUE)
 }
 
 \arguments{

@@ -36,7 +36,7 @@ kem = MARSSparamCIs(kem)
 
 #PANEL #1 plot the data
 plot(a[,1],a[,2],type="p", bty="L", xaxp=c(a[1,1],a[nyr,1],nyr-1),
-xlab="Year", ylab="Pop. Estimate", ylim=c(.9*min(a[,2],na.rm=TRUE),1.1*max(a[,2],na.rm=TRUE)), xlim=c(a[1,1]-1,a[nyr,1]+1))
+xlab="", ylab="Pop. Estimate", ylim=c(.9*min(a[,2],na.rm=TRUE),1.1*max(a[,2],na.rm=TRUE)), xlim=c(a[1,1]-1,a[nyr,1]+1))
 lines(a[,1],exp(kem$states[1,]),col="red")
 title(
 paste("u est = ",format(kem$par$U,digits=2)," (95% CIs ",format(kem$par.lowCI$U,digits=2),", ", format(kem$par.upCI$U,digits=2),")", "\n","Q est = ",format(kem$par$Q,digits=2)),cex.main=.9)
@@ -58,7 +58,7 @@ if(N0 <= thresh){ kal.cdf = rep(1,te)
   kal.cdf = p.ever*pnorm(( -xd + abs(kal.u)*tyrs)/ sqrt(kal.Q*tyrs)) + sec.part
 }
 
-plot(tyrs,kal.cdf,xlab="years into future",ylab="probability to hit threshold",ylim=c(0,1),bty="l",type="l")
+plot(tyrs,kal.cdf,xlab="time steps into future",ylab="probability to hit threshold",ylim=c(0,1),bty="l",type="l")
 title(paste("Prob. to hit ", format(thresh,digits=1)))
 
 #Add CIs to cdf of quasi-extinction plot if requested
@@ -117,7 +117,7 @@ i.right = which(kal.pdf==aa):max(tyrs)
 if(min(kal.pdf[i.right])< (aa*.001))
 i.max = which(kal.pdf==aa)-1+min(which(kal.pdf[i.right] < aa*.001))
 else i.max = max(tyrs)
-plot(tyrs[i.min:i.max],kal.pdf[i.min:i.max],xlab="years into future",ylab="probability to hit threshold",bty="l",type="l")
+plot(tyrs[i.min:i.max],kal.pdf[i.min:i.max],xlab="time steps into future",ylab="probability to hit threshold",bty="l",type="l")
 title(main="PDF of time to threshold \n given it IS reached")
 
 #Panel 4 Now make plot of probability of hitting different thresholds  in te yrs
@@ -135,12 +135,12 @@ for (i in 1:length(thshes)){
 plot(thshes,kal.thresh,xlab="Number of ind. at Ne",ylab="probability to hit threshold",bty="l",ylim=c(0,1),type="l")
 abline(v=thresh, col="red")
 text(thresh*1.1,max(kal.thresh)*.9,"90% threshold")
-title(paste("Prob. of hitting threshold", " in ", te, " yrs") )
+title(paste("Prob. of hitting threshold", " in ", te, " time steps") )
 
 N=matrix(0,ncol=te,nrow=10)
 for(i in 1:10)
   N[i,]=N0*cumprod(exp(rnorm(te,kal.u,sqrt(kal.Q))))
-matplot(t(N),type="l",bty="L",main="Sample projections",xlab="years into the future",ylab="N")
+matplot(t(N),type="l",bty="L",main="Sample projections",xlab="time steps into the future",ylab="N")
 
 #Finally make TMU plot
 CSEGtmufigure(N=nyr, u=kal.u, s2p=kal.Q, make.legend=FALSE)

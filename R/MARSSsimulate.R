@@ -87,22 +87,25 @@ MARSSsimulate = function(parList, tSteps=100, nsim=1, silent=TRUE, miss.loc=NULL
   for( i in 1:nsim){
     newStates[,1] = parList$x0 # t = 0
     if(n.not0$V0!=0){
-       V0.mat = Omg1$V0%*%parList$V0%*%t.Omg1$V0  
-       x0.new = rmvnorm(1, mean = Omg1$V0%*%parList$x0, sigma = V0.mat, method="chol")
+       V0.mat = Omg1$V0%*%parList$V0%*%t.Omg1$V0
+       #rmvnorm returns a 1 x m matrix even if mean is m x 1  
+       x0.new = array(rmvnorm(1, mean = Omg1$V0%*%parList$x0, sigma = V0.mat, method="chol"),dim=dim(parList$x0))
        newStates[,1] = t.Omg1$V0%*%x0.new + t.Omg0$V0%*%Omg0$V0%*%parList$x0
     }else{ newStates[,1] = parList$x0 }
   # create a matrices for observation error
     if(n.not0$R!=0){
        R.mat = Omg1$R%*%parList$R%*%t.Omg1$R
+       #rmvnorm returns a T x p matrix and we need p x T
        obs.error = t(rmvnorm(tSteps, mean = rep(0, n.not0$R), sigma = R.mat, method="chol"))
        obs.error = t.Omg1$R%*%obs.error
-    }else{ obs.error = matrix(0,n,1) }
+    }else{ obs.error = matrix(0,n,tSteps) }
   # create a matrices for process error 
     if(n.not0$Q!=0){
        Q.mat = Omg1$Q%*%parList$Q%*%t.Omg1$Q
+       #rmvnorm returns a 1 x p matrix and we need p x 1
        pro.error = t(rmvnorm(tSteps, mean = rep(0, n.not0$Q), sigma = Q.mat, method="chol"))
        pro.error = t.Omg1$Q%*%pro.error
-    }else{ pro.error = matrix(0,m,1) }
+    }else{ pro.error = matrix(0,m,tSteps) }
     for(j in 2:(tSteps+1)) {
       newStates[,j] = parList$B %*% newStates[,j-1] + parList$U + pro.error[,j-1] #indexing is j=1 is t=0, j is t-1
       newData[,j-1] = parList$Z %*% newStates[,j] + parList$A + obs.error[,j-1]

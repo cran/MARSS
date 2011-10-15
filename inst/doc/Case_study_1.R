@@ -55,7 +55,7 @@ for(i in 1:nsim){
     replace = FALSE) 
   y.ts[i,missYears]=NA
 
-  #Kalman-EM estimates 
+  #MARSS estimates 
   kem = MARSS(y.ts[i,], silent=TRUE)
   params[i,c(1,3,4)] = c(kem$par$U,kem$par$Q,kem$par$R)
 	
@@ -86,7 +86,7 @@ te = 100; tyrs = 1:te   # extinction time horizon
 for(j in c(10,1:8)){
   real.ex = denn.ex = kal.ex = matrix(nrow=te) 
 
-  #Kalman-EM parameter estimates
+  #MARSS parameter estimates
   u=params[j,1];   Q=params[j,3]
   if(Q==0) Q=1e-4  #just so the extinction calc doesn't choke
   p.ever = ifelse(u<=0,1,exp(-2*u*xd/Q))

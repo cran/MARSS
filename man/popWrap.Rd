@@ -17,8 +17,8 @@ popWrap(y, allowed,
 }
 \arguments{
   \item{y}{ A matrix (not dataframe), observations (rows) x time steps (columns), of data. }
-  \item{allowed}{ Allowed model structures. This is determined by the method used for parameter estimation.  \code{allowed$kem} (specified in \code{MARSSsettings} is the set of allowed model structures for the Kalman-EM algorithm under MARSS 1.0. \code{allowed$BFGS} are the allowable model structures for BFGS.}
-  \item{inits}{ List with up to 8 matrices Z, A, R, B, U, Q, x0, V0, specifying initial values for parameters to use in iterative ML estimation algorithms, such as Kalman-EM and quasi-Newton methods. These are ignored if the specified parameter is not being estimated.  If not passed in by the user, \code{\link{MARSS}} creates generic inits using \code{\link{MARSSinits}}.
+  \item{allowed}{ Allowed model structures. This is determined by the method used for parameter estimation.  \code{allowed$kem} (specified in \code{MARSSsettings} is the set of allowed model structures for the EM algorithm. \code{allowed$BFGS} are the allowable model structures for BFGS.}
+  \item{inits}{ List with up to 8 matrices Z, A, R, B, U, Q, x0, V0, specifying initial values for parameters to use in iterative ML estimation algorithms, such as EM and quasi-Newton methods. These are ignored if the specified parameter is not being estimated.  If not passed in by the user, \code{\link{MARSS}} creates generic inits using \code{\link{MARSSinits}}.
     \describe{
     \item{\code{B}}{ Initial value(s) for B parameter (length 1 or m x m). If length 1, \code{inits$B} constructed as \code{diag(value, m)}.}
     \item{\code{U}}{ Initial value(s) for U parameter (length 1 or m x 1). If length 1, \code{inits$U} constructed as \code{matrix(value, nrow=m, ncol=1)}.}
@@ -46,7 +46,7 @@ popWrap(y, allowed,
       \item{\code{MCInit}}{ Use Monte Carlo initialization? See discussion in \code{\link{MARSSkem}} and \code{\link{MARSSmcinit}}. } 
       \item{\code{numInits}}{ Number of random initial value draws. } 
       \item{\code{numInitSteps}}{ Number of EM iterations for each random initial value draw. }
-      \item{\code{boundsInits}}{ Bounds on the uniform distributions from which initial values will be drawn. Note that bounds for the covariance matrices Q and R, which require positive values, are specified in logs. }    
+      \item{\code{boundsInits}}{ Bounds on the uniform distributions from which initial values will be drawn. Note that bounds for the covariance matrices Q and R, which require positive values, are the df and S=diag(bound[2],m) for a wishart distribution. }    
     }
   }
   \item{silent}{ Suppresses printing of progress bars, error messages, warnings and convergence information. }

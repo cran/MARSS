@@ -1,0 +1,2386 @@
+%\VignetteIndexEntry{EM Derivation} 
+%\VignettePackage{MARSS}
+\documentclass[]{article}
+
+% choose options for [] as required from the list
+% in the Reference Guide, Sect. 2.2
+
+\usepackage{Sweave}
+\usepackage{multirow}
+\usepackage[bottom]{footmisc}% places footnotes at page bottom
+\usepackage[round]{natbib}
+\usepackage[small]{caption}
+%\setkeys{Gin}{width=\textwidth}
+%\setkeys{Gin}{width=0.8\textwidth}  %make the figs 50 perc textwidth
+\setlength{\captionmargin}{0pt}
+\setlength{\abovecaptionskip}{0pt}
+\setlength{\belowcaptionskip}{15pt}
+
+% Math stuff
+\usepackage{amsmath} % the standard math package
+\usepackage{amsfonts} % the standard math package
+%%%% bold maths symbol system:
+\def\AA{\mbox{$\mathbf A$}}	\def\aa{\mbox{$\mathbf a$}}
+\def\BB{\mbox{$\mathbf B$}}	\def\bb{\mbox{$\mathbf b$}}
+\def\CC{\mbox{$\mathbf C$}}	\def\cc{\mbox{$\mathbf c$}}
+\def\DD{\mbox{$\mathbf D$}}	\def\dd{\mbox{$\mathbf d$}}
+\def\EE{\mbox{$\mathbf E$}}	\def\ee{\mbox{$\mathbf e$}}
+\def\E{\,\textup{\textrm{E}}}	
+\def\EXy{\,\textup{\textrm{E}}_{\text{{\bf XY}}}}
+\def\FF{\mbox{$\mathbf F$}} \def\ff{\mbox{$\mathbf f$}}
+\def\GG{\mbox{$\mathbf G$}}	\def\gg{\mbox{$\mathbf g$}}
+\def\HH{\mbox{$\mathbf H$}}
+\def\II{\mbox{$\mathbf I$}}
+\def\IIm{\mbox{$\mathbf I$}}
+\def\JJ{\mbox{$\mathbf J$}}
+\def\KK{\mbox{$\mathbf K$}}
+\def\LL{\mbox{$\mathbf L$}}
+\def\MM{\mbox{$\mathbf M$}}  \def\mm{\mbox{$\mathbf m$}}
+\def\N{\,\textup{\textrm{N}}}
+\def\MVN{\,\textup{\textrm{MVN}}}
+\def\OO{\mbox{$\mathbf O$}}
+\def\PP{\mbox{$\mathbf P$}}  \def\pp{\mbox{$\mathbf p$}}
+\def\QQ{\mbox{$\mathbf Q$}}
+\def\RR{\mbox{$\mathbf R$}}
+\def\SS{\mbox{$\mathbf S$}}
+\def\UU{\mbox{$\mathbf U$}}	\def\uu{\mbox{$\mathbf u$}}
+\def\VV{\mbox{$\mathbf V$}}	\def\vv{\mbox{$\mathbf v$}}
+\def\WW{\mbox{$\mathbf W$}}	\def\ww{\mbox{$\mathbf w$}}
+%\def\XX{\mbox{$\mathbf X$}}
+\def\XX{\mbox{$\pmb{X}$}}	\def\xx{\mbox{$\pmb{x}$}}
+%\def\xx{\mbox{$\mathbf x$}}
+%\def\YY{\mbox{$\mathbf Y$}}
+\def\YY{\mbox{$\pmb{Y}$}}	\def\yy{\mbox{$\pmb{y}$}}
+%\def\yy{\mbox{$\mathbf y$}}
+\def\ZZ{\mbox{$\mathbf Z$}}	\def\zz{\mbox{$\mathbf z$}}
+\def\etaeta{\mbox{\boldmath $\eta$}}
+\def\xixi{\mbox{\boldmath $\xi$}}
+\def\ep{\mbox{\boldmath $\epsilon$}}
+\def\PI{\mbox{\boldmath $\Pi$}}
+\def\LAM{\mbox{\boldmath $\Lambda$}}
+\def\GAM{\mbox{\boldmath $\Gamma$}}
+\def\OMG{\mbox{\boldmath $\Omega$}}
+\def\SI{\mbox{\boldmath $\Sigma$}}
+\def\TH{\mbox{\boldmath $\Theta$}}
+\def\zer{\mbox{\boldmath $0$}}
+\def\vec{\,\textup{\textrm{vec}}}
+\def\var{\,\textup{\textrm{var}}}
+\def\cov{\,\textup{\textrm{cov}}}
+\def\diag{\,\textup{\textrm{diag}}}
+\def\trace{\,\textup{\textrm{trace}}}
+\def\hatxt{\widetilde{\mbox{$\mathbf x$}}_t}
+\def\hatxone{\widetilde{\mbox{$\mathbf x$}}_1}
+\def\hatxzero{\widetilde{\mbox{$\mathbf x$}}_0}
+\def\hatxtm{\widetilde{\mbox{$\mathbf x$}}_{t-1}}
+\def\hatyt{\widetilde{\mbox{$\mathbf y$}}_t}
+\def\hatyyt{\widetilde{\mbox{$\mathbf y$}\mbox{$\mathbf y$}^\top}_t}
+\def\hatyone{\widetilde{\mbox{$\mathbf y$}}_1}
+\def\hatwt{\widetilde{\mbox{$\mathbf w$}}_t}
+\def\hatOt{\widetilde{\OO}_t}
+\def\hatWt{\widetilde{\WW}_t}
+\def\hatYXt{\widetilde{\mbox{$\mathbf{y}\mathbf{x}$}}_t}
+\def\hatYXttm{\widetilde{\mbox{$\mathbf{y}\mathbf{x}$}}_{t,t-1}}
+\def\hatPt{\widetilde{\PP}_t}
+\def\hatPtm{\widetilde{\PP}_{t-1}}
+\def\hatPttm{\widetilde{\PP}_{t,t-1}}
+\def\hatPtmt{\widetilde{\PP}_{t-1,t}}
+\def\hatVt{\widetilde{\VV}_t}
+\def\hatVttm{\widetilde{\VV}_{t,t-1}}
+\def\YYr{\dot{\mbox{$\pmb{Y}$}}}
+\def\yyr{\dot{\mbox{$\pmb{y}$}}}
+\def\aar{\dot{\mbox{$\mathbf a$}}}
+\def\ZZr{\dot{\mbox{$\mathbf Z$}}}
+\def\RRr{\dot{\mbox{$\mathbf R$}}}
+\def\IR{\nabla}
+\usepackage[round]{natbib} % to get references that are like in ecology papers
+% \citet{} for inline citation name (year); \citep for citation in parens (name year)
+
+%allow lines in matrix
+\makeatletter
+\renewcommand*\env@matrix[1][*\c@MaxMatrixCols c]{%
+  \hskip -\arraycolsep
+  \let\@ifnextchar\new@ifnextchar
+  \array{#1}}
+\makeatother
+\setcounter{tocdepth}{1} %no subsections in toc
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+\author{Elizabeth Eli Holmes\\
+       Northwest Fisheries Science Center, NOAA Fisheries\\
+       2725 Montlake Blvd E., Seattle, WA 98112\\
+       eli.holmes@noaa.gov\\
+       http://faculty.washington.edu/eeholmes}
+\title{Derivation of the EM algorithm for constrained and unconstrained multivariate autoregressive state-space (MARSS) models\\DRAFT}
+\maketitle
+\tableofcontents
+\vfill
+{\noindent \tiny citation: Holmes, E. E. 2010. Derivation of the EM algorithm for constrained and unconstrained multivariate autoregressive state-space (MARSS) models. Unpublished report. Northwest Fisheries Science Center, NOAA Fisheries, Seattle, WA, USA.}
+\newpage 
+\section{Overview}
+
+EM algorithms extend likelihood estimation to cases with hidden states, such as when observations are corrupted and the true population size is unobserved.  EM algorithms are widely used in engineering and computer science applications. The reader is referred to \citet{McLachlanKrishnan2008} for general background on EM algorithms and to \citet{Harvey1989} for a discussion of EM algorithms for time-series data.  \citet{Borman2009} has a nice tutorial on the EM algorithm.  Coding an EM algorithm is not as involved as the following this report might suggest.  In most texts, the majority of the steps shown in this technical report would be subsumed under the line ``the equations follow directly from the likelihood...''.  This technical report lays out in detail all of the steps between the likelihood and the EM update equations.  
+
+I show first the derivation of the EM algorithm for the unconstrained\footnote{``unconstrained'' means that each element in the parameter matrix is estimated and no elements are fixed or shared.} MARSS model. This EM algorithm was derived by \citet{ShumwayStoffer1982}, but my derivation is in some ways more similar to Ghahramani et al's \citep{GhahramaniHinton1996, RoweisGhahramani1999} slightly different presentation.  One difference in my presentation and these previous presentations is that I treat the data as a random variable throughout; this means that there are no ``special" update equations for the missing values case.  I then extend the derivation to the case of a constrained MARSS model where there are fixed and shared elements in the parameter matrices and to the case of a degenerate MARSS model where some processes in the model are deterministic rather than stochastic. An example of a shared value would be a shared drift term ($u$) across all the random walk processes in a MARSS model.  See also \citet{Wuetal1996} and \citet{Zuuretal2003a} for other examples of the EM algorithm for different classes of constrained MARSS models.  
+
+One issue that I do not cover is ``identifiability'', i.e. does a unique solution exist.  For a given MARSS model, you will need to fix some of the parameter elements in order to produce a model with one solution.  How to do that depends on how you are using the MARSS model and what specific model you are using.  If you are lucky, someone in your field is using a similar type of MARSS model and has already worked out how to constrain the model to ensure identifiability.
+
+Whenever one is working with MARSS models, one should be cognizant that misspecification of the prior on the initial hidden states ($\xx_0$ or $\xx_1$) can have catastrophic and difficult to detect effects on your MLE estimates in MARSS models.  There is often no sign that something is amiss, except that something seems odd about your parameter estimates.  There has been much work on how to avoid these initial conditions effects (see especially literature on VAR state-space models in the economics literature).  In our experience, the trouble occurs when the prior on the initial states is inconsistent with the distribution of the initial states that is implied by the MLE model.  This often happens when the model implies a specific covariance structure on the initial states.  But since you do not know the MLE parameters, you do not know this covariance structure.  Using a diffuse prior does not help since your diffuse prior still has some covariance structure (often independence is being imposed).  As mentioned above, often it is very difficult to detect that there is a problem.  There are MLE estimates; it is just that these estimates are influenced in a bad way by your prior.  One way to detect it is to compare estimates from the EM algorithm versus a Newton-method.  If the estimates are quite different, this suggests a prior specification problem because sometimes one or the other algorithm is able/unable to find the MLE when the prior is inconsistent.  In some ways the EM algorithm is less sensitive to the prior because it uses the smoothed states in the maximization step.  The smoothed states are conditioned on all the data.  However, if the prior is inconsistent with the model, the EM algorithm will not (cannot) find the MLE.  It is very possible however that it will find parameter estimates that are closer to what you intend (estimates uninfluenced by the prior), but they will not be MLEs.  The final section of this report discusses some practical ways to detect the prior problems and to correct or circumvent them.
+
+\subsection{The MARSS model}
+
+The linear MARSS model with a stochastic initial state\footnote{`Stochastic' means the initial state has a distribution rather than a fixed value. Because the process must start somewhere, one needs to specify the initial state as either a distribution or as a parameter. In equation \ref{eq:MARSS}, I show the initial state specified as a distribution.  However, the derivation will also discuss the case where the initial state is specified as an unknown fixed parameter.} is
+\begin{subequations}\label{eq:MARSS}
+\begin{gather}
+\xx_t = \BB\xx_{t-1} + \uu + \ww_t, \text{ where } \ww_t \sim \mathrm{MVN}(0,\QQ) \label{eq:MARSSx}\\
+\yy_t = \ZZ\xx_t + \aa + \vv_t, \text{ where } \vv_t \sim \mathrm{MVN}(0,\RR) \label{eq:MARSSy}\\
+\xx_0 \sim \mathrm{MVN}(\xixi,\LAM) \label{eq:MARSSx1}
+\end{gather}
+\end{subequations}
+The $\yy$ equation is called the observation process, and $\yy_t$ is a $n \times 1$ vector.  The $\xx$ equation is called the state or process equation, and $\xx_t$ is a $m \times 1$ vector. The equation for $\xx$ describes a multivariate autoregressive process (also called a random walk or Markov process). The initial state can either defined at $t=0$, as is done in equation \ref{eq:MARSS}, or at $t=1$.  When presenting the MARSS model, I use $t=0$ but the derivations will show the EM algorithm for both cases. $\QQ$ and $\RR$ are variance-covariance matrices that specify the stochasticity in the observation and state equations.  
+
+This report describes the derivation of an EM algorithm to solve MARSS models, where linear constraints of the form $\beta_i + \beta_{a,i} a + \beta_{b,i} b + \dots$ are placed on the elements in the MARSS parameter matrices.  This covers the majority of MARSS models used in the literature.  Here is an example of a MARSS model with linear constraints:
+\begin{gather*}
+\begin{bmatrix}x_1\\ x_2\end{bmatrix}_t
+= \begin{bmatrix}a&0\\0&2a\end{bmatrix}
+\begin{bmatrix}x_1\\x_2\end{bmatrix}_{t-1}
++ \begin{bmatrix}w_1\\ w_2\end{bmatrix}_t,\quad 
+\begin{bmatrix}w_1\\ w_2\end{bmatrix}_t \sim MVN\begin{pmatrix}\begin{bmatrix}0.1\\u+0.1\end{bmatrix},\begin{bmatrix}q_{11}&q_{12}\\q_{21}&q_{22}\end{bmatrix} \end{pmatrix}  \\
+\\
+\begin{bmatrix}y_1\\ y_2\\ y_3\end{bmatrix}_t
+= \begin{bmatrix}c&3c+2d+1\\ c& d\\ c+e+2 &e\end{bmatrix}
+\begin{bmatrix}x_1\\ x_2\end{bmatrix}_t
++ \begin{bmatrix}v_1\\ v_2\\ v_3\end{bmatrix}_t,\\
+\begin{bmatrix}v_1\\ v_2\\ v_3\end{bmatrix}_t \sim MVN\begin{pmatrix}\begin{bmatrix}a_1\\ a_2\\ 0\end{bmatrix},
+ \begin{bmatrix}r&0&0\\0&2r&0\\0&0&4r\end{bmatrix} \end{pmatrix}  \\
+\\
+\begin{bmatrix}x_1\\ x_2\end{bmatrix}_0 \sim MVN\begin{pmatrix}\begin{bmatrix}\pi\\ \pi\end{bmatrix},\begin{bmatrix}1&0\\ 0&1\end{bmatrix} \end{pmatrix}
+\end{gather*}
+Linear constraints mean that elements of a matrix may be fixed to a specific numerical value or specified as a linear combination of values (which can be shared within a matrix but not shared between matrices).
+
+In the MARSS model, $\xx$ and $\yy$ equations describe two stochastic processes.  By tradition, one conditions on observations of $\yy$, and $\xx$ is treated as completely hidden, hence the name `hidden Markov process' of which a MARSS model is a special type.  However, you could condition on (partial) observations of $\xx$ and treat $\yy$ as a (partially) hidden process---with as usual proper constraints to ensure identifiability.  Nonetheless in this report, I follow tradition and treat $\xx$ as hidden and $\yy$ as (partially) observed.  If $\xx$ is partially observed then the update equations stay the same but the expectations shown in section \ref{sec:compexpectations} would be computed conditioned on the partially observed $\xx$.
+
+\subsection{The joint log-likelihood function}
+Denote the set of all $y$'s and $x$'s from $t=1$ to $T$ by $\yy$ and $\xx$. The joint log-likelihood\footnote{This is not the log likelihood output by the Kalman filter.  The log likelihood output by the Kalman filter is the $\log\LL(\yy;\Theta)$ (notice $\xx$ does not appear), which is known as the marginal log likelihood.} of $\yy$ and $\xx$ can then be written then as follows, where $\XX_t$ denotes the random variable and $\xx_t$ is a realization from that random variable (and similarly for $\YY_t$):\footnote{To alleviate clutter, I have left off subscripts on the $f$'s.  To emphasize that the $f$'s represent different density functions, one would often use a subscript showing what parameters are in the functions, i.e. $f(\xx_t|\XX_{t-1}=\xx_{t-1})$ becomes $f_{B,u,Q}(\xx_t|\XX_{t-1}=\xx_{t-1})$.}
+\begin{equation}
+f(\yy,\xx) = f(\yy|\XX=\xx)f(\xx),
+\end{equation}
+where
+\begin{equation}
+\begin{split}
+f(\xx)&=f(\xx_0)\prod_{t=1}^T f(\xx_t|\XX_1^{t-1}=\xx_1^{t-1})\\
+f(\yy|\XX=\xx) &= \prod_{t=1}^T f(\yy_t|\XX=\xx)
+\end{split}
+\end{equation}
+Thus,
+\begin{equation}\label{eq:jointL}
+\begin{split}f(\yy,\xx) &= \prod_{t=1}^T f(\yy_t|\XX=\xx) \times f(\xx_0)\prod_{t=1}^T f(\xx_t|\XX_1^{t-1}=\xx_1^{t-1}) \\
+&=\prod_{t=1}^T f(\yy_t|\XX_t=\xx_t) \times f(\xx_0)\prod_{t=1}^T f(\xx_t|\XX_{t-1}=\xx_{t-1}).
+\end{split}
+\end{equation}
+Here $\xx_{t1}^{t2}$ denotes the set of $\xx_t$ from $t=t1$ to $t=t2$ (and thus $\xx$ is shorthand for $\xx_1^T$).  The third line follows because conditioned on $\xx$, the $\yy_t$'s are independent of each other (because the $\vv_t$ are independent of each other).  In the last line, $\xx_1^{t-1}$ becomes $\xx_{t-1}$ from the Markov property of the equation for $\xx_t$ (equation \ref{eq:MARSSx}), and $\xx$ becomes $\xx_t$ because $\yy_t$ depends only on $\xx_t$ (equation \ref{eq:MARSSy}).
+
+Since $(\XX_t|\XX_{t-1}=\xx_{t-1})$ is multivariate normal and $(\YY_t|\XX_t=\xx_t)$ is multivariate normal (equation \ref{eq:MARSS}), we can write down the joint log-likelihood function using the likelihood function for a multivariate normal distribution \citep[sec. 4.3]{JohnsonWichern2007}.  
+\begin{equation}\label{eq:logL}
+\begin{split}
+&\log\LL(\yy,\xx ; \Theta) = -\sum_1^T \frac{1}{2}(\yy_t - \ZZ \xx_t - \aa)^\top \RR^{-1} (\yy_t - \ZZ \xx_t - \aa) -\sum_1^T\frac{1}{2} \log |\RR|\\
+&\quad  -\sum_1^T \frac{1}{2} (\xx_t - \BB \xx_{t-1} - \uu)^\top \QQ^{-1} (\xx_t - \BB \xx_{t-1} - \uu) - \sum_1^T\frac{1}{2}\log |\QQ|\\
+&\quad  -\frac{1}{2}(\xx_0 - \xixi)^\top \LAM^{-1}(\xx_0 - \xixi) - \frac{1}{2}\log |\LAM| -   \frac{n}{2}\log 2\pi 
+\end{split}
+\end{equation}
+$n$ is the number of data points. This is the same as equation 6.64 in \citet{ShumwayStoffer2006}. The above equation is for the case where $\xx_0$ is stochastic (has a known distribution).  However, if we instead treat $\xx_0$ as fixed but unknown (section 3.4.4 in Harvey, 1989), it is then a parameter and there is no $\LAM$.  The likelihood then is slightly different:
+\begin{equation}\label{eq:logL.V0.is.0}
+\begin{split}
+&\log\LL(\yy,\xx ; \Theta) = -\sum_1^T \frac{1}{2}(\yy_t - \ZZ \xx_t - \aa)^\top \RR^{-1} (\yy_t - \ZZ \xx_t - \aa) -\sum_1^T\frac{1}{2} \log |\RR|\\
+&\quad  -\sum_1^T \frac{1}{2} (\xx_t - \BB \xx_{t-1} - \uu)^\top \QQ^{-1} (\xx_t - \BB \xx_{t-1} - \uu) - \sum_1^T\frac{1}{2}\log |\QQ|\\
+&\xx_0 \equiv \xixi  
+\end{split}
+\end{equation}
+Note that in this case, $\xx_0$ is no longer a realization of a random variable $\XX_0$; it is a fixed (but unknown) parameter.  Equation \ref{eq:logL.V0.is.0} is written as if all the $\LAM$ elements are 0 in order to remove clutter, however the MARSS package does not require that all $\LAM$ are 0.  You can fix some $x_0$ in $\xx_0$ and let others have a prior, but you need to make sure the model actually makes sense.
+
+If $\RR$ is constant through time, then $\sum_1^T\frac{1}{2} \log |\RR|$ in the likelihood equation reduces to $\frac{T}{2}\log |\RR|$, however sometimes one needs to includes time-dependent weighting on $\RR$\footnote{If for example, one wanted to include a temporally dependent weighting on $\RR$ replace $|\RR|$ with $|\alpha_t\RR|=\alpha_t^n|\RR|$, where $\alpha_t$ is the weighting at time $t$ and is fixed not estimated.}.  The same applies to $\sum_1^T\frac{1}{2}\log |\QQ|$.
+
+All bolded elements are column vectors (lower case) and matrices (upper case).  $\AA^\top$ is the transpose of matrix $\AA$, $\AA^{-1}$ is the inverse of $\AA$, and $|\AA|$ is the determinant of $\AA$.  Parameters are non-italic while elements that are slanted are realizations of a random variable ($\xx$ and $\yy$ are slated)\footnote{In matrix algebra, a capitol bolded letter indicates a matrix.  Unfortunately in statistics, the capitol letter convention is used for random variables.  Fortunately, this derivation does not need to reference random variables except indirectly when using expectations.  Thus, I use capitols to refer to matrices not random variables.  The one exception is the reference to $\XX$ and in this case a bolded {\it slanted} capitol is used.}
+ 
+\subsection{Missing values}\label{sec:missing}
+In Shumway and Stoffer and other presentations of the EM algorithm for MARSS models \citep{ShumwayStoffer2006,Zuuretal2003a}, the missing values case is treated separately from the non-missing values case.  In these derivations, a series of modifications are given for the EM update equations when there are missing values.  In my derivation, I present the missing values treatment differently, and there is only one set of update equations and these equations apply in both the missing values and non-missing values cases. My derivation does this by keeping $\E[\YY_t|\text{data}]$ and $\E[\YY_t\XX_t^\top|\text{data}]$ in the update equations (much like $\E[\XX_t|\text{data}]$ is kept in the equations) while Shumway and Stoffer replace these expectations involving $\YY_t$ by their values, which depend on whether or not the data are a complete observation of $\YY_t$ with no missing values.  Section \ref{sec:compexpectations} shows how to compute the expectations involving $\YY_t$ when the data are an incomplete observation of $\YY_t$.
+
+\section{The EM algorithm}
+The EM algorithm cycles iteratively between an expectation step (the integration in the equation) followed by a maximization step (the arg max in the equation):
+\begin{equation}\label{eq:EMalg}
+\Theta_{j+1} = \arg \underset{\Theta}{\max} \int_{\xx}{\int_{\yy}{\log\LL(\xx,\yy;\Theta) f(\xx,\yy|\YY(1)=\yy(1),\Theta_j)d\xx d\yy}}
+\end{equation}
+$\YY(1)$ indicates those $\YY$ that have an observation and $\yy(1)$ are the actual observations. Note that $\Theta$ and $\Theta_j$ are different.  If $\Theta$ consists of multiple parameters, we can also break this down into smaller steps.  Let $\Theta=\{\alpha,\beta\}$, then
+\begin{equation}\label{eq:EMalg.j}
+\alpha_{j+1} = \arg \underset{\alpha}{\max} \int_{\xx}{\int_{\yy}{\log\LL(\xx,\yy,\beta_j;\alpha) f(\xx,\yy|\YY(1)=\yy(1),\alpha_j,\beta_j)d\xx d\yy}}
+\end{equation}
+Now the maximization is only over $\alpha$, the part that appears after the ``;'' in the log-likelihood.
+
+\textbf{Expectation step} The integral that appears in equation \eqref{eq:EMalg} is an expectation. The first step in the EM algorithm is to compute this expectation.  This will involve computing expectations like $\E[\XX_t\XX_t^\top|\YY_t(1)=\yy_t(1),\Theta_j]$ and $\E[\YY_t\XX_t^\top|\YY_t(1)=\yy_t(1),\Theta_j]$. The $j$ subscript on $\Theta$ denotes that these are the parameters at iteration $j$ of the algorithm.
+
+\textbf{Maximization step}: A new parameter set $\Theta_{j+1}$ is computed by finding the parameters that maximize the \textit{expected} log-likelihood function (the part in the integral) with respect to $\Theta$.  The equations that give the parameters for the next iteration ($j+1$) are called the update equations and this report is devoted to the derivation of these update equations.
+
+After one iteration of the expectation and maximization steps, the cycle is then repeated. New expectations  are computed using $\Theta_{j+1}$, and then a new set of parameters $\Theta_{j+2}$ is generated.  This cycle is continued until the likelihood no longer increases more than a specified tolerance level.   This algorithm is guaranteed to increase in likelihood at each iteration (if it does not, it means there is an error in one's update equations).  The algorithm must be started from an initial set of parameter values $\Theta_1$.  The algorithm is not particularly sensitive to the initial conditions but the surface could definitely be multi-modal and have local maxima.  See section \ref{sec:implementation} on using Monte Carlo initialization to ensure that the global maximum is found.
+
+
+\subsection{The expected log-likelihood function}\label{sec:expLL}
+The function that is maximized in the ``M'' step is the expected value of the log-likelihood function. This expectation is conditioned on two things: 1) the observed $\YY$'s which are denoted $\YY(1)$ and which are equal to the fixed values $\yy(1)$ and 2) the parameter set $\Theta_j$.  Note that since there may be missing values in the data, $\YY(1)$ can be a subset of $\YY$, that is, only some $\YY$ have a corresponding $\yy$ value at time $t$.  Mathematically what we are doing is $\EXy[g(\XX,\YY)|\YY(1)=\yy(1),\Theta_j]$.  This is a multivariate conditional expectation because $\XX,\YY$ is multivariate (a $m \times n \times T$ vector). The function $g(\Theta)$ that we are taking the expectation of is $\log\LL(\YY,\XX ; \Theta)$. Note that $g(\Theta)$ is a random variable involving the random variables, $\XX$ and $\YY$, while $\log\LL(\yy,\xx ; \Theta)$ is not a random variable but rather a specific value since $\yy$ and $\xx$ are a set of specific values.
+
+We denote this expected log-likelihood by $\Psi$. Using the log likelihood equation \eqref{eq:logL} and expanding out all the terms, we can write out $\Psi$  as:
+\begin{equation}\label{eq:expLL}
+\begin{split}
+&\EXy[\log\LL(\YY,\XX ; \Theta);\YY(1)=\yy(1),\Theta_j] = \Psi = \\
+&\quad -\frac{1}{2}\sum_1^T\bigg( \E[\YY_t^\top \RR^{-1} \YY_t] - \E[\YY_t^\top \RR^{-1}\ZZ\XX_t] - \E[(\ZZ\XX_t)^\top\RR^{-1}\YY_t] \\
+&\quad  - \E[\aa^\top\RR^{-1}\YY_t] - \E[\YY_t^\top\RR^{-1}\aa] + \E[(\ZZ\XX_t)^\top\RR^{-1}\ZZ\XX_t]  \\
+&\quad + \E[\aa^\top\RR^{-1}\ZZ\XX_t] + \E[(\ZZ\XX_t)^\top\RR^{-1}\aa] + \E[\aa^\top\RR^{-1}\aa]\bigg) 
+ - \frac{T}{2}\log|\RR|\\
+&\quad - \frac{1}{2}\sum_1^T\bigg(\E[\XX_t^\top\QQ^{-1}\XX_t] - \E[\XX_t^\top\QQ^{-1}\BB\XX_{t-1}]  \\ 
+&\quad - \E[(\BB\XX_{t-1})^\top\QQ^{-1}\XX_t] - \E[\uu^\top\QQ^{-1}\XX_t] - \E[\XX_t^\top\QQ^{-1}\uu] \\
+&\quad + \E[(\BB\XX_{t-1})^\top\QQ^{-1}\BB\XX_{t-1}] + \E[\uu^\top\QQ^{-1}\BB\XX_{t-1}]  \\
+&\quad + \E[(\BB\XX_{t-1})^\top\QQ^{-1}\uu] + \uu^\top\QQ^{-1}\uu\bigg) - \frac{T}{2}\log|\QQ| \\
+&\quad - \frac{1}{2}\bigg(\E[\XX_0^\top\VV_0^{-1}\XX_0] - \E[\xixi^\top\LAM^{-1}\XX_0]  \\
+&\quad - \E[\XX_0^\top\LAM^{-1}\xixi] + \xixi^\top\LAM^{-1}\xixi\bigg) - \frac{1}{2}\log|\LAM|
+-\frac{n}{2}\log\pi
+\end{split}
+\end{equation}
+All the $\E[\quad]$ appearing here denote $\EXy[g()|\YY(1)=\yy(1),\Theta_j]$.  In the rest of the derivation, I drop the conditional and the $XY$ subscript on $\E$ to remove clutter, but it is important to remember that whenever $\E$ appears, it refers to a specific conditional multivariate expectation.  If $\xx_0$ is treated as fixed, then $\XX_0=\xixi$ and the last two lines involving $\LAM$ are dropped.
+
+Keep in mind that $\Theta$ and $\Theta_j$ are different.  $\Theta$ is a parameter appearing in function $g(\XX,\YY,\Theta)$.  $\XX$ and $\YY$ are random variables which means that $g(\XX,\YY,\Theta)$ is a random variable.  We take the expectation of $g(\XX,\YY,\Theta)$, meaning we take integral over the joint distribution of $\XX$ and $\YY$.  We need to specify what that distribution is and the conditioning on $\Theta_j$ is specifying that. This conditioning affects the value of the expectation of $g(\XX,\YY,\Theta)$, but it does not affect the value of $\Theta$, which are the $\RR$, $\QQ$, $\uu$, etc. values on the right side.  We will first take the expectation of $g(\XX,\YY,\Theta)$ conditioned on $\Theta_j$ (using integration) and then take the differential of that expectation with respect to $\Theta$.
+
+I will reference the expected log-likelihood throughout the derivation of the update equations. It could be written more concisely, but for deriving the update equations, I will keep it in this verbose form.
+The goal is to find the $\Theta$ that maximizes this expectation and this becomes the new parameter set for the  $j+1$ iteration of the EM algorithm.  The equations to compute these new parameters are termed the update equations.
+
+\subsection{The expectations used in the derivation}\label{sec:expectations}
+The following expectations appear frequently in the update equations and are given special names\footnote{This notation is different than what you see in Shumway and Stoffer (2006), section 6.2.  What I call $\hatVt$, they refer to as $P_t^n$, and my $\hatPt$ would be $P_t^n + \hatxt \hatxt^\prime$ in their notation.}:
+\begin{subequations}\label{eq:expectations}
+\begin{align}
+&\hatxt = \EXy[\XX_t | \YY(1)=\yy(1), \Theta_j]\\
+&\hatyt = \EXy[\YY_t | \YY(1)=\yy(1), \Theta_j]\\
+&\hatPt=\EXy[\XX_t\XX_t^\top | \YY(1)=\yy(1), \Theta_j]\\
+&\hatPttm=\EXy[\XX_{t}\XX_{t-1}^\top | \YY(1)=\yy(1), \Theta_j]\\
+&\hatVt = \var_{XY}[\XX_t|\YY(1)=\yy(1), \Theta_j] = \hatPt-\hatxt\hatxt^\top\label{eq:hatVt}\\
+&\hatOt=\EXy[\YY_t\YY_t^\top | \YY(1)=\yy(1), \Theta_j]\\
+&\hatWt = \var_{XY}[\YY_t|\YY(1)=\yy(1), \Theta_j] = \hatOt-\hatyt\hatyt^\top\label{eq:hatWt}\\
+&\hatYXt = \EXy[\YY_t\XX_t^\top| \YY(1)=\yy(1), \Theta_j]\\
+&\hatYXttm = \EXy[\YY_t\XX_{t-1}^\top| \YY(1)=\yy(1), \Theta_j]
+\end{align}
+\end{subequations}
+The subscript on the expectation, $\E$, denotes that this is a multivariate expectation taken over $\XX$ and $\YY$.  The right sides of equations \eqref{eq:hatVt} and \eqref{eq:hatWt} arise from the computational formula for variance and covariance: 
+\begin{align}\label{eq:comp.formula.variance}
+\var[X] &= \E[XX^\top] - \E[X]\E[X]^\top\\
+\cov[X,Y] &= \E[XY^\top] - \E[X]\E[Y]^\top.	
+\end{align}
+Section \ref{sec:compexpectations} shows how to compute the expectations in equation \ref{eq:expectations}.
+
+\begin{table}
+	\caption{Notes on multivariate expectations.  For the following examples, let $\XX$ be a vector of length three, $X_1,X_2,X_3$. $f()$ is the probability distribution function (pdf). $C$ is a constant (not a random variable).}
+	\label{tab:MultivariateExpectations}
+\begin{center}\begin{tabular}{lr}
+\hline\\
+$\E_X[g(\XX)]=\int{\int{\int{g(\xx)f(x_1,x_2,x_3) dx_1 dx_2 dx_3}}}$\\
+$\E_X[X_1]=\int{\int{\int{x_1 f(x_1,x_2,x_3) dx_1 dx_2 dx_3}}}=\int{x_1 f(x_1) dx_1}=\E[X_1]$ \\
+$\E_X[X_1+X_2]=\E_X[X_1]+\E_X[X_2]$\\
+$\E_X[X_1+C]=\E_X[X_1]+C$\\
+$\E_X[C X_1]=C\E_X[X_1]$\\
+$\E_X[X_1|X_1=x_1]=x_1$ \\
+$\E_X[\XX|\XX=\xx]=\xx$ \\
+\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\section{The unconstrained update equations}\label{sec:generalupdate}
+In this section, I show the derivation of the update equations when all elements of a parameter matrix are estimated and are all allowed to be different; these are similar to the update equations one will see in Shumway and Stoffer's text.  Section \ref{sec:constrained} shows the update equations when there are fixed or shared values in the parameter matrices, i.e. the constrained update equations.   
+
+To derive the update equations, one must find the $\Theta$, where $\Theta$ is comprised of the MARSS parameters $\BB$, $\uu$, $\QQ$, $\ZZ$, $\aa$, $\RR$, $\xixi$, and $\LAM$,  that maximizes $\Psi$ (equation \ref{eq:expLL}) by partial differentiation of $\Psi$  with respect to $\Theta$.  However, I will be using the EM equation where one maximizes each parameter matrix in $\Theta$ one-by-one (equation \ref{eq:EMalg.j}).  In this case, the parameters that are not being maximized are set at their iteration $j$ values, and then one takes the derivative of $\Psi$ with respect to the parameter of interest.  Then solve for the parameter value that sets the partial derivative to zero.  The partial differentiation is with respect to each individual parameter element, for example each $u_k$ in the vector $\uu$. The idea is to single out those terms in equation \eqref{eq:expLL} that involve $u_k$ (say), differentiate by $u_k$, set this to zero and solve for $u_k$.  This gives the new $u_k$ that maximizes the partial derivative with respect to $u_k$ of the expected log-likelihood.  Matrix calculus gives us a way to jointly maximize $\Psi$ with respect to all elements (not just element $k$) in a parameter vector or matrix. 
+
+\subsection{Matrix calculus need for the derivation}\label{sec:MatrixDerivatives}
+Before commencing, some definitions from matrix calculus will be needed.  The partial derivative of a scalar ($\Psi$ is a scalar) with respect to some column vector $\bb$ (which has elements $b_1$, $b_2$ . . .) is 
+\begin{equation*}
+\frac{\partial\Psi}{\partial\bb}=
+\begin{bmatrix}
+\dfrac{\partial\Psi}{\partial b_1}& \dfrac{\partial\Psi}{\partial b_2}& \cdots& \dfrac{\partial\Psi}{\partial b_n}
+\end{bmatrix}
+\end{equation*}
+ Note that the derivative of a column vector $\bb$ is a row vector. The partial derivatives of a scalar with respect to some $n \times n$ matrix $\BB$ is
+\begin{equation*}
+\frac{\partial\Psi}{\partial\BB}=
+\begin{bmatrix}
+\dfrac{\partial\Psi}{\partial b_{1,1}}& \dfrac{\partial\Psi}{\partial b_{2,1}}& \cdots& \dfrac{\partial\Psi}{\partial b_{n,1}}\\
+\\
+\dfrac{\partial\Psi}{\partial b_{1,2}}& \dfrac{\partial\Psi}{\partial b_{2,2}}& \cdots& \dfrac{\partial\Psi}{\partial b_{n,2}}\\
+\\
+\cdots&  \cdots&  \cdots&  \cdots\\
+\\
+\dfrac{\partial\Psi}{\partial b_{1,n}}& \dfrac{\partial\Psi}{\partial b_{2,n}}& \cdots& \dfrac{\partial\Psi}{\partial b_{n,n}}\\
+\end{bmatrix}
+\end{equation*} 
+Note that the indexing is interchanged; $\partial\Psi/\partial b_{i,j}=\big[\partial\Psi/\partial\BB\big]_{j,i}$. For $\QQ$ and $\RR$, this is unimportant because they are variance-covariance matrices and are symmetric. For $\BB$ and $\ZZ$, one must be careful because these may not be symmetric. 
+
+A number of derivatives of a scalar with respect to vectors and matrices will be needed in the derivation and are shown in table \ref{tab:MatrixDerivatives}.  In the table, both the vectorized and non-vectorized versions are shown. The vectorized version of a matrix $\DD$ with dimension $n \times m$ is
+\begin{gather*}
+\vec(\DD_{n,m})\equiv
+\begin{bmatrix}
+d_{1,1}\\
+\cdots\\
+d_{n,1}\\
+d_{1,2}\\
+\cdots\\
+d_{n,2}\\
+\cdots\\
+d_{1,m}\\
+\cdots\\
+d_{n,m}
+\end{bmatrix}\\
+\end{gather*}
+
+
+\begin{table}
+	\caption{Derivatives of a scalar with respect to vectors and matrices.  In the following $\aa$ and $\cc$ are $n \times 1$ column vectors, $\bb$ and $\dd$ are $m \times 1$ column vectors, $\DD$ is a $n \times m$ matrix, $\CC$ is a $n \times n$ matrix, and $\AA$ is a diagonal $n \times n$ matrix (0s on the off-diagonals).  $\CC^{-1}$ is the inverse of $\CC$, $\CC^\top$ is the transpose of $\CC$, $\CC^{-\top} = \big(\CC^{-1}\big)^\top = \big(\CC^\top\big)^{-1}$, and $|\CC|$ is the determinant of $\CC$. Note, all the numerators in the differentials reduce to scalars.}
+	\label{tab:MatrixDerivatives}
+\begin{tabular}{lr}
+\hline
+\\
+\refstepcounter{equation}\label{eq:derivaTc}
+$\partial(\aa^\top\cc)/\partial\aa = \partial(\cc^\top\aa)/\partial\aa = \cc^\top$
+& (\theequation) \\
+\\
+\refstepcounter{equation}\label{eq:derivaTDb}
+$\partial(\aa^\top\DD\bb)/\partial\DD = \partial(\bb^\top\DD^\top\aa)/\partial\DD = \bb\aa^\top$
+& \multirow{2}{*}{(\theequation)} \\
+$\partial(\aa^\top\DD\bb)/\partial\vec(\DD) = \partial(\bb^\top\DD^\top\aa)/\partial\vec(\DD) = \big(\vec(\bb\aa^\top)\big)^\top$
+&\\
+\\
+\refstepcounter{equation}\label{eq:derivlogDet}
+$\partial(\log |\CC|)/\partial\CC = -\partial(\log |\CC^{-1}|)/\partial\CC=(\CC^\top)^{-1} = \CC^{-\top}$
+& \multirow{2}{*}{(\theequation)} \\
+$\partial(\log |\CC|)/\partial\vec(\CC) = \big(\vec(\CC^{-\top})\big)^\top$& \\
+\\
+\refstepcounter{equation}\label{eq:derivbDTCDd}
+$\partial(\bb^\top\DD^\top\CC\DD\dd)/\partial\DD = \dd\bb^\top\DD^\top\CC + \bb\dd^\top\DD^\top\CC^\top$ 
+& \multirow{3}{*}{(\theequation)} \\
+$\partial(\bb^\top\DD^\top\CC\DD\dd)/\partial\vec(\DD) = 
+\big(\vec(\dd\bb^\top\DD^\top\CC + \bb\dd^\top\DD^\top\CC^\top)\big)^\top $ &\\
+If $\bb=\dd$ and $\CC$ is symmetric then the sum reduces to $2\bb\bb^\top\DD^\top\CC$ & \\
+\\
+\refstepcounter{equation}\label{eq:derivaTCa}
+$\partial(\aa^\top\CC\aa)/\partial\aa = \partial(\aa\CC^\top\aa^\top)/\partial\aa = 2\aa^\top\CC$
+& (\theequation) \\
+\\
+\refstepcounter{equation}\label{eq:derivInv}
+$\partial(\aa^\top\CC^{-1}\cc)/\partial\CC = -\CC^{-1}\aa\cc^\top\CC^{-1} $
+& \multirow{2}{*}{(\theequation)} \\
+$\partial(\aa^\top\CC^{-1}\cc)/\partial\vec(\CC) = -\big(\vec(\CC^{-1}\aa\cc^\top\CC^{-1})\big)^\top$ & \\
+\\
+\hline
+\end{tabular}
+\end{table}
+
+\subsection{The update equation for $\uu$ (unconstrained)}
+Take the partial derivative of $\Psi$ with respect to $\uu$, which is a $m \times 1$ column vector.  All parameters other than $\uu$ are fixed to constant values (because partial derivation is being done).  Since the derivative of a constant is 0, terms not involving $\uu$ will equal 0 and drop out.  Taking the derivative to equation \eqref{eq:expLL} with respect to $\uu$:
+\begin{equation}\label{eq:u.unconstrained1}
+\begin{split}
+&\partial\Psi/\partial\uu = - \frac{1}{2}\sum_{t=1}^T \bigg(-  \partial(\E[\XX_t^\top\QQ^{-1}\uu])/\partial\uu
+- \partial(\E[\uu^\top\QQ^{-1}\XX_t])/\partial\uu \\
+&\quad + \partial(\E[(\BB\XX_{t-1})^\top\QQ^{-1}\uu])/\partial\uu 
++ \partial(\E[\uu^\top\QQ^{-1}\BB\XX_{t-1}])/\partial\uu\\
+&\quad + \partial(\uu^\top\QQ^{-1}\uu)/\partial\uu \bigg)
+\end{split}
+\end{equation}
+The parameters can be moved out of the expectations and then the relations \eqref{eq:derivaTc} and \eqref{eq:derivaTCa} are used to take the derivative. 
+\begin{equation}\label{eq:u.unconstrained2}
+\begin{split}
+&\partial\Psi/\partial\uu = - \frac{1}{2}\sum_{t=1}^T\bigg(- \E[\XX_t]^\top\QQ^{-1} 
+- (\QQ^{-1}\E[\XX_t])^\top  \\
+&\quad + (\BB^\top\E[\XX_{t-1}])^\top\QQ^{-1} + (\QQ^{-1}\BB\E[\XX_{t-1}])^\top + 2\uu^\top\QQ^{-1} \bigg)
+\end{split}
+\end{equation}
+This also uses $\QQ^{-1} = (\QQ^{-1})^\top$. This can then be reduced to 
+\begin{equation}\label{eq:u.unconstrained3}
+\begin{split}
+&\partial\Psi/\partial\uu = \sum_{t=1}^T\big(\E[\XX_t]^\top\QQ^{-1} 
+ - \E[\XX_{t-1}]^\top\BB^\top\QQ^{-1} - \uu^\top\QQ^{-1} \big)
+\end{split}
+\end{equation}
+Set the left side to zero (a $1 \times m$ matrix of zeros) and transpose the whole equation. $\QQ^{-1}$ cancels out\footnote{$\QQ$ is a variance-covariance matrix and is invertible. $\QQ^{-1}\QQ=\II$, the identity matrix.} by multiplying on the left by $\QQ$ (left since the whole equation was just transposed), giving
+\begin{equation}\label{eq:u.unconstrained4}
+\mathbf{0} = \sum_{t=1}^T\big(\E[\XX_t] - \BB\E[\XX_{t-1}] - \uu \big)
+= \sum_{t=1}^T\big(\E[\XX_t] - \BB\E[\XX_{t-1}] \big) - T\uu
+\end{equation}
+Solving for $\uu$ and replacing the expectations with their names from equation \ref{eq:expectations}, gives us the new $\uu$ that maximizes $\Psi$, 
+\begin{equation}\label{eq:uupdate.unconstrained}
+\uu_{j+1} =  \frac{1}{T} \sum_{t=1}^T\big(\hatxt - \BB\hatxtm \big)
+\end{equation}
+
+\subsection{The update equation for $\BB$ (unconstrained)}
+Take the derivative of $\Psi$ with respect to $\BB$.  Terms not involving $\BB$, equal 0 and drop out.  I have put the $\E$ outside the partials by noting that $\partial(\E[h(\XX_t,\BB)])/\partial\BB=\E[\partial(h(\XX_t,\BB))/\partial\BB]$ since the expectation is conditioned on $\BB_j$ not $\BB$. 
+\begin{equation}\label{eq:B.unconstrained1}
+\begin{split}
+&\partial\Psi/\partial\BB = -\frac{1}{2} \sum_{t=1}^T\bigg(-\E[\partial(\XX_t^\top\QQ^{-1}\BB\XX_{t-1})/\partial\BB] \\
+&\quad - \E[\partial((\BB\XX_{t-1})^\top\QQ^{-1}\XX_t)/\partial\BB] + \E[\partial((\BB\XX_{t-1})^\top\QQ^{-1}(\BB\XX_{t-1}))/\partial\BB] \\
+&\quad +  \E[\partial((\BB\XX_{t-1})^\top\QQ^{-1}\uu)/\partial\BB] 
++ \E[\partial(\uu^\top\QQ^{-1}\BB\XX_{t-1})/\partial\BB]\bigg)\\
+&= -\frac{1}{2} \sum_{t=1}^T\bigg(-\E[\partial(\XX_t^\top\QQ^{-1}\BB\XX_{t-1}])/\partial\BB] \\
+&\quad - \E[\partial(\XX_{t-1}^\top\BB^\top\QQ^{-1}\XX_t)/\partial\BB] 
++ \E[\partial(\XX_{t-1}^\top\BB^\top\QQ^{-1}(\BB\XX_{t-1}))/\partial\BB] \\
+&\quad +  \E[\partial(\XX_{t-1}^\top\BB^\top\QQ^{-1}\uu)/\partial\BB] 
++ \E[\partial(\uu^\top\QQ^{-1}\BB\XX_{t-1})/\partial\BB\bigg)]\\
+\end{split}
+\end{equation}
+After pulling the constants out of the expectations, we use relations \eqref{eq:derivaTDb} and \eqref{eq:derivbDTCDd} to take the derivative and note that $\QQ^{-1} = (\QQ^{-1})^\top$:
+\begin{equation}\label{eq:B.unconstrained2}
+\begin{split}
+&\partial\Psi/\partial\BB = -\frac{1}{2} \sum_{t=1}^T\bigg(-\E[\XX_{t-1}\XX_t^\top]\QQ^{-1} - \E[ \XX_{t-1}\XX_t^\top]\QQ^{-1} \\
+&\quad + 2 \E[\XX_{t-1}\XX_{t-1}^\top]\BB^\top\QQ^{-1} + \E[\XX_{t-1}]\uu^\top\QQ^{-1}  + \E[ \XX_{t-1}]\uu^\top\QQ^{-1} \bigg) \\
+\end{split}
+\end{equation}
+This can be reduced to
+\begin{equation}\label{eq:B.unconstrained3}
+\begin{split}
+&\partial\Psi/\partial\BB = -\frac{1}{2} \sum_{t=1}^T\bigg(-2\E[\XX_{t-1}\XX_t^\top]\QQ^{-1} \\
+&\quad + 2 \E[\XX_{t-1}\XX_{t-1}^\top ]\BB^\top\QQ^{-1} 
++ 2\E[\XX_{t-1}]\uu^\top\QQ^{-1} \bigg) \\
+\end{split}
+\end{equation}
+Set the left side to zero (an $m \times m$ matrix of zeros), cancel out $\QQ^{-1}$ by multiplying by $\QQ$ on the right, get rid of the -1/2, and transpose the whole equation to give
+\begin{equation}\label{eq:B.unconstrained4}
+\begin{split}
+&\mathbf{0}  =  \sum_{t=1}^T\big(\E[\XX_t\XX_{t-1}^\top] - \BB \E[\XX_{t-1}\XX_{t-1}^\top] - \uu \E[\XX_{t-1}^\top]\big)\\ 
+&\quad =  \sum_{t=1}^T \big( \hatPttm  - \BB \hatPtm - \uu\hatxtm^\top \big)
+\end{split}
+\end{equation}
+The last line replaced the expectations  with their names shown in  equation \eqref{eq:expectations}.
+Solving for $\BB$ and noting that $\hatPtm$ is like a variance-covariance matrix and is invertible, gives us the new $\BB$ that maximizes $\Psi$, 
+\begin{equation}\label{eq:B.update.unconstrained}
+\BB_{j+1}= \bigg( \sum_{t=1}^T \big( \hatPttm  - \uu\hatxtm^\top \big)\bigg) \bigg(\sum_{t=1}^T \hatPtm\bigg)^{-1}
+\end{equation}
+
+Because all the equations above also apply to block-diagonal matrices, the derivation immediately generalizes to the case where $\BB$ is an unconstrained block diagonal matrix:
+\begin{equation*}
+\BB =
+\begin{bmatrix}
+b_{1,1}&b_{1,2}&b_{1,3}&0&0&0&0&0\\
+b_{2,1}&b_{2,2}&b_{2,3}&0&0&0&0&0\\
+b_{3,1}&b_{3,2}&b_{3,3}&0&0&0&0&0\\
+0&0&0&b_{4,4}&b_{4,5}&0&0&0\\
+0&0&0&b_{5,4}&b_{5,5}&0&0&0\\
+0&0&0&0&0&b_{6,6}&b_{6,7}&b_{6,8}\\
+0&0&0&0&0&b_{7,6}&b_{7,7}&b_{7,8}\\
+0&0&0&0&0&b_{8,6}&b_{8,7}&b_{8,8}
+\end{bmatrix}
+=
+\begin{bmatrix}
+\BB_1&0&0\\
+0&\BB_2&0\\
+0&0&\BB_3\\
+\end{bmatrix}
+\end{equation*} 
+
+For the block diagonal $\BB$,
+\begin{equation}\label{eq:B.update.blockdiag}
+\BB_{i,j+1}= \bigg( \sum_{t=1}^T \big( \hatPttm  - \uu\hatxtm^\top \big) \bigg)_i \bigg(\sum_{t=1}^T \hatPtm \bigg)_i^{-1}
+\end{equation}
+where the subscript $i$ means to take the parts of the matrices that are analogous to $\BB_i$; take the whole part within the parentheses not the individual matrices inside the parentheses.  If $\BB_i$ is comprised of rows $a$ to $b$ and columns $c$ to $d$ of matrix $\BB$, then  take rows $a$ to $b$ and columns $c$ to $d$ of the matrices subscripted by $i$ in equation \eqref{eq:B.update.blockdiag}.
+
+\subsection{The update equation for $\QQ$ (unconstrained)}
+\label{subsec:Qunconstrained}
+The usual way to do this derivation is to use what is known as the ``trace trick'' which will pull the $\QQ^{-1}$ out to the left of the $\cc^\top\QQ^{-1}\bb$ terms which appear in the likelihood \eqref{eq:expLL}.  Here I'm showing a less elegant derivation that plods step by step through each of the likelihood terms.  Take the derivative of $\Psi$ with respect to $\QQ$. Terms not involving $\QQ$ equal 0 and drop out.   Again the expectations are placed outside the partials by noting that $\partial(\E[h(\XX_t,\QQ)])/\partial\QQ=\E[\partial(h(\XX_t,\QQ))/\partial\QQ]$. 
+\begin{equation}\label{eq:Q.unconstrained1}
+\begin{split}
+&\partial\Psi/\partial\QQ = -\frac{1}{2} \sum_{t=1}^T\bigg(
+\E[\partial(\XX_t^\top\QQ^{-1}\XX_t)/\partial\QQ]
+-\E[\partial(\XX_t^\top\QQ^{-1}\BB\XX_{t-1})/\partial\QQ] \\
+&\quad -\E[\partial((\BB\XX_{t-1})^\top\QQ^{-1}\XX_t)/\partial\QQ ]
+ - \E[\partial(\XX_t^\top\QQ^{-1}\uu)/\partial\QQ] \\
+&\quad - \partial(\E[\uu^\top\QQ^{-1}\XX_t)/\partial\QQ] 
++ \E[\partial((\BB\XX_{t-1})^\top\QQ^{-1}\BB\XX_{t-1})/\partial\QQ] \\
+&\quad + \E[\partial((\BB\XX_{t-1})^\top\QQ^{-1}\uu)/\partial\QQ] 
++ \E[\partial(\uu^\top\QQ^{-1}\BB\XX_{t-1})/\partial\QQ]\\
+&\quad +\partial(\uu^\top\QQ^{-1}\uu)/\partial\QQ
+\bigg) - \partial\bigg(\frac{T}{2}\log |\QQ| \bigg)/\partial\QQ \\
+\end{split}
+\end{equation}
+The relations \eqref{eq:derivInv} and \eqref{eq:derivlogDet} are used to do the differentiation. Notice that all the terms in the summation are of the form $\cc^\top\QQ^{-1}\bb$, and thus after differentiation, all the $\cc^\top\bb$ terms can be grouped inside one set of parentheses.  Also there is a minus that comes from equation \eqref{eq:derivInv} and it cancels out the minus in front of the initial $-1/2$.
+\begin{equation}\label{eq:Q.unconstrained2}
+\begin{split}
+&\partial\Psi/\partial\QQ = \frac{1}{2} \sum_{t=1}^T \QQ^{-1} \bigg( 
+ \E[\XX_t\XX_t^\top] -\E[\XX_t(\BB\XX_{t-1})^\top ] - \E[\BB\XX_{t-1}\XX_t^\top ] \\
+&\quad - \E[ \XX_t\uu^\top ] - \E[ \uu\XX_t^\top ] 
+ + \E[ \BB\XX_{t-1}(\BB\XX_{t-1})^\top ] + \E[\BB\XX_{t-1}\uu^\top]  \\
+&\quad + \E[ \uu(\BB\XX_{t-1})^\top ] + \uu\uu^\top \bigg)\QQ^{-1} - \frac{T}{2}\QQ^{-1} 
+\end{split}
+\end{equation}
+Pulling the parameters out of the expectations and using $(\BB\XX_t)^\top = \XX_t^\top\BB^\top$, we have
+\begin{equation}\label{eq:Q.unconstrained3}
+\begin{split}
+&\partial\Psi/\partial\QQ = \frac{1}{2} \sum_{t=1}^T \QQ^{-1} \bigg( 
+ \E[\XX_t\XX_t^\top] -\E[\XX_t\XX_{t-1}^\top ]\BB^\top - \BB\E[\XX_{t-1}\XX_t^\top ] \\
+&\quad - \E[ \XX_t ]\uu^\top - \uu \E[ \XX_t^\top ]
+ + \BB\E[ \XX_{t-1}\XX_{t-1}^\top ]\BB^\top + \BB\E[\XX_{t-1}]\uu^\top \\ 
+&\quad + \uu\E[\XX_{t-1}^\top ]\BB^\top + \uu\uu^\top \bigg)\QQ^{-1} - \frac{T}{2}\QQ^{-1} 
+\end{split}
+\end{equation}
+The partial derivative is then rewritten in terms of the Kalman smoother output:
+\begin{equation}\label{eq:Q.unconstrained4}
+\begin{split}
+&\partial\Psi/\partial\QQ = \frac{1}{2} \sum_{t=1}^T \QQ^{-1} \bigg(  
+ \hatPt - \hatPttm \BB^\top - \BB\hatPtmt 
+- \hatxt\uu^\top - \uu \hatxt^\top \\
+&\quad + \BB\hatPtm\BB^\top + \BB\hatxtm\uu^\top + \uu\hatxtm^\top\BB^\top + \uu\uu^\top \bigg)\QQ^{-1} - \frac{T}{2}\QQ^{-1} 
+\end{split}
+\end{equation}
+Setting this to zero (a $m \times m$ matrix of zeros), $\QQ^{-1}$ is canceled out by multiplying by $\QQ$ twice, once on the left and once on the right and the $1/2$ is removed. 
+\begin{equation}\label{eq:Q.unconstrained5}
+\begin{split}
+&\text{\bf 0} = \sum_{t=1}^T \bigg(  
+ \hatPt - \hatPttm \BB^\top - \BB\hatPtmt 
+ - \hatxt\uu^\top - \uu \hatxt^\top \\
+&\quad + \BB\hatPtm\BB^\top + \BB\hatxtm\uu^\top + \uu\hatxtm^\top\BB^\top 
+ + \uu\uu^\top \bigg) - T\QQ
+\end{split}
+\end{equation}
+We can then solve for $\QQ$, giving us the new $\QQ$ that maximizes $\Psi$, 
+\begin{equation}\label{eq:Q.update.unconstrained}
+\begin{split}
+&\QQ_{j+1} = \frac{1}{T}\sum_{t=1}^T \bigg( 
+\hatPt - \hatPttm \BB^\top - \BB\hatPtmt 
+ - \hatxt\uu^\top - \uu \hatxt^\top \\
+&\quad + \BB\hatPtm\BB^\top + \BB\hatxtm\uu^\top + \uu\hatxtm^\top\BB^\top 
+ + \uu\uu^\top \bigg)
+\end{split}
+\end{equation}
+
+This derivation immediately generalizes to the case where $\QQ$ is a block diagonal matrix:
+\begin{equation*}
+\QQ =
+\begin{bmatrix}
+q_{1,1}&q_{1,2}&q_{1,3}&0&0&0&0&0\\
+q_{1,2}&q_{2,2}&q_{2,3}&0&0&0&0&0\\
+q_{1,3}&q_{2,3}&q_{3,3}&0&0&0&0&0\\
+0&0&0&q_{4,4}&q_{4,5}&0&0&0\\
+0&0&0&q_{4,5}&q_{5,5}&0&0&0\\
+0&0&0&0&0&q_{6,6}&q_{6,7}&q_{6,8}\\
+0&0&0&0&0&q_{6,7}&q_{7,7}&q_{7,8}\\
+0&0&0&0&0&q_{6,8}&q_{7,8}&q_{8,8}
+\end{bmatrix}
+=
+\begin{bmatrix}
+\QQ_1&0&0\\
+0&\QQ_2&0\\
+0&0&\QQ_3\\
+\end{bmatrix}
+\end{equation*}
+In this case,
+\begin{equation}\label{eq:Q.update.blockdiag}
+\begin{split}
+&\QQ_{i,j+1} = \frac{1}{T}\sum_{t=1}^T \bigg(  
+ \hatPt - \hatPttm \BB^\top - \BB\hatPtmt 
+ - \hatxt\uu^\top - \uu \hatxt^\top \\
+&\quad + \BB\hatPtm\BB^\top + \BB\hatxtm\uu^\top + \uu\hatxtm^\top\BB^\top 
+ + \uu\uu^\top \bigg)_i
+\end{split}
+\end{equation}
+where the subscript $i$ means take the elements of the matrix (in the big parentheses) that are analogous to $\QQ_i$; take the whole part within the parentheses not the individual matrices inside the parentheses).  If $\QQ_i$ is comprised of rows $a$ to $b$ and columns $c$ to $d$ of matrix $\QQ$, then take rows $a$ to $b$ and columns $c$ to $d$ of matrices subscripted by $i$ in equation \eqref{eq:Q.update.blockdiag}.
+
+By the way, $\QQ$ is never really unconstrained since it is a variance-covariance matrix and the upper and lower triangles are shared.  However, because the shared values are only the symmetric values in the matrix, the derivation still works even though it's technically incorrect \citep{HendersonSearle1979}.  The constrained update equation for $\QQ$ shown in section \ref{sec:constrained.Q} explicitly deals with the shared lower and upper triangles.
+
+\subsection{Update equation for $\aa$ (unconstrained)}
+Take the derivative of $\Psi$ with respect to $\aa$, where $\aa$ is a $n \times 1$ column vector.  Terms not involving $\aa$, equal 0 and drop out.  
+\begin{equation}\label{eq:a.unconstrained1}
+\begin{split}
+&\partial\Psi/\partial\aa = - \frac{1}{2}\sum_{t=1}^T \bigg(- \partial(\E[\YY_t^\top\RR^{-1}\aa])/\partial\aa
+- \partial(\E[\aa^\top\RR^{-1}\YY_t])/\partial\aa \\
+&\quad + \partial(\E[(\ZZ\XX_t)^\top\RR^{-1}\aa])/\partial\aa 
++ \partial(\E[\aa^\top\RR^{-1}\ZZ\XX_t])/\partial\aa 
++ \partial(\E[\aa^\top\RR^{-1}\aa])/\partial\aa \bigg)
+\end{split}
+\end{equation}
+The expectations around constants can be dropped\footnote{
+because $\EXy(C)=C$, where $C$ is a constant.}.  Using relations \eqref{eq:derivaTc} and \eqref{eq:derivaTCa} and using $\RR^{-1} = (\RR^{-1})^\top$, we have then
+\begin{equation}\label{eq:a.unconstrained2}
+\begin{split}
+&\partial\Psi/\partial\aa = - \frac{1}{2}\sum_{t=1}^T\bigg(-\E[\YY_t^\top\RR^{-1}]
+-\E[(\RR^{-1}\YY_t)^\top] + \E[(\ZZ\XX_t)^\top\RR^{-1}] \\
+&\quad  + \E[(\RR^{-1}\ZZ\XX_t)^\top ] + 2\aa^\top\RR^{-1} \bigg)
+\end{split}
+\end{equation}
+Pull the parameters out of the expectations, use $(\aa\bb)^\top = \bb^\top\aa^\top$ and $\RR^{-1} = (\RR^{-1})^\top$ where needed, and remove the $-1/2$ to get
+\begin{equation}\label{eq:a.unconstrained3}
+\begin{split}
+&\partial\Psi/\partial\aa = \sum_{t=1}^T\bigg(\E[\YY_t]^\top\RR^{-1}
+ - \E[\XX_t]^\top\ZZ^\top\RR^{-1} - \aa^\top\RR^{-1} \bigg)
+\end{split}
+\end{equation}
+Set the left side to zero (a $1 \times n$ matrix of zeros), take the transpose, and cancel out $\RR^{-1}$ by multiplying by $\RR$, giving
+\begin{equation}\label{eq:a.unconstrained4}
+\mathbf{0} = \sum_{t=1}^{T}\big(\E[\YY_t] - \ZZ\E[\XX_t] - \aa \big)
+=\sum_{t=1}^{T}\big(\hatyt - \ZZ\hatxt - \aa \big)
+\end{equation}
+
+Solving for $\aa$ gives us the update equation for $\aa$: 
+\begin{equation}\label{eq:a.update.unconstrained}
+\aa_{j+1} = \frac{1}{T}\sum_{t=1}^{T}\big(\hatyt - \ZZ\hatxt\big)
+\end{equation}
+
+\subsection{The update equation for $\ZZ$ (unconstrained)}
+Take the derivative of $\Psi$  with respect to $\ZZ$.  Terms not involving $\ZZ$, equal 0 and drop out. The expectations around terms involving only constants have been dropped. 
+\begin{equation}\label{eq:Z.unconstrained1}
+\begin{split}
+&\partial\Psi/\partial\ZZ = \text{(note $\partial\ZZ$ is $m \times n$ while $\ZZ$ is $n \times m$)}\\
+&\quad -\frac{1}{2} \sum_{t=1}^T\bigg(-\E[\partial(\YY_t^\top\RR^{-1}\ZZ\XX_t)/\partial\ZZ] \\
+&\quad - \E[\partial((\ZZ\XX_t)^\top\RR^{-1}\YY_t)/\partial\ZZ] + \E[\partial((\ZZ\XX_t)^\top\RR^{-1}\ZZ\XX_t)/\partial\ZZ] \\
+&\quad +  \E[\partial((\ZZ\XX_t)^\top\RR^{-1}\aa)/\partial\ZZ] 
++ \E[\partial(\aa^\top\RR^{-1}\ZZ\XX_t)/\partial\BB]\bigg)\\
+&= -\frac{1}{2} \sum_{t=1}^T\bigg(-\E[\partial(\YY_t^\top\RR^{-1}\ZZ\XX_t)/\partial\ZZ] \\
+&\quad -\E[\partial(\XX_t^\top\ZZ^\top\RR^{-1}\YY_t)/\partial\ZZ] 
++ \E[\partial(\XX_t^\top\ZZ^\top\RR^{-1}\ZZ\XX_t)/\partial\ZZ]  \\
+&\quad + \E[\partial(\XX_t^\top\ZZ^\top\RR^{-1}\aa)/\partial\ZZ] 
++ \E[\partial(\aa^\top\RR^{-1}\ZZ\XX_t)/\partial\ZZ]\bigg)\\
+\end{split}
+\end{equation}
+Using relations \eqref{eq:derivaTDb} and \eqref{eq:derivbDTCDd} and using $\RR^{-1} = (\RR^{-1})^\top$, we get 
+\begin{equation}\label{eq:Z.unconstrained2}
+\begin{split}
+&\partial\Psi/\partial\ZZ = -\frac{1}{2} \sum_{t=1}^T\bigg(-\E[ \XX_t\YY_t^\top\RR^{-1} ] - \E[ \XX_t\YY_t^\top\RR^{-1} ] \\
+&\quad + 2 \E[ \XX_t\XX_t^\top\ZZ^\top\RR^{-1}] + \E[ \XX_{t-1}\aa^\top\RR^{-1} ]  + \E[ \XX_t\aa^\top\RR^{-1} ] \bigg) \\
+\end{split}
+\end{equation}
+Pulling the parameters out of the expectations and getting rid of the $-1/2$, we have
+\begin{equation}\label{eq:Z.unconstrained3}
+\begin{split}
+&\partial\Psi/\partial\ZZ =  \sum_{t=1}^T\bigg(\E[ \XX_t \YY_t^\top]\RR^{-1} 
+- \E[ \XX_t\XX_t^\top ]\ZZ^\top\RR^{-1}  -\E[ \XX_t ]\aa^\top\RR^{-1} \bigg) \\
+\end{split}
+\end{equation}
+Set the left side to zero (a $m \times n$ matrix of zeros), transpose it all, and cancel out $\RR^{-1}$ by multiplying by $\RR$ on the left, to give
+\begin{equation}\label{eq:Z.unconstrained4}
+\begin{split}
+&\mathbf{0}  =  \sum_{t=1}^T\big(\E[\YY_t\XX_t^\top] - \ZZ \E[\XX_t\XX_t^\top] - \aa \E[\XX_t^\top]\big)\\ 
+&\quad =  \sum_{t=1}^T \big( \hatYXt  - \ZZ \hatPt - \aa\hatxt^\top \big)
+\end{split}
+\end{equation}
+Solving for $\ZZ$ and noting that $\hatPt$ is invertible, gives us the new $\ZZ$: 
+\begin{equation}\label{eq:Z.update.unconstrained}
+\ZZ_{j+1}= \bigg( \sum_{t=1}^T \big(\hatYXt - \aa\hatxt^\top\big)\bigg) \bigg(\sum_{t=1}^T \hatPt\bigg)^{-1}
+\end{equation}
+
+\subsection{The update equation for $\RR$ (unconstrained)}
+Take the derivative of $\Psi$ with respect to $\RR$.  Terms not involving $\RR$, equal 0 and drop out.  The expectations around terms involving constants have been removed. 
+\begin{equation}\label{eq:R.unconstrained1}
+\begin{split}
+&\partial\Psi/\partial\RR = -\frac{1}{2} \sum_{t=1}^T\bigg(
+\E[\partial(\YY_t^\top\RR^{-1}\YY_t)/\partial\RR]
+-\E[\partial(\YY_t^\top\RR^{-1}\ZZ\XX_t)/\partial\RR] \\
+&\quad -\E[\partial((\ZZ\XX_t)^\top\RR^{-1}\YY_t)/\partial\RR] 
+ - \E[\partial(\YY_t^\top\RR^{-1}\aa)/\partial\RR] \\
+&\quad - \E[\partial(\aa^\top\RR^{-1}\YY_t)/\partial\RR] 
++ \E[\partial((\ZZ\XX_t)^\top\RR^{-1}\ZZ\XX_t)/\partial\RR] \\
+&\quad + \E[\partial((\ZZ\XX_t)^\top\RR^{-1}\aa)/\partial\RR] 
++ \E[\partial(\aa^\top\RR^{-1}\ZZ\XX_t)/\partial\RR] \\
+&\quad + \partial(\aa^\top\RR^{-1}\aa)/\partial\RR
+\bigg) - \partial\big(\frac{T}{2}\log |\RR| \big)/\partial\RR \\
+\end{split}
+\end{equation}
+We use relations \eqref{eq:derivInv} and \eqref{eq:derivlogDet} to do the differentiation. Notice that all the terms in the summation are of the form $\cc^\top\RR^{-1}\bb$, and thus after differentiation, we group all the $\cc^\top\bb$ inside one set of parentheses. Also there is a minus that comes from equation \eqref{eq:derivInv} and cancels out the minus in front of $-1/2$.
+\begin{equation}\label{eq:R.unconstrained2}
+\begin{split}
+&\partial\Psi/\partial\RR = \frac{1}{2} \sum_{t=1}^T \RR^{-1} \bigg(  
+ \E[\YY_t\YY_t^\top] -\E[\YY_t(\ZZ\XX_t)^\top] - \E[\ZZ\XX_t\YY_t^\top ] \\
+&\quad  -  \E[\YY_t\aa^\top]  -  \E[\aa\YY_t^\top]  + \E[ \ZZ\XX_t(\ZZ\XX_t)^\top ] + \E[\ZZ\XX_t\aa^\top] + \E[ \aa(\ZZ\XX_t)^\top ]  \\
+ &\quad + \aa\aa^\top \bigg)\RR^{-1} - \frac{T}{2}\RR^{-1} 
+\end{split}
+\end{equation}
+Pulling the parameters out of the expectations and using $(\ZZ\YY_t)^\top = \YY_t^\top\ZZ^\top$, we have
+\begin{equation}\label{eq:R.unconstrained3}
+\begin{split}
+&\partial\Psi/\partial\RR = \frac{1}{2} \sum_{t=1}^T \RR^{-1} \bigg(  
+ \E[\YY_t\YY_t^\top] -\E[\YY_t\XX_t^\top ]\ZZ^\top - \ZZ\E[\XX_t\YY_t^\top] 
+ -  \E[\YY_t]\aa^\top - \aa\E[\YY_t^\top] \\
+&\quad  + \ZZ\E[ \XX_t\XX_t^\top ]\ZZ^\top + \ZZ\E[\XX_t]\aa^\top + \aa\E[\XX_t^\top ]\ZZ^\top 
+ + \aa\aa^\top \bigg)\RR^{-1} - \frac{T}{2}\RR^{-1} 
+\end{split}
+\end{equation}
+We rewrite the partial derivative in terms of expectations:
+\begin{equation}\label{eq:R.unconstrained4}
+\begin{split}
+&\partial\Psi/\partial\RR = \frac{1}{2} \sum_{t=1}^T \RR^{-1} \bigg( 
+\hatOt - \hatYXt\ZZ^\top - \ZZ\hatYXt^\top 
+ - \hatyt\aa^\top - \aa\hatyt^\top \\
+&\quad + \ZZ\hatPt\ZZ^\top + \ZZ\hatxt\aa^\top + \aa\hatxt^\top\ZZ^\top + \aa\aa^\top \bigg)\RR^{-1} - \frac{T}{2}\RR^{-1} 
+\end{split}
+\end{equation}
+Setting this to zero (a $n \times n$ matrix of zeros), we cancel out $\RR^{-1}$ by multiplying by $\RR$ twice, once on the left and once on the right, and get rid of the $1/2$. 
+\begin{equation}\label{eq:R.unconstrained5}
+\begin{split}
+&\mathbf{0} = \sum_{t=1}^T \bigg(  
+\hatOt - \hatYXt\ZZ^\top - \ZZ\hatYXt^\top 
+ - \hatyt\aa^\top - \aa\hatyt^\top \\
+&\quad + \ZZ\hatPt\ZZ^\top + \ZZ\hatxt\aa^\top + \aa\hatxt^\top\ZZ^\top 
++ \aa\aa^\top \bigg) - T\RR
+\end{split}
+\end{equation}
+
+We can then solve for $\RR$, giving us the new $\RR$ that maximizes $\Psi$, 
+\begin{equation}\label{eq:R.update.unconstrained}
+\begin{split}
+&\RR_{j+1} = \frac{1}{T}\sum_{t=1}^T \bigg(  
+ \hatOt - \hatYXt\ZZ^\top - \ZZ\hatYXt^\top 
+ - \hatyt\aa^\top - \aa\hatyt^\top \\
+&\quad + \ZZ\hatPt\ZZ^\top + \ZZ\hatxt\aa^\top + \aa\hatxt^\top\ZZ^\top 
+ + \aa\aa^\top \bigg)
+\end{split}
+\end{equation}
+As with $\QQ$, this derivation immediately generalizes to a block diagonal matrix:
+\begin{equation*}
+\RR =
+\begin{bmatrix}
+\RR_1&0&0\\
+0&\RR_2&0\\
+0&0&\RR_3\\
+\end{bmatrix}
+\end{equation*}
+In this case,
+\begin{equation}\label{eq:R.update.blockdiag}
+\begin{split}
+&\RR_{i,j+1} = \frac{1}{T}\sum_{t=1}^T \bigg(  
+ \hatOt - \hatYXt\ZZ^\top - \ZZ\hatYXt^\top 
+ - \hatyt\aa^\top - \aa\hatyt^\top \\
+&\quad + \ZZ\hatPt\ZZ^\top + \ZZ\hatxt\aa^\top + \aa\hatxt^\top\ZZ^\top 
+ + \aa\aa^\top \bigg)_i
+\end{split}
+\end{equation}
+where the subscript $i$ means we take the elements in the matrix in the big parentheses that are analogous to $\RR_i$.  If $\RR_i$ is comprised of rows $a$ to $b$ and columns $c$ to $d$ of matrix $\RR$, then we take rows $a$ to $b$ and columns $c$ to $d$ of matrix subscripted by $i$ in equation \eqref{eq:R.update.blockdiag}.
+
+\subsection{Update equation for $\xixi$ and $\LAM$ (unconstrained), stochastic initial state}
+\citet{ShumwayStoffer2006} and \citet{GhahramaniHinton1996} imply in their discussion of the EM algorithm that both $\xixi$ and $\LAM$ can be estimated (though not simultaneously).  Harvey (1989), however, discusses that there are only two allowable cases: $\xx_0$ is treated as fixed ($\LAM=0$) and equal to the unknown parameter $\xixi$ or $\xx_0$ is treated as stochastic with a known mean $\xixi$ and variance $\LAM$.  For completeness, we show here the update equation in the case of $\xx_0$ stochastic with unknown mean $\xixi$ and variance $\LAM$ (a case that Harvey (1989) says is not consistent).
+
+We proceed as before and solve for the new $\xixi$ by minimizing $\Psi$.
+Take the derivative of $\Psi$  with respect to $\xixi$ .  Terms not involving $\xixi$, equal 0 and drop out.  
+\begin{equation}\label{eq:pi.unconstrained1}
+\begin{split}
+&\partial\Psi/\partial\xixi = - \frac{1}{2} \big(-  \partial(\E[\xixi^\top\LAM^{-1}\XX_0])/\partial\xixi 
+- \partial(\E[\XX_0^\top\LAM^{-1}\xixi])/\partial\xixi \\
+&\quad + \partial(\xixi^\top\LAM^{-1}\xixi)/\partial\xixi \big)
+\end{split}
+\end{equation}
+Using relations \eqref{eq:derivaTc} and \eqref{eq:derivaTCa} and using $\LAM^{-1} = (\LAM^{-1})^\top$, we have
+\begin{equation}\label{eq:pi.unconstrained2}
+\partial\Psi/\partial\xixi = - \frac{1}{2} \big(- \E[ \XX_0^\top\LAM^{-1} ] 
+- \E[ \XX_0^\top\LAM^{-1} ] + 2\xixi^\top\LAM^{-1} \big)
+\end{equation}
+Pulling the parameters out of the expectations, we get
+\begin{equation}\label{eq:pi.unconstrained3}
+\partial\Psi/\partial\xixi = - \frac{1}{2} \big(- 2\E[ \XX_0^\top ]\LAM^{-1} + 2\xixi^\top\LAM^{-1} \big)
+\end{equation}
+We then set the left side to zero, take the transpose, and cancel out $-1/2$ and $\LAM^{-1}$ (by noting that it is a variance-covariance matrix and is invertible).   
+\begin{equation}\label{eq:pi.unconstrained4}
+\mathbf{0} = \big(\LAM^{-1}\E[ \XX_0 ] + \LAM^{-1}\xixi \big)=(\widetilde{\mbox{$\mathbf x$}}_0 - \xixi)
+\end{equation}
+
+Thus,
+\begin{equation}\label{eq:pi.update.unconstrained}
+\xixi_{j+1} = \widetilde{\mbox{$\mathbf x$}}_0
+\end{equation}
+$\widetilde{\mbox{$\mathbf x$}}_0$ is the expected value of $\XX_0$ conditioned on the data from $t=1$ to $T$, which comes from the Kalman smoother recursions with initial conditions defined as $\E[\XX_0|\YY_0=\yy_0] \equiv \xixi$ and $\var(\XX_0 \XX_0^\top|\YY_0=\yy_0)\equiv \LAM$.
+A similar set of steps gets us to the update equation for $\LAM$,
+\begin{equation}\label{eq:V0.update.unconstrained}
+\LAM_{j+1} = \widetilde{\VV}_0
+\end{equation}
+$\widetilde{\VV}_0$ is the variance of $\XX_0$ conditioned on the data from $t=1$ to $T$ and is an output from the Kalman smoother recursions.
+
+If the initial state is defined as at $t=1$ instead of $t=0$, the update equation is derived in an identical fashion and the update equation is similar:
+\begin{equation}\label{eq:pix1.update.unconstrained}
+\xixi_{j+1} = \widetilde{\mbox{$\mathbf x$}}_1
+\end{equation}
+\begin{equation}
+\LAM_{j+1} = \widetilde{\VV}_1
+\end{equation}
+These are output from the Kalman smoother recursions with initial conditions defined as $\E[\XX_1|\YY_0=\yy_0] \equiv \xixi$ and $\var(\XX_1 \XX_1^\top|\YY_0=\yy_0)\equiv \LAM$.  Notice that the recursions are initialized slightly differently; you will see the Kalman filter and smoother equations presented with both types of initializations depending on whether the author defines the initial state at $t=0$ or $t=1$.
+
+\subsection{Update equation for $\xixi$ (unconstrained), fixed $\xx_0$}
+For the case where $\xx_0$ is treated as fixed, i.e. as another parameter, then there is no $\LAM$, and we need to maximize $\partial\Psi/\partial\xixi$ using the slightly different $\Psi$ shown in equation \eqref{eq:logL.V0.is.0}.  Now $\xixi$ appears in the state equation part of the likelihood.
+\begin{equation}\label{eq:pi.unconstrained.V0.is.0}
+\begin{split}
+&\partial\Psi/\partial\xixi = -\frac{1}{2} \bigg(-\E[\partial(\XX_1^\top\QQ^{-1}\BB\xixi)/\partial\xixi] \\
+&\quad - \E[\partial((\BB\xixi)^\top\QQ^{-1}\XX_1)/\partial\xixi] + \E[\partial((\BB\xixi)^\top\QQ^{-1}(\BB\xixi))/\partial\xixi] \\
+&\quad +  \E[\partial((\BB\xixi)^\top\QQ^{-1}\uu)/\partial\xixi] 
++ \E[\partial(\uu^\top\QQ^{-1}\BB\xixi)/\partial\xixi]\bigg)\\
+&= -\frac{1}{2} \bigg(-\E[\partial(\XX_1^\top\QQ^{-1}\BB\xixi)/\partial\xixi] \\
+&\quad - \E[\partial(\xixi^\top\BB^\top\QQ^{-1}\XX_1)/\partial\xixi] 
++ \E[\partial(\xixi^\top\BB^\top\QQ^{-1}(\BB\xixi))/\partial\xixi] \\
+&\quad +  \E[\partial(\xixi^\top\BB^\top\QQ^{-1}\uu)/\partial\xixi] 
++ \E[\partial(\uu^\top\QQ^{-1}\BB\xixi)/\partial\xixi]\bigg)\\
+\end{split}
+\end{equation}
+After pulling the constants out of the expectations, we use relations \eqref{eq:derivaTDb} and \eqref{eq:derivbDTCDd} to take the derivative:
+\begin{equation}\label{eq:pi.unconstrained.V0.is.0.2}
+\begin{split}
+&\partial\Psi/\partial\xixi = -\frac{1}{2} \bigg(-\E[\XX_1]^\top\QQ^{-1}\BB - \E[ \XX_1]^\top\QQ^{-1}\BB \\
+&\quad + 2 \xixi^\top\BB^\top\QQ^{-1}\BB + \uu^\top\QQ^{-1}\BB  +  \uu^\top\QQ^{-1}\BB \bigg) \\
+\end{split}
+\end{equation}
+This can be reduced to
+\begin{equation}\label{eq:pi.unconstrained.V0.is.0.3}
+\begin{split}
+&\partial\Psi/\partial\xixi = \E[\XX_1]^\top\QQ^{-1}\BB - \xixi^\top\BB^\top\QQ^{-1}\BB - \uu^\top\QQ^{-1}\BB \\
+\end{split}
+\end{equation}
+To solve for $\xixi$, set the left side to zero (an $m \times 1$ matrix of zeros), transpose the whole equation, and then cancel out $\BB^\top\QQ^{-1}\BB$ by multiplying by its inverse on the left, and solve for $\xixi$.  This step requires that this inverse exists.
+\begin{equation}\label{eq:pi.unconstrained.V0.is.0.4}
+\begin{split}
+\xixi = (\BB^\top\QQ^{-1}\BB)^{-1}\BB^\top\QQ^{-1}(\E[\XX_1]  - \uu) \\
+\end{split}
+\end{equation}
+Thus, in terms of the Kalman filter/smoother output the new $\xixi$ for EM iteration $j+1$ is
+\begin{equation}\label{eq:pi.unconstrained.V0.is.0.5}
+\begin{split}
+\xixi_{j+1} = (\BB^\top\QQ^{-1}\BB)^{-1}\BB^\top\QQ^{-1}(\widetilde{\mbox{$\mathbf x$}}_1  - \uu) \\
+\end{split}
+\end{equation}
+Note that using, $\widetilde{\mbox{$\mathbf x$}}_0$ output from the Kalman smoother would not work since $\LAM=0$.  As a result, $\xixi_{j+1} \equiv \xixi_j$ in the EM algorithm, and it is impossible to move away from your starting condition for $\xixi$.
+
+This is conceptually similar to using a generalized least squares estimate of $\xixi$ to concentrate it out of the likelihood as discussed in Harvey (1989), section 3.4.4.  However, in the context of the EM algorithm, dealing with the fixed $\xx_0$ case requires nothing special; one simply takes care to use the likelihood for the case where $\xx_0$ is treated as an unknown parameter (equation \ref{eq:logL.V0.is.0}).  For the other parameters, the update equations are the same whether one uses the log-likelihood equation with $\xx_0$ treated as stochastic (equation \ref{eq:logL}) or fixed (equation \ref{eq:logL.V0.is.0}).
+
+If your MARSS model is stationary\footnote{meaning the $\XX$'s have a stationary distribution} and your data appear stationary, however, equation \eqref{eq:pi.unconstrained.V0.is.0.4} probably is not what you want to use.  The estimate of $\xixi$ will be the maximum-likelihood value, but it will not be drawn from the stationary distribution; instead it could be some wildly different value that happens to give the maximum-likelihood.  If you are modeling the data as stationary, then you should probably assume that $\xixi$ is drawn from the stationary distribution of the $\XX$'s, which is some function of your model parameters.  This would mean that the model parameters would enter the part of the likelihood that involves $\xixi$ and $\LAM$. Since you probably don't want to do that (if might start to get circular), you might try an iterative process to get decent $\xixi$ and $\LAM$ or try fixing $\xixi$ and estimating $\LAM$ (above).  You can fix $\xixi$ at, say, zero, by making sure the model you fit has a stationary distribution with mean zero.  You might also need to demean your data (or estimate the $\aa$ term to account for non-zero mean data).
+
+\subsection{Update equation for $\xixi$ (unconstrained), fixed $\xx_1$}\label{sec:xi.unconstrained.x1}
+In some cases, the estimate of $\xx_0$ from $\xx_1$ using equation \ref{eq:pi.unconstrained.V0.is.0.5} will be highly sensitive to small changes in the parameters.  This is particularly the case for certain $\BB$ matrices, even if they are stationary.  The result is that your $\xixi$ estimate is wildly different from the data at $t=1$.  The estimates are correct given how you defined the model, just not realistic given the data.  In this case, you might want to specify $\xixi$ as being the value of $\xx$ at $t=1$ instead of $t=0$.  That way, the data at $t=1$ will constrain the estimated $\xixi$.  In this case, we treat $\xx_1$ as fixed but unknown, and the variance of $\XX_1$ is zero.  The likelihood is then:
+\begin{equation}
+\begin{split}
+&\log\LL(\yy,\xx ; \Theta) = -\sum_1^T \frac{1}{2}(\yy_t - \ZZ \xx_t - \aa)^\top \RR^{-1} (\yy_t - \ZZ \xx_t - \aa) -\sum_1^T\frac{1}{2} \log |\RR|\\
+&\quad  -\sum_2^T \frac{1}{2} (\xx_t - \BB \xx_{t-1} - \uu)^\top \QQ^{-1} (\xx_t - \BB \xx_{t-1} - \uu) - \sum_1^T\frac{1}{2}\log |\QQ|\\
+&\xx_1 \equiv \xixi  
+\end{split}
+\end{equation}
+
+\begin{equation}\label{}
+\begin{split}
+&\partial\Psi/\partial\xixi = -\frac{1}{2} \bigg(-\E[\partial(\YY_1^\top\RR^{-1}\ZZ\xixi)/\partial\xixi] \\
+&\quad - \E[\partial((\ZZ\xixi)^\top\RR^{-1}\YY_1)/\partial\xixi] + \E[\partial((\ZZ\xixi)^\top\RR^{-1}(\ZZ\xixi))/\partial\xixi] \\
+&\quad +  \E[\partial((\ZZ\xixi)^\top\RR^{-1}\aa)/\partial\xixi] 
++ \E[\partial(\aa^\top\RR^{-1}\ZZ\xixi)/\partial\xixi]\bigg)\\
+&\quad -\frac{1}{2} \bigg(-\E[\partial(\XX_2^\top\QQ^{-1}\BB\xixi)/\partial\xixi] \\
+&\quad - \E[\partial((\BB\xixi)^\top\QQ^{-1}\XX_2)/\partial\xixi] + \E[\partial((\BB\xixi)^\top\QQ^{-1}(\BB\xixi))/\partial\xixi] \\
+&\quad +  \E[\partial((\BB\xixi)^\top\QQ^{-1}\uu)/\partial\xixi] 
++ \E[\partial(\uu^\top\QQ^{-1}\BB\xixi)/\partial\xixi]\bigg)
+\end{split}
+\end{equation}
+Note that the second summation starts at $t=2$ and $\xixi$ is $\xx_1$ instead of $\xx_0$.
+
+After pulling the constants out of the expectations, we use relations \eqref{eq:derivaTDb} and \eqref{eq:derivbDTCDd} to take the derivative:
+\begin{equation}\label{eq:pi.unconstrained.V0.is.0.t.1.1}
+\begin{split}
+&\partial\Psi/\partial\xixi = -\frac{1}{2} \bigg(-\E[\YY_1]^\top\RR^{-1}\ZZ - \E[ \YY_1]^\top\RR^{-1}\ZZ \\
+&\quad + 2 \xixi^\top\ZZ^\top\RR^{-1}\ZZ + \aa^\top\RR^{-1}\ZZ  +  \aa^\top\RR^{-1}\ZZ \bigg) \\
+&\quad-\frac{1}{2} \bigg(-\E[\XX_2]^\top\QQ^{-1}\BB - \E[ \XX_2]^\top\QQ^{-1}\BB \\
+&\quad + 2 \xixi^\top\BB^\top\QQ^{-1}\BB + \uu^\top\QQ^{-1}\BB  +  \uu^\top\QQ^{-1}\BB \bigg) \\
+\end{split}
+\end{equation}
+This can be reduced to
+\begin{equation}\label{}
+\begin{split}
+&\partial\Psi/\partial\xixi = \E[\YY_1]^\top\RR^{-1}\ZZ - \xixi^\top\ZZ^\top\RR^{-1}\ZZ - \aa^\top\RR^{-1}\ZZ \\
+&\quad+ \E[\XX_2]^\top\QQ^{-1}\BB - \xixi^\top\BB^\top\QQ^{-1}\BB - \uu^\top\QQ^{-1}\BB \\
+&\quad =  - \xixi^\top(\ZZ^\top\RR^{-1}\ZZ + \BB^\top\QQ^{-1}\BB) + \E[\YY_1]^\top\RR^{-1}\ZZ - \aa^\top\RR^{-1}\ZZ \\
+&\quad+ \E[\XX_2]^\top\QQ^{-1}\BB - \uu^\top\QQ^{-1}\BB
+\end{split}
+\end{equation}
+To solve for $\xixi$, set the left side to zero (an $m \times 1$ matrix of zeros), transpose the whole equation, and solve for $\xixi$.  
+\begin{equation}\label{eq:pi.unconstrained.V0.is.0.t.1.2}
+\begin{split}
+\xixi = (\ZZ^\top\RR^{-1}\ZZ + \BB^\top\QQ^{-1}\BB)^{-1}(\ZZ^\top\RR^{-1}(\E[\YY_1]-\aa) +\BB^\top\QQ^{-1}(\E[\XX_2]  - \uu)) \\
+\end{split}
+\end{equation}
+Thus, when $\xixi \equiv \xx_1$,  the new $\xixi$ for EM iteration $j+1$ is
+\begin{equation}\label{eq:pi.unconstrained.V0.is.0.t.1.3}
+\begin{split}
+\xixi_{j+1} = (\ZZ^\top\RR^{-1}\ZZ + \BB^\top\QQ^{-1}\BB)^{-1}(\ZZ^\top\RR^{-1}(\widetilde{\mbox{$\mathbf y$}}_1-\aa) +\BB^\top\QQ^{-1}(\widetilde{\mbox{$\mathbf x$}}_2  - \uu))
+\end{split}
+\end{equation}
+
+\section{The constrained update equations}\label{sec:constrained}
+The previous sections dealt with the case where all the elements in a parameter matrix are estimated.  In this section, I deal with the case where some of the elements are constrained, for example when some matrix elements are fixed values or are linear combinations of other elements. 
+
+Let's say we have some parameter matrix $\MM$ (here $\MM$ could be any of the parameters in the MARSS model) where each matrix element is written as a linear model of some potentially shared values:
+\begin{equation*}
+\MM=
+\begin{bmatrix}
+a+2c+2&0.9&c\\
+-1.2&a&0\\
+0&3c+1&b
+\end{bmatrix}
+\end{equation*}
+Thus each $i$-th element in $\MM$ can be written as $\beta_i+\beta_{a,i} a + \beta_{b,i} b + \beta_{c,i} c$, which is a linear combination of three estimated values $a$, $b$ and $c$. The matrix $\MM$ can be rewritten in terms of a $\beta_i$ part and the part involving the $\beta_{-,j}$'s:
+\begin{equation*}
+\MM=	
+\begin{bmatrix}
+2&0.9&0\\
+-1.2&0&0\\
+0&1&0
+\end{bmatrix}
++
+\begin{bmatrix}
+a+2c&0&c\\
+0&a&0\\
+0&3c&b
+\end{bmatrix}
+=\MM_\text{fixed}+\MM_\text{free}
+\end{equation*}
+The vec function turns any matrix into a column vector by stacking the columns on top of each other.  Thus,
+\begin{equation*}
+\vec(\MM)=
+\begin{bmatrix}
+a+2c+2\\
+-1.2\\
+0\\
+0.9\\
+a\\
+3c+1\\
+c\\
+0\\
+b
+\end{bmatrix}	
+\end{equation*}
+We can now write $\vec(\MM)$ as a linear combination of $\ff = \vec(\MM_\text{fixed})$ and $\DD\mm = \vec(\MM_\text{free})$.  $\mm$ is a $p \times 1$ column vector of the $p$ free values, in this case $p=3$ and the free values are $a, b, c$. $\DD$ is a design matrix that translates $\mm$ into $\vec(\MM_\text{free})$.  For example,
+\begin{equation*}
+\vec(\MM)=
+\begin{bmatrix}
+a+2c+2\\
+-1.2\\
+0\\
+0.9\\
+a\\
+3c+1\\
+c\\
+0\\
+b
+\end{bmatrix}	
+=
+\begin{bmatrix}
+0\\
+-1.2\\
+2\\
+0.9\\
+0\\
+1\\
+0\\
+0\\
+0
+\end{bmatrix}
++
+\begin{bmatrix}
+1&2&0\\
+0&0&0\\
+0&0&0\\
+0&0&0\\
+1&0&0\\
+0&0&3\\
+0&0&1\\
+0&0&0\\
+0&1&0
+\end{bmatrix}	
+\begin{bmatrix}
+a\\
+b\\
+c
+\end{bmatrix}
+= \ff + \DD\mm 
+\end{equation*}
+There are constraints on $\DD$.  Your $\DD$ matrix needs to describe a solvable linear set of equations.  Basically it needs to be full rank (rank $p$ where $p$ is the number of columns in $\DD$ or free values you are trying to estimate), so that you can estimate each of the $p$ free values.  For example, if $a+b$ always appeared together, then $a+b$ can be estimated but not $a$ and $b$ separately.  Note, if $\MM$ is fixed, then $\DD$ is undefined but that is fine because in this case, there will be no update equation needed; you just use the fixed value of $\MM$ in the algorithm.
+
+The derivation proceeds by rewriting the likelihood as a function of $\vec(\MM)$, where $\MM$ is whatever parameter matrix for which one is deriving the update equation.  Then one rewrites that as a function of $\mm$ using the relationship $\vec(\MM) = \ff+\DD\mm$. Finally, one finds the $\mm$ that sets the derivative of $\Psi$ with respect to $\mm$ to zero.  Conceptually, the algebraic steps in the derivation are similar to those in  the unconstrained derivation.  Thus, I will leave out most of the intermediate steps.  The derivations require a few new matrix algebra and vec relationships; these are shown in Table \ref{tab:VecRelations}.  
+\begin{table}
+	\caption{Kronecker and vec relations.  Here $\AA$ is $n \times m$, $\BB$ is $m \times p$, $\CC$ is $p \times q$. $\aa$ is a $m \times 1$ column vector and $\bb$ is a $p \times 1$ column vector. The symbol $\otimes$ stands for the Kronecker product:  $\AA \otimes \CC$ is a $np \times mq$  matrix.	The identity matrix, $\II_n$, is a $n \times n$ diagonal matrix with ones on the diagonal.}
+	\label{tab:VecRelations}
+	\begin{center}
+		\begin{tabular}{lr}
+\hline
+\\
+\refstepcounter{equation}\label{eq:vec.a}
+$\vec(\aa) = \vec(\aa^\top) = \aa$
+&\multirow{2}{*}{(\theequation)} \\
+The vec of a column vector (or its transpose) is itself. & \\
+\\
+\refstepcounter{equation}\label{eq:vec.Aa}
+$\vec(\AA\aa) = (\aa^\top \otimes \II_n)\vec(\AA) = \AA\aa$
+&\multirow{2}{*}{(\theequation)} \\
+$\vec(\AA\aa) = \AA\aa$ since $\AA\aa$ is itself an $m \times 1$ column vector. & \\
+\\
+\refstepcounter{equation}\label{eq:vec.AB}
+$\vec(\AA\BB) = (\II_p \otimes \AA)\vec(\BB) = (\BB^\top \otimes \II_n)\vec(\AA)$
+& (\theequation) \\
+\\
+\refstepcounter{equation}\label{eq:vec.ABC}
+$\vec(\AA\BB\CC) = (\CC^\top \otimes \AA)\vec(\BB)$
+& (\theequation) \\
+\\
+\refstepcounter{equation}\label{eq:kron.prod}
+$(\AA \otimes \BB)(\CC \otimes \DD) = (\AA\CC \otimes \BB\DD)$
+& (\theequation) \\
+\\
+\refstepcounter{equation}\label{eq:kron.column.vec}
+$(\aa \otimes \II_p)\CC = (\aa \otimes \CC)$
+&\multirow{2}{*}{(\theequation)} \\
+$\CC(\aa^\top \otimes \II_q) = (\aa^\top \otimes \CC)$ &\\
+\\
+\refstepcounter{equation}\label{eq:kron.column.quad.vec}
+$(\aa \otimes \II_p)\CC(\bb^\top \otimes \II_q) = (\aa\bb^\top \otimes \CC)$ &
+(\theequation) \\
+\\
+\refstepcounter{equation}\label{eq:kron.column.column.vec}
+$(\aa \otimes \aa)=\vec(\aa\aa^\top)$ 
+&\multirow{2}{*}{(\theequation)} \\
+$(\aa^\top \otimes \aa^\top)=(\aa \otimes \aa)^\top=(\vec(\aa\aa^\top))^\top$ &\\
+\\
+\hline
+\end{tabular}
+\end{center}
+\end{table}
+
+\subsection{The general $\uu$ update equations}
+Since $\uu$ is already a column vector, it can be rewritten simply as $\uu = \ff_u + \DD_u\pmb{\upsilon}$, where $\pmb{\upsilon}$ is the column vector of estimated parameters in $\uu$.  We then solve for $\partial\Psi/\partial\pmb{\upsilon}$ by replacing $\uu$ with $\uu = \ff_u + \DD_u\pmb{\upsilon}$ in the expected log likelihood function.  In the derivation below, the $u$ subscripts on $\ff$ and $\DD$ have been left off to remove clutter.  
+\begin{equation}\label{eq:u.general1}
+\begin{split}
+&\partial\Psi/\partial\pmb{\upsilon}
+ = - \frac{1}{2}\sum_{t=1}^T \bigg(- 
+  \partial(\E[\XX_t^\top\QQ^{-1}(\ff + \DD\pmb{\upsilon})])/\partial\pmb{\upsilon} \\
+&\quad - \partial(\E[(\ff + \DD\pmb{\upsilon})^\top\QQ^{-1}\XX_t])/\partial\pmb{\upsilon} 
++ \partial(\E[(\BB\XX_{t-1})^\top\QQ^{-1}(\ff + \DD\pmb{\upsilon})])/\partial\pmb{\upsilon} \\
+&\quad + \partial(\E[(\ff + \DD\pmb{\upsilon})^\top\QQ^{-1}\BB\XX_{t-1}])/\partial\pmb{\upsilon}
++ \partial((\ff + \DD\pmb{\upsilon})^\top\QQ^{-1}(\ff + \DD\pmb{\upsilon}))/\partial\pmb{\upsilon} \bigg)
+\end{split}
+\end{equation}
+The terms involving only $\ff$ drop out (because they don't involve $\pmb{\upsilon}$).  This gives
+\begin{equation}\label{eq:u.general2}
+\begin{split}
+&\partial\Psi/\partial\pmb{\upsilon}
+ = - \frac{1}{2}\sum_{t=1}^T \bigg(- 
+  \partial(\E[\XX_t^\top\QQ^{-1}\DD\pmb{\upsilon}])/\partial\pmb{\upsilon} 
+- \partial(\E[(\DD\pmb{\upsilon})^\top\QQ^{-1}\XX_t])/\partial\pmb{\upsilon}\\
+&\quad + \partial(\E[(\BB\XX_{t-1})^\top\QQ^{-1}\DD\pmb{\upsilon}])/\partial\pmb{\upsilon} 
++ \partial(\E[(\DD\pmb{\upsilon})^\top\QQ^{-1}\BB\XX_{t-1}])/\partial\pmb{\upsilon}\\
+&\quad + \partial(\ff^\top\QQ^{-1}\DD\pmb{\upsilon})/\partial\pmb{\upsilon}
++ \partial((\DD\pmb{\upsilon})^\top\QQ^{-1}\ff)/\partial\pmb{\upsilon}
++ \partial((\DD\pmb{\upsilon})^\top\QQ^{-1}\DD\pmb{\upsilon})/\partial\pmb{\upsilon}
+ \bigg)
+\end{split}
+\end{equation}
+Using the matrix differentiation relations in section \ref{sec:MatrixDerivatives}, we get
+\begin{equation}\label{eq:u.general3}
+\begin{split}
+&\partial\Psi/\partial\pmb{\upsilon}
+ = - \frac{1}{2}\sum_{t=1}^T \bigg(
+ -2\E[ \XX_t^\top\QQ^{-1}\DD ]
+ + 2\E[(\BB\XX_{t-1})^\top\QQ^{-1}\DD] \\
+&\quad + 2\ff^\top\QQ^{-1}\DD
++ 2\pmb{\upsilon}^\top\DD^\top\QQ^{-1}\DD
+ \bigg)
+\end{split}
+\end{equation}
+Set the left side to zero and transpose the whole equation. Then we solve for $\pmb{\upsilon}$.
+\begin{equation}\label{eq:u.general4}
+\mathbf{0}
+ = \sum_{t=1}^T \bigg(
+ \DD^\top\QQ^{-1}(\E[ \XX_t ] -\BB\E[\XX_{t-1}]  -\ff)-\DD^\top\QQ^{-1}\DD\pmb{\upsilon} \bigg)
+\end{equation}
+Thus,
+\begin{equation}\label{eq:u.general5}
+T\DD^\top\QQ^{-1}\DD\pmb{\upsilon}
+ = \DD^\top\QQ^{-1}\sum_{t=1}^T \big(\E[ \XX_t ]-\BB\E[\XX_{t-1}] -\ff \big)
+\end{equation}
+Thus, the updated $\pmb{\upsilon}$ is
+\begin{equation}\label{eq:u.general.update1}
+\pmb{\upsilon}_{j+1} = \frac{1}{T}\big(\DD_u^\top\QQ^{-1}\DD_u\big)^{-1}
+ \DD_u^\top\QQ^{-1}\sum_{t=1}^T \big(\hatxt-\BB\hatxtm -\ff_u \big)
+\end{equation}
+and
+\begin{equation}\label{eq:u.update2}
+\uu_{j+1} = \ff_u + \DD_u\pmb{\upsilon}_{j+1},
+\end{equation}
+If $\QQ$ is diagonal, this will reduce to computing the shared free elements in $\uu$ by averaging over their values in the unconstrained $\uu$ update matrix (equation \ref{eq:uupdate.unconstrained}.  
+
+The update equation requires that $\DD_u^\top\QQ^{-1}\DD_u$ is invertible, and it will be if $\QQ$ is a proper variance-covariance matrix (positive semi-definite) and $\DD_u$ is full rank, as it will be if a proper variance-covariance matrix is being specified\footnote{For example, a variance-covariance matrix where all the values are equal is not valid; it's not positive semi-definite.  Try taking the inverse of such a matrix; it won't work.} and confounded elements are not being specified\footnote{For example, if your $\QQ$ matrix had $a+b$ always appearing together then $a+b$ can be estimated but not $a$ or $b$ separately. These two parameters would be confounded.}.  If $\QQ$ has zeros on the diagonal however (a partially deterministic model), this would no longer be the case.  See section \ref{sec:degenerate} on the modifications to the update equation when there some of the diagonal elements of $\QQ$ are zero.
+
+\subsection{The general $\aa$ update equation}
+The derivation of the update equation for $\aa$ with fixed and shared values is completely analogous to the derivation for $\uu$. If $\aa = \ff_a + \DD_a\pmb{\alpha}$, where $\pmb{\alpha}$ is a column vector of the estimated values then (with the $a$ subscripts left of $\DD$ and $\ff$)
+\begin{equation}\label{eq:general.a.update}
+\pmb{\alpha}_{j+1} = \frac{1}{T}\big(\DD_a^\top\RR^{-1}\DD_a\big)^{-1}
+ \DD_a^\top\RR^{-1}\sum_{t=1}^T \big(\hatyt-\ZZ\hatxt -\ff_a \big)
+\end{equation}
+The new $\aa$ parameter is then
+\begin{equation}\label{eq:a.update2}
+\aa_{j+1} = \ff_a + \DD_a\pmb{\alpha}_{j+1},
+\end{equation}
+If $\RR$ is diagonal, this will reduce just updating the free elements in $\aa$ using their values from the unconstrained update equation.  Again $\DD_a^\top\RR^{-1}\DD_a$ must be invertible; see section \ref{sec:degenerate} on the modifications to the update equation when some of the diagonal elements of $\RR$ are zero. 
+
+\subsection{The general $\xixi$ update equation, stochastic initial state}
+When $\xx_0$ is treated as stochastic with an unknown mean, the derivation of the update equation for $\xixi$ with fixed and shared values is similar to the derivation for $\uu$ and $\aa$. Let $\xixi = \ff_{\xi} + \DD_{\xi}\pp$, where $\pp$ is a column vector of the estimated values.  Take the derivative of $\Psi$ (using equation \ref{eq:logL}) with respect to $\pp$:
+\begin{equation}\label{eq:pi.general1}
+\partial\Psi/\partial\pp =  
+\big(\widetilde{\mbox{$\mathbf x$}}_0^\top \LAM^{-1} - \xixi^\top\LAM^{-1} \big) \DD
+\end{equation}
+Replace $\xixi$ with $\ff + \DD\pp$, set the left side to zero and transpose:
+\begin{equation}\label{eq:pi.general2}
+\mathbf{0} = 
+\DD^\top\big(\LAM^{-1}\widetilde{\mbox{$\mathbf x$}}_0 - \LAM^{-1}\ff + \LAM^{-1}\DD\pp \big) 
+\end{equation}
+Thus,
+\begin{equation}\label{eq:pi.update.general1}
+\pp_{j+1} = \big(\DD_\xi^\top\LAM^{-1}\DD_\xi \big)^{-1}
+\DD_\xi^\top\LAM^{-1}(\widetilde{\mbox{$\mathbf x$}}_0 - \ff_\xi)
+\end{equation}
+and the new $\xixi$ is then,
+\begin{equation}\label{eq:pi.update.general2}
+\xixi_{j+1} = \ff_\xi + \DD_\xi\pp_{j+1},
+\end{equation}
+When the initial state is defined as at $t=1$, replace $\widetilde{\mbox{$\mathbf x$}}_0$ with $\widetilde{\mbox{$\mathbf x$}}_1$ in equation \ref{eq:pi.update.general1}.
+
+\subsection{The general $\xixi$ update equation, fixed $\xx_0$}\label{sec:xi.constrained.x0}
+For the case where $\xx_0$ is treated as fixed, i.e. as another parameter, take the derivative of $\Psi$ using equation \eqref{eq:logL.V0.is.0}:
+\begin{equation}\label{eq:pi.constrained.V0.is.0}
+\begin{split}
+&\partial\Psi/\partial\pp = -\frac{1}{2} \bigg(-\E[\partial(\XX_1^\top\QQ^{-1}\BB(\ff+\DD\pp))/\partial\pp] \\
+&\quad - \E[\partial((\BB(\ff+\DD\pp))^\top\QQ^{-1}\XX_1)/\partial\pp] + \E[\partial((\BB(\ff+\DD\pp))^\top\QQ^{-1}(\BB(\ff+\DD\pp)))/\partial\pp] \\
+&\quad +  \E[\partial((\BB(\ff+\DD\pp))^\top\QQ^{-1}\uu)/\partial\pp] 
++ \E[\partial(\uu^\top\QQ^{-1}\BB(\ff+\DD\pp))/\partial\pp]\bigg)\\
+&= -\frac{1}{2} \bigg(-\E[\partial(\XX_1^\top\QQ^{-1}\BB(\ff+\DD\pp))/\partial\pp] \\
+&\quad - \E[\partial((\ff+\DD\pp)^\top\BB^\top\QQ^{-1}\XX_1)/\partial\pp] 
++ \E[\partial((\ff+\DD\pp)^\top\BB^\top\QQ^{-1}(\BB(\ff+\DD\pp)))/\partial\pp] \\
+&\quad +  \E[\partial((\ff+\DD\pp)^\top\BB^\top\QQ^{-1}\uu)/\partial\pp] 
++ \E[\partial(\uu^\top\QQ^{-1}\BB(\ff+\DD\pp))/\partial\pp]\bigg)\\
+\end{split}
+\end{equation}
+After pulling the constants out of the expectations, we use relations \eqref{eq:derivaTDb} and \eqref{eq:derivbDTCDd} to take the derivative:
+\begin{equation}\label{eq:pi.constrained.V0.is.0.2}
+\begin{split}
+&\partial\Psi/\partial\pp = -\frac{1}{2} \bigg(-\E[\XX_1]^\top\QQ^{-1}\BB\DD - \E[\XX_1]^\top\QQ^{-1}\BB\DD \\
+&\quad +\ff^\top\BB^\top\QQ^{-1}\BB\DD + \ff^\top\BB^\top\QQ^{-1}\BB\DD \\
+&\quad + 2 \pp^\top\DD^\top\BB^\top\QQ^{-1}\BB\DD + \uu^\top\QQ^{-1}\BB\DD  +  \uu^\top\QQ^{-1}\BB\DD \bigg) \\
+\end{split}
+\end{equation}
+This can be reduced to
+\begin{equation}\label{eq:pi.constrained.V0.is.0.3}
+\begin{split}
+&\partial\Psi/\partial\pp = \E[\XX_1]^\top\QQ^{-1}\BB\DD - \ff^\top\BB^\top\QQ^{-1}\BB\DD - \pp^\top\DD^\top\BB^\top\QQ^{-1}\BB\DD - \uu^\top\QQ^{-1}\BB\DD \\
+\end{split}
+\end{equation}
+To solve for $\pp$, set the left side to zero, transpose the whole equation, and then cancel out $\DD^\top\BB^\top\QQ^{-1}\BB\DD$ by multiplying by its inverse on the left, and solve for $\pp$.  
+\begin{equation}\label{eq:pi.constrained.V0.is.0.4}
+\begin{split}
+\pp = (\DD^\top\BB^\top\QQ^{-1}\BB\DD)^{-1}\DD^\top\BB^\top\QQ^{-1}(\E[\XX_1]  - \uu - \BB\ff) \\
+\end{split}
+\end{equation}
+Thus, in terms of the Kalman filter/smoother output the new $\pp$ for EM iteration $j+1$ is
+\begin{equation}\label{eq:pi.constrained.V0.is.0.5}
+\begin{split}
+\pp_{j+1} = (\DD_\xi^\top\BB^\top\QQ^{-1}\BB\DD_\xi)^{-1}\DD_\xi^\top\BB^\top\QQ^{-1}(\widetilde{\mbox{$\mathbf x$}}_1  - \uu - \BB\ff_\xi) \\
+\end{split}
+\end{equation}
+This equation requires that the inverse of $\DD_\xi^\top\BB^\top\QQ^{-1}\BB\DD_\xi$ exists and it might not if $\BB$ has any all zero rows/columns.  In that case, defining $\xixi \equiv \xx_1$ might work instead (section \ref{sec:general.x1.update}).
+
+\subsection{The general $\xixi$ update equation, fixed $\xx_1$}\label{sec:general.x1.update}
+When the initial state is defined at $t=1$ instead of $t=0$, the derivation proceeds as in section \ref{sec:xi.constrained.x0} but using the likelihood in section \ref{sec:xi.unconstrained.x1}.  
+In terms of the Kalman smoother output the new $\xixi$ for EM iteration $j+1$ when $\xixi \equiv \xx_1$ is
+\begin{equation}\label{eq:pix1.unconstrained.V0.is.0.t.1.3}
+\begin{split}
+\xixi_{j+1} &= (\DD_\xi^\top(\ZZ^\top\RR^{-1}\ZZ + \BB^\top\QQ^{-1}\BB)\DD_\xi)^{-1}\DD_\xi^\top\\
+&(\ZZ^\top\RR^{-1}(\widetilde{\mbox{$\mathbf y$}}_1-\aa-\ff_\xi) +\BB^\top\QQ^{-1}(\widetilde{\mbox{$\mathbf x$}}_2  - \uu - \BB\ff_\xi))
+\end{split}
+\end{equation}
+
+\subsection{The general $\BB$ update equation}
+The matrix $\BB$ is rewritten as $\BB=\BB_\text{fixed} + \BB_\text{free}$, thus $\vec(\BB) =  \ff_b + \DD_b\pmb{\beta}$, where $\pmb{\beta}$ is the $p \times 1$ column vector of the $p$ estimated values, $\ff_b=\vec(\BB_\text{fixed})$ and $\DD_b\pmb{\beta}=\vec(\BB_\text{free})$.  Take the derivative of $\Psi$ with respect to $\pmb{\beta}$; terms in $\Psi$  that do not involve $\BB$ also do not involve $\pmb{\beta}$ so they will equal 0 and drop out.  
+\begin{equation}\label{eq:B.general1}
+\begin{split}
+&\partial\Psi/\partial\pmb{\beta} = -\frac{1}{2} \sum_{t=1}^T\bigg(-\E[\partial(\XX_t^\top\QQ^{-1}\BB\XX_{t-1})/\partial\pmb{\beta}] \\
+&\quad - \E[\partial((\BB\XX_{t-1})^\top\QQ^{-1}\XX_t)/\partial\pmb{\beta}] + \E[\partial((\BB\XX_{t-1})^\top\QQ^{-1}(\BB\XX_{t-1}))/\partial\pmb{\beta}] \\
+&\quad +  \E[\partial((\BB\XX_{t-1})^\top\QQ^{-1}\uu)/\partial\pmb{\beta}] 
++ \E[\partial(\uu^\top\QQ^{-1}\BB\XX_{t-1})/\partial\pmb{\beta}]\bigg)\\
+\end{split}
+\end{equation}
+This needs to be rewritten as a function of $\pmb{\beta}$ instead of $\BB$.  Note that $\BB\XX_{t-1}$ is a column vector and use relation \eqref{eq:vec.Aa} to show that:
+\begin{equation}\label{eq:B.general2}
+\begin{split}
+&\BB\XX_{t-1} = \vec(\BB\XX_{t-1})= \KK_b\vec(\BB) = \KK_b(\ff_b + \DD_b\pmb{\beta}),\\
+&\quad \text{ where }\KK_b = (\XX_{t-1}^\top \otimes \II)
+\end{split}
+\end{equation}
+Thus, $\partial\Psi/\partial\pmb{\beta}$ becomes (the $b$ subscripts have been left off $\KK$, $\FF$ and $\DD$):
+\begin{equation}\label{eq:B.general3}
+\begin{split}
+&\partial\Psi/\partial\pmb{\beta} = -\frac{1}{2} \sum_{t=1}^T\bigg(
+-\E[\partial(\XX_t^\top\QQ^{-1}\KK(\ff + \DD\pmb{\beta}))/\partial\pmb{\beta}] \\
+&\quad - \E[\partial((\KK(\ff + \DD\pmb{\beta}))^\top\QQ^{-1}\XX_t)/\partial\pmb{\beta}] \\
+&\quad + \E[\partial((\KK(\ff + \DD\pmb{\beta}))^\top\QQ^{-1}\KK(\ff + \DD\pmb{\beta}))/\partial\pmb{\beta}] \\
+&\quad +  \E[\partial((\KK(\ff + \DD\pmb{\beta}))^\top\QQ^{-1}\uu)/\partial\pmb{\beta}] 
++ \E[\partial(\uu^\top\QQ^{-1}\KK(\ff + \DD\pmb{\beta}))/\partial\pmb{\beta}]\bigg)
+\end{split}
+\end{equation}
+After a bit of matrix algebra and using $\partial(\aa^\top\cc)/\partial\aa = \partial(\cc^\top\aa)/\partial\aa$, relation \eqref{eq:derivaTc}, and that partial derivatives of constants equal 0, the above can be simplified to
+\begin{equation}\label{eq:B.general4}
+\begin{split}
+\partial\Psi/\partial\pmb{\beta} &=\\
+ &\quad -\frac{1}{2} \sum_{t=1}^T\bigg(
+- 2\E[\partial(\XX_t^\top\QQ^{-1}\KK\DD\pmb{\beta})/\partial\pmb{\beta}]  + 2\E[\partial((\KK\ff)^\top\QQ^{-1}\KK\DD\pmb{\beta})/\partial\pmb{\beta}] \\
+&\quad + \E[\partial((\KK\DD\pmb{\beta})^\top\QQ^{-1}\KK\DD\pmb{\beta})/\partial\pmb{\beta}] 
++ 2\E[\partial(\uu^\top\QQ^{-1}\KK\DD\pmb{\beta})/\partial\pmb{\beta}]\bigg)\\
+\end{split}
+\end{equation}
+Using relations \eqref{eq:derivaTc} and \eqref{eq:derivaTCa}, using $\QQ^{-1} = (\QQ^{-1})^\top$, and getting rid of the $-1/2$, we have
+\begin{equation}\label{eq:B.general5}
+\begin{split}
+&\partial\Psi/\partial\pmb{\beta} = \sum_{t=1}^T\bigg(
+\E[\XX_t^\top\QQ^{-1}\KK\DD] 
+-\E[(\KK\ff)^\top\QQ^{-1}\KK\DD] \\
+&\quad - \E[\pmb{\beta}^\top(\KK\DD)^\top\QQ^{-1}(\KK\DD)] 
+-\E[\uu^\top\QQ^{-1}\KK\DD]\bigg)\\
+\end{split}
+\end{equation}
+The left side can be set to 0 (a $1 \times p$ matrix) and the whole equation transposed, giving:
+\begin{equation}\label{eq:B.general6}
+\begin{split}
+&\mathbf{0} = \sum_{t=1}^T\bigg(
+\E[(\KK\DD)^\top\QQ^{-1}\XX_t] 
+-\E[(\KK\DD)^\top\QQ^{-1}\KK\ff] \\
+&\quad - \E[(\KK\DD)^\top\QQ^{-1}(\KK\DD)]\pmb{\beta}
+-\E[(\KK\DD)^\top\QQ^{-1}\uu]\bigg)\\
+\end{split}
+\end{equation}
+Replacing $\KK$ with $(\XX_{t-1}^\top \otimes \II)$, we have
+\begin{equation}\label{eq:B.general7}
+\begin{split}
+\mathbf{0} =&\\
+& \sum_{t=1}^T\bigg(
+\E[((\XX_{t-1}^\top \otimes \II)\DD)^\top\QQ^{-1}\XX_t]  -\E[((\XX_{t-1}^\top \otimes \II)\DD)^\top\QQ^{-1}(\XX_{t-1}^\top \otimes \II)\ff] \\
+& - \E[((\XX_{t-1}^\top \otimes \II)\DD)^\top\QQ^{-1}(\XX_{t-1}^\top \otimes \II)\DD]\pmb{\beta} -\E[((\XX_{t-1}^\top \otimes \II)\DD)^\top\QQ^{-1}\uu]\bigg)\\
+\end{split}
+\end{equation}
+This looks daunting, but using relation \eqref{eq:vec.Aa} and noting that $(\AA \otimes \BB)^\top = (\AA^\top \otimes \BB^\top)$, we can simplify equation \eqref{eq:B.general7} using the following:
+\begin{equation*}
+\begin{split}
+&(\XX_{t-1}^\top \otimes \II)\QQ^{-1}\uu 
+= (\XX_{t-1} \otimes \II)\QQ^{-1}\uu \\
+&\quad = (\XX_{t-1} \otimes \II)\vec(\QQ^{-1}\uu), \text{ because } \QQ^{-1}\uu \text{ is a column vector} \\
+&\quad= \vec(\QQ^{-1}\uu(\XX_{t-1})^\top), \text{ using relation \eqref{eq:vec.Aa}} \\
+\end{split}
+\end{equation*}
+Similarly,
+\begin{equation*}
+(\XX_{t-1}^\top \otimes \II)\QQ^{-1}\XX_t = \vec(\QQ^{-1}\XX_t\XX_{t-1}^\top) 
+\end{equation*}
+Using relation \eqref{eq:kron.column.quad.vec}:
+\begin{equation*}
+(\XX_{t-1} \otimes \II_m)^\top\QQ^{-1}(\XX_{t-1}^\top \otimes \II_m)\ff = (\XX_{t-1}\XX_{t-1}^\top  \otimes \QQ^{-1})\ff 
+\end{equation*}
+Similarly,
+\begin{equation*}
+(\XX_{t-1} \otimes \II)^\top\QQ^{-1}(\XX_{t-1}^\top \otimes \II)\DD\pmb{\beta}
+ = (\XX_{t-1}\XX_{t-1}^\top  \otimes \QQ^{-1})\DD\pmb{\beta}
+\end{equation*}
+Using these simplifications in equation \eqref{eq:B.general7}, we get
+\begin{equation}\label{eq:B.general8}
+\begin{split}
+&\mathbf{0} = \sum_{t=1}^T\bigg(
+\E[\DD^\top\vec(\QQ^{-1}\XX_t\XX_{t-1}^\top)] 
+ -\E[\DD^\top(\XX_{t-1}\XX_{t-1}^\top  \otimes \QQ^{-1})\ff] \\
+&\quad - \E[\DD^\top(\XX_{t-1}\XX_{t-1}^\top  \otimes \QQ^{-1})\DD]\pmb{\beta}
+ -\E[\DD^\top\vec(\QQ^{-1}\uu\XX_{t-1}^\top)]\bigg)
+\end{split}
+\end{equation}
+Replacing the expectations with the Kalman smoother output (section \ref{sec:kalman.smoother}), we arrive at:
+\begin{equation}\label{eq:B.general9}
+\begin{split}
+&\mathbf{0} = \sum_{t=1}^T\bigg(
+\DD^\top\vec(\QQ^{-1}\hatPttm) 
+ -\DD^\top(\hatPtm  \otimes \QQ^{-1})\ff \\
+&\quad - \DD^\top(\hatPtm  \otimes \QQ^{-1})\DD\pmb{\beta}
+ -\DD^\top\vec(\QQ^{-1}\uu(\hatxtm)^\top)\bigg)
+\end{split}
+\end{equation}
+Solving for $\pmb{\beta}$, 
+\begin{equation}\label{eq:B.general.update.1}
+\begin{split}
+&\pmb{\beta}_{j+1} = \bigg(\sum_{t=1}^T\DD_b^\top(\hatPtm  \otimes \QQ^{-1})\DD_b\bigg)^{-1}\DD_b^\top
+\bigg(\sum_{t=1}^T\big(
+\vec(\QQ^{-1}\hatPttm)  \\
+&\quad  -(\hatPtm  \otimes \QQ^{-1})\ff_b
+ -\vec(\QQ^{-1}\uu\hatxtm^\top)\big)\bigg)
+ \end{split}
+\end{equation}
+This requires that $\DD_b^\top(\hatPtm  \otimes \QQ^{-1})\DD_b$ is invertible, and it should be since $(\hatPtm  \otimes \QQ^{-1})$ is invertible\footnote{If $\QQ$ has zeros on the diagonal, the equation needs to be altered.  See section \ref{sec:degenerate}.} and $\DD_b$ will not have any all zero columns (all zero rows are fine).
+
+Combining $\pmb{\beta}_{j+1}$ with $\BB_\text{fixed}$, we arrive at the vec of the updated $\BB$ matrix:
+\begin{equation}
+\vec(\BB_{j+1})  = \ff_b + \DD_b\pmb{\beta}_{j+1},
+\end{equation}
+When there are no fixed or shared values, $\BB_\text{fixed}$ equals zero and $\DD_b$ equals an identity matrix. Equation \eqref{eq:B.general.update.1} then reduces to the unconstrained form.  To see this take the vec of the unconstrained update equation for $\BB$ and notice that $\QQ^{-1}$ can be factored out.  
+
+\subsection{The general $\ZZ$ update equation}
+The derivation of the update equation for $\ZZ$ with fixed and shared values is analogous to the derivation for $\BB$.  The matrix $\ZZ$ is rewritten as $\ZZ=\ZZ_\text{fixed} + \ZZ_\text{free}$, thus $\vec(\ZZ) =  \ff_z + \DD_z\pmb{\zeta}$, where $\pmb{\zeta}$ is the column vector of the $p$ estimated values, $\ff_z=\vec(\ZZ_\text{fixed})$ and $\DD_z\pmb{\zeta}=\vec(\ZZ_\text{free})$.  With the $z$ subscript dropped off $\DD$ and $\ff$, the update equation for $\ZZ$ is
+\begin{equation}\label{eq:general.Z.update}
+\begin{split}
+&\pmb{\zeta}_{j+1} = \bigg(\sum_{t=1}^T(\DD_z^\top(\hatPt \otimes \RR^{-1})\DD_z)\bigg)^{-1}\DD_z^\top
+\bigg(\sum_{t=1}^T\big( \vec(\RR^{-1}\hatYXt)  \\
+&\quad  -(\hatPt  \otimes \RR^{-1})\ff_z -\vec(\RR^{-1}\aa\hatxt^\top)\big)\bigg)
+\end{split}
+\end{equation}
+Combining $\pmb{\zeta}_{j+1}$ with $\ZZ_\text{fixed}$, we arrive at the vec of the updated $\ZZ$ matrix:
+\begin{equation}
+\vec(\ZZ_{j+1})  = \ff_z + \DD_z\pmb{\zeta}_{j+1}
+\end{equation}
+This requires that $\DD_z^\top(\hatPt \otimes \RR^{-1})\DD_z$ is invertible, and it should be since $(\hatPt \otimes \RR^{-1})$ will normally be invertible\footnote{If $\RR$ has zeros on the diagonal, the equation is altered; see section \ref{sec:degenerate}.} and $\DD_z$ has no all zero columns.
+
+\subsection{The general $\QQ$ update equation}\label{sec:constrained.Q}
+A general analytical solution for fixed and shared elements in $\QQ$ is problematic because the inverse of $\QQ$ appears in the likelihood and because $\QQ^{-1}$ cannot always be rewritten as a function of $\vec(\QQ)$. It might be an option to use numerical maximization of $\partial\Psi/\partial q_{i,j}$ where $q_{i,j}$ is a free element in $\QQ$, but this will slow down the algorithm enormously.  However, in a few important special---yet quite broad--- cases, an analytical solution can be derived.  The most general of these special cases is a block-symmetric matrix with optional independent fixed blocks (subsection \ref{sec:Q.general}).  Indeed, all other cases (diagonal, block-diagonal, unconstrained, equal variance-covariance) except one (a replicated block-diagonal) are special cases of the blocked matrix with optional independent fixed blocks.  
+
+The general update equation for this case is
+\begin{equation}\label{eq:Q.general}
+\begin{split}
+\pmb{q}_{j+1} &= \frac{1}{T} (\DD_q^\top\DD_q)^{-1} \DD_q^\top \vec(\SS)\\
+\vec(\QQ)_{j+1} &= \ff_q + \DD_q \pmb{q}_{j+1}\\
+\text{where }\SS&=\sum_{t=1}^T  \big(\hatPt - \hatPttm \BB^\top - \BB\hatPtmt 
+- \hatxt\uu^\top - \uu\hatxt^\top + \\
+&\quad \BB\hatPtm\BB^\top + \BB\hatxtm\uu^\top + \uu\hatxtm^\top\BB^\top + \uu\uu^\top \big)
+\end{split}
+\end{equation}
+The matrices $\ff_q$, $\DD_q$, and $\pmb{q}$ have their standard definitions.
+The vec of $\QQ$ is written in the form of $\vec(\QQ) = \ff_q + \DD_q \pmb{q}$, where $\ff_q$ is a $m^2 \times 1$ column vector of the fixed values including zero, $\DD_q$ is the $m^2 \times p$ design matrix, and $\pmb{q}$ is a column vector of the $p$ free values.  This requires that $(\DD_q^\top\DD_q)$, which in a valid model must be true; if is not true you have specified an invalid variance-covariance structure since the implied variance-covariance matrix will not be full-rank and thus not invertible and thus an invalid variance-covariance matrix.
+
+Below I show how the $\QQ$ update equation arises by working through a few of the special cases.  In these derivations the $q$ subscript is left off the $\DD$ and $\ff$ matrices.
+
+\subsubsection{Special case: diagonal $\QQ$ matrix (with shared or unique parameters)}
+Let $\QQ$ be a diagonal matrix with fixed and shared values.  For example,
+\begin{equation*}
+\QQ=
+\begin{bmatrix}
+q_1&0&0&0&0\\
+0&f_1&0&0&0\\
+0&0&q_2&0&0\\
+0&0&0&f_2&0\\
+0&0&0&0&q_2
+\end{bmatrix}
+\end{equation*}
+Here, $f$'s are fixed values (constants) and $q$'s are free parameters elements.
+The vec of $\QQ^{-1}$ can be written then as $\vec(\QQ^{-1}) = \ff^{*}_q + \DD_q \pmb{q^{*}}$, where $\ff^{*}$ is like $\ff_q$ but with the corresponding $i$-th non-zero fixed values replaced by $1/f_i$ and $\pmb{q^{*}}$ is a column vector of 1 over the $q_i$ values.  For the example above,
+\begin{equation*}
+\pmb{q^{*}} =
+\begin{bmatrix}
+1/q_1 \\ 1/q_2
+\end{bmatrix}
+\end{equation*}
+
+Take the partial derivative of $\Psi$ with respect to $\pmb{q^{*}}$.  We can do this because $\QQ^{-1}$ is diagonal and thus each element of $\pmb{q^{*}}$ is independent of the other elements; otherwise we would not necessarily be able to vary one element of $\pmb{q^{*}}$ while holding the other elements constant.
+\begin{equation}\label{eq:Q.gendiag1}
+\begin{split}
+&\partial\Psi/\partial\pmb{q^{*}} = -\frac{1}{2} \sum_{t=1}^T\partial\bigg(
+\E[\XX_t^\top\QQ^{-1}\XX_t]
+-\E[\XX_t^\top\QQ^{-1}\BB\XX_{t-1}] \\
+&\quad -\E[(\BB\XX_{t-1})^\top\QQ^{-1}\XX_t] 
+ - \E[\XX_t^\top\QQ^{-1}\uu] \\
+&\quad - \E[\uu^\top\QQ^{-1}\XX_t] 
++ \E[(\BB\XX_{t-1})^\top\QQ^{-1}\BB\XX_{t-1}] \\
+&\quad + \E[(\BB\XX_{t-1})^\top\QQ^{-1}\uu] 
++ \E[\uu^\top\QQ^{-1}\BB\XX_{t-1}] + \uu^\top\QQ^{-1}\uu \bigg)/\partial\pmb{q^{*}}\\
+& - \partial\big(\frac{T}{2}\log |\QQ| \big)/\partial\pmb{q^{*}} \\
+\end{split}
+\end{equation}
+Using the same vec operations as in the derivations for $\BB$ and $\ZZ$, pull $\QQ^{-1}$ out from the middle and replace the expectations with the Kalman smoother output.\footnote{Another, more common, way to do this is to use a ``trace trick'', $\trace(\aa^\top\AA\bb)=\trace(\AA\bb\aa^\top)$, to pull $\QQ^{-1}$ out.}
+\begin{equation}\label{eq:Q.gendiag2}
+\begin{split}
+&\partial\Psi/\partial\pmb{q^{*}} = -\frac{1}{2} \sum_{t=1}^T\partial\bigg(
+\E[\XX_t^\top \otimes \XX_t^\top ]
+-\E[\XX_t^\top \otimes (\BB\XX_{t-1})^\top] -\E[(\BB\XX_{t-1})^\top \otimes \XX_t^\top] \\
+&\quad  - \E[\XX_t^\top \otimes \uu^\top] - \E[\uu^\top \otimes \XX_t^\top]
++ \E[(\BB\XX_{t-1})^\top \otimes (\BB\XX_{t-1})^\top] \\
+&\quad + \E[(\BB\XX_{t-1})^\top \otimes \uu^\top]
++ \E[\uu^\top \otimes (\BB\XX_{t-1})^\top] + (\uu^\top \otimes \uu^\top) \bigg)\vec(\QQ^{-1})/\partial\pmb{q^{*}}\\
+& - \partial\bigg(\frac{T}{2}\log |\QQ| \bigg)/\partial\pmb{q^{*}} \\
+&\quad = -\frac{1}{2} \sum_{t=1}^T\partial\big(\vec(\SS)^\top\big)\vec(\QQ^{-1})/\partial\pmb{q^{*}}
++ \partial\big(\frac{T}{2}\log|\QQ^{-1}| \big)/\partial\pmb{q^{*}} \\
+&\text{where }\SS=\sum_{t=1}^T  \big(\hatPt - \hatPttm \BB^\top - \BB\hatPtmt 
+- \hatxt\uu^\top - \uu \hatxt^\top + \\
+&\quad \BB\hatPtm\BB^\top + \BB\hatxtm\uu^\top + \uu\hatxtm^\top\BB^\top + \uu\uu^\top \big)
+\end{split}
+\end{equation}
+Note, I have replaced $\log|\QQ|$ with $-\log|\QQ^{-1}|$.  The determinant of a diagonal matrix is the product of its diagonal elements.  Thus,
+\begin{equation}\label{eq:Q.gendiag3}
+\begin{split}
+&\partial\Psi/\partial\pmb{q^{*}}= 
+ -\bigg(\frac{1}{2} \vec(\SS)^\top (\ff^{*} +\DD \pmb{q^{*}})  \\
+&\quad - \frac{T}{2}(\log(f^{*}_1) + \log(f^{*}_2) ... k\log(q^{*}_1) + l\log(q^{*}_2)...)\bigg)/\partial\pmb{q^{*}}\\
+\end{split}
+\end{equation}
+where $k$ is the number of times $q_1$ appears on the diagonal of $\QQ$ and $l$ is the number of times $q_2$ appears, etc.
+Taking the derivatives,
+\begin{equation}\label{eq:Q.gendiag4}
+\begin{split}
+&\partial\Psi/\partial\pmb{q^{*}} = 
+= \frac{1}{2} \DD^\top \vec(\SS) - \frac{T}{2}(\log(f^{*}_1) + ... k\log(q^{*}_1) + l\log(q^{*}_2)...)/\partial\pmb{q^{*}}\\
+&\quad = \frac{1}{2} \DD^\top \vec(\SS) - \frac{T}{2}\DD^\top\DD\pmb{q}
+\end{split}
+\end{equation}
+$\DD^\top\DD$ is a $p \times p$ matrix with $k$, $l$, etc. along the diagonal and thus is invertible; as usual, $p$ is the number of free elements in $\QQ$.  Set the left side to zero (a $1 \times p$ matrix of zeros) and solve for $\pmb{q}$.  This gives us the update equation for $\QQ$:
+\begin{equation}\label{eq:Q.gendiag}
+\begin{split}
+\pmb{q}_{j+1} &= \frac{1}{T} (\DD^\top\DD)^{-1}\DD^\top\vec(\SS)\\
+\vec(\QQ)_{j+1} &= \ff + \DD\pmb{q}_{j+1}
+\end{split}
+\end{equation}
+where $\SS$ is defined in equation \eqref{eq:Q.gendiag2} and, as usual, $\DD$ and $\ff$ are the parameter specific matrices.  In this case, $\DD=\DD_q$ and $\ff=\ff_q$.
+
+\subsubsection{Special case: $\QQ$ with one variance and one covariance}
+\begin{equation*}
+\QQ=
+\begin{bmatrix}
+\alpha&\beta&\beta&\beta\\
+\beta&\alpha&\beta&\beta\\
+\beta&\beta&\alpha&\beta\\
+\beta&\beta&\beta&\alpha
+\end{bmatrix}\quad\quad
+\QQ^{-1}=
+\begin{bmatrix}
+f(\alpha,\beta)&g(\alpha,\beta)&g(\alpha,\beta)&g(\alpha,\beta)\\
+g(\alpha,\beta)&f(\alpha,\beta)&g(\alpha,\beta)&g(\alpha,\beta)\\
+g(\alpha,\beta)&g(\alpha,\beta)&f(\alpha,\beta)&g(\alpha,\beta)\\
+g(\alpha,\beta)&g(\alpha,\beta)&g(\alpha,\beta)&f(\alpha,\beta)
+\end{bmatrix}
+\end{equation*}
+This is a matrix with a single shared variance parameter on the diagonal and a single shared covariance on the off-diagonals.  The derivation is the same as for the diagonal case, until the step involving the differentiation of $\log|\QQ^{-1}|$:
+\begin{equation}\label{eq:Q.eqvarcov1}
+\begin{split}
+&\partial\Psi/\partial\pmb{q^{*}} = 
+ \partial\bigg(-\frac{1}{2} \sum_{t=1}^T\big(\vec(\SS)^\top\big)\vec(\QQ^{-1})
++ \frac{T}{2}\log |\QQ^{-1}|\bigg)/\partial\pmb{q^{*}} \\
+\end{split}
+\end{equation}
+It does not make sense to take the partial derivative of $\log |\QQ^{-1}|$ with respect to $\vec(\QQ^{-1})$ because many elements of $\QQ^{-1}$ are shared so it is not possible to fix one element while varying another.  Instead, we can take the partial derivative of $\log |\QQ^{-1}|$ with respect to $g(\alpha,\beta)$ which is $\sum_{\{i,j\}\in \text{set}_g}\partial\log|\QQ^{-1}|/\partial\pmb{q^{*}}_{i,j}$.  Set $g$ is those $i,j$ values where $\pmb{q^{*}}=g(\alpha,\beta)$.  Because $g()$ and $f()$ are different functions of both $\alpha$ and $\beta$, we can hold one constant while taking the partial derivative with respect to the other (well, presuming there exists some combination of $\alpha$ and $\beta$ that would allow that).  But if we have fixed values on the off-diagonal, this would not be possible.  In this case (see below), we cannot hold $g()$ constant while varying $f()$ because both are only functions of $\alpha$:
+\begin{equation*}
+\QQ=
+\begin{bmatrix}
+\alpha&f&f&f\\
+f&\alpha&f&f\\
+f&f&\alpha&f\\
+f&f&f&\alpha
+\end{bmatrix}\quad\quad
+\QQ^{-1}=
+\begin{bmatrix}
+f(\alpha)&g(\alpha)&g(\alpha)&g(\alpha)\\
+g(\alpha)&f(\alpha)&g(\alpha)&g(\alpha)\\
+g(\alpha)&g(\alpha)&f(\alpha)&g(\alpha)\\
+g(\alpha)&g(\alpha)&g(\alpha)&f(\alpha)
+\end{bmatrix}
+\end{equation*}
+
+Taking the partial derivative of $\log |\QQ^{-1}|$ with respect to $\pmb{q^{*}}=\big[\begin{smallmatrix}f(\alpha,\beta)\\g(\alpha,\beta)\end{smallmatrix}\big]$, we arrive at the same equation as for the diagonal matrix:
+\begin{equation}\label{eq:Q.eqvarcov2}
+\begin{split}
+&\partial\Psi/\partial\pmb{q^{*}} = 
+\frac{1}{2} \DD^\top \vec(\SS) - \frac{T}{2}\DD^\top\DD\pmb{q}
+\end{split}
+\end{equation}
+where again $\DD^\top\DD$ is a $p \times p$ diagonal matrix with the number of times $f(\alpha,\beta)$ appears in element $(1,1)$ and the number of times $g(\alpha,\beta)$ appears in element $(2,2)$ of $\DD$; $p=2$ here since there are only 2 free parameters in $\QQ$.
+
+Setting to zero and solving for $\pmb{q^{*}}$ leads to the exact same update equation as for the diagonal $\QQ$, namely equation \eqref{eq:Q.gendiag} in which $\ff_q = 0$ since there are no fixed values.
+
+\subsubsection{Special case: a block-diagonal matrices with replicated blocks}
+\label{sec:Q.block.diagonal}
+Because these operations extend directly to block-diagonal matrices, all results for individual matrix types can be extended to a block-diagonal matrix with those types:
+\begin{equation*}
+\QQ=
+\begin{bmatrix}
+\mathbb{B}_1&0&0\\
+0&\mathbb{B}_2&0\\
+0&0&\mathbb{B}_3\\
+\end{bmatrix}
+\end{equation*}
+where $\mathbb{B}_i$ is a matrix from any of the allowed matrix types, such as unconstrained, diagonal (with fixed or shared elements), or equal variance-covariance.   Blocks can also be shared:
+\begin{equation*}\QQ=
+\begin{bmatrix}
+\mathbb{B}_1&0&0\\
+0&\mathbb{B}_2&0\\
+0&0&\mathbb{B}_2\\
+\end{bmatrix}
+\end{equation*}
+but the entire block must be identical $(\mathbb{B}_2 \equiv \mathbb{B}_3)$; one cannot simply share individual elements in different blocks.  Either all the elements in two (or 3, or 4...) blocks are shared or none are shared. 
+
+This is ok:
+\begin{equation*}
+\begin{bmatrix}
+c&d&d&0&0&0\\
+d&c&d&0&0&0\\
+d&d&c&0&0&0\\
+0&0&0&c&d&d\\
+0&0&0&d&c&d\\
+0&0&0&d&d&c\\
+\end{bmatrix}
+\end{equation*}
+This is not ok:
+\begin{equation*}
+\begin{bmatrix}
+c&d&d&0&0\\
+d&c&d&0&0\\
+d&d&c&0&0\\
+0&0&0&c&d\\
+0&0&0&d&c
+\end{bmatrix}
+\text{ nor }
+\begin{bmatrix}
+c&d&d&0&0&0\\
+d&c&d&0&0&0\\
+d&d&c&0&0&0\\
+0&0&0&c&e&e\\
+0&0&0&e&c&e\\
+0&0&0&e&e&c\\
+\end{bmatrix}\end{equation*}
+The first is bad because the blocks are not identical; they need the same dimensions as well as the same values.  The second is bad because again the blocks are not identical; all values must be the same.
+
+\subsubsection{Special case: a symmetric blocked matrix}
+\label{sec:Q.symmetric blocked}
+The same derivation translates immediately to blocked symmetric $\QQ$ matrices with the following form:
+\begin{equation*}
+\QQ=
+\begin{bmatrix}
+\mathbb{E}_1&\mathbb{C}_{1,2}&\mathbb{C}_{1,3}\\
+\mathbb{C}_{1,2}&\mathbb{E}_2&\mathbb{C}_{2,3}\\
+\mathbb{C}_{1,3}&\mathbb{C}_{2,3}&\mathbb{E}_3\\
+\end{bmatrix}
+\end{equation*}
+where the $\mathbb{E}$ are as above matrices with one value on the diagonal and another on the off-diagonals (no zeros!). The $\mathbb{C}$ matrices have only one free value or are all zero.  Some $\mathbb{C}$ matrices can be zero while are others are non-zero, but a individual $\mathbb{C}$ matrix cannot have a combination of free values and zero values; they have to be one or the other. Also the whole matrix must stay block symmetric. Additionally, there can be shared $\mathbb{E}$ or $\mathbb{C}$ matrices but the whole matrix needs to stay block-symmetric.  Here are the forms that $\mathbb{E}$ and $\mathbb{C}$ can take:
+\begin{equation*}
+\mathbb{E}_i=
+\begin{bmatrix}
+\alpha&\beta&\beta&\beta\\
+\beta&\alpha&\beta&\beta\\
+\beta&\beta&\alpha&\beta\\
+\beta&\beta&\beta&\alpha
+\end{bmatrix}
+\quad\quad
+\mathbb{C}_i=
+\begin{bmatrix}
+\chi&\chi&\chi&\chi\\
+\chi&\chi&\chi&\chi\\
+\chi&\chi&\chi&\chi\\
+\chi&\chi&\chi&\chi
+\end{bmatrix}
+\text{ or }
+\begin{bmatrix}
+0&0&0&0\\
+0&0&0&0\\
+0&0&0&0\\
+0&0&0&0
+\end{bmatrix}
+\end{equation*}
+The following are block-symmetric:
+\begin{equation*}
+\begin{bmatrix}
+\mathbb{E}_1&\mathbb{C}_{1,2}&\mathbb{C}_{1,3}\\
+\mathbb{C}_{1,2}&\mathbb{E}_2&\mathbb{C}_{2,3}\\
+\mathbb{C}_{1,3}&\mathbb{C}_{2,3}&\mathbb{E}_3\\
+\end{bmatrix}
+\text{ and }
+\begin{bmatrix}
+\mathbb{E}&\mathbb{C}&\mathbb{C}\\
+\mathbb{C}&\mathbb{E}&\mathbb{C}\\
+\mathbb{C}&\mathbb{C}&\mathbb{E}\\
+\end{bmatrix}
+\end{equation*}
+\begin{equation*}
+\text{ and }
+\begin{bmatrix}
+\mathbb{E}_1&\mathbb{C}_1&\mathbb{C}_{1,2}\\
+\mathbb{C}_1&\mathbb{E}_1&\mathbb{C}_{1,2}\\
+\mathbb{C}_{1,2}&\mathbb{C}_{1,2}&\mathbb{E}_2\\
+\end{bmatrix}
+\end{equation*}
+The following are NOT block-symmetric:
+\begin{equation*}
+\begin{bmatrix}
+\mathbb{E}_1&\mathbb{C}_{1,2}&0\\
+\mathbb{C}_{1,2}&\mathbb{E}_2&\mathbb{C}_{2,3}\\
+0&\mathbb{C}_{2,3}&\mathbb{E}_3
+\end{bmatrix}
+\text{ and }
+\begin{bmatrix}
+\mathbb{E}_1&0&\mathbb{C}_1\\
+0&\mathbb{E}_1&\mathbb{C}_2\\
+\mathbb{C}_1&\mathbb{C}_2&\mathbb{E}_2
+\end{bmatrix}
+\text{ and }
+\begin{bmatrix}
+\mathbb{E}_1&0&\mathbb{C}_{1,2}\\
+0&\mathbb{E}_1&\mathbb{C}_{1,2}\\
+\mathbb{C}_{1,2}&\mathbb{C}_{1,2}&\mathbb{E}_2\\
+\end{bmatrix}
+\end{equation*}
+\begin{equation*}
+\text{ and }
+\begin{bmatrix}
+\mathbb{U}_1&\mathbb{C}_{1,2}&\mathbb{C}_{1,3}\\
+\mathbb{C}_{1,2}&\mathbb{E}_2&\mathbb{C}_{2,3}\\
+\mathbb{C}_{1,3}&\mathbb{C}_{2,3}&\mathbb{E}_3
+\end{bmatrix}
+\text{ and }
+\begin{bmatrix}
+\mathbb{D}_1&\mathbb{C}_{1,2}&\mathbb{C}_{1,3}\\
+\mathbb{C}_{1,2}&\mathbb{E}_2&\mathbb{C}_{2,3}\\
+\mathbb{C}_{1,3}&\mathbb{C}_{2,3}&\mathbb{E}_3\end{bmatrix}
+\end{equation*}
+In the first row, the matrices have fixed values (zeros) and free values (covariances) on the same off-diagonal row and column.  That is not allowed.  If there is a zero on a row or column, all other terms on the off-diagonal row and column must be also zero.  In the second row, the matrix is not block-symmetric since the upper corner is an unconstrained block ($\mathbb{U}_1$) in the left matrix and diagonal block ($\mathbb{D}_1$) in the right matrix  instead of a equal variance-covariance matrix ($\mathbb{E}$).
+
+\subsubsection{The general case: a block-diagonal matrix with general blocks}
+\label{sec:Q.general}
+In it's most general form, $\QQ$ is allowed to have a block-diagonal form where the blocks, here called $\mathbb{G}$ are any of the previous allowed cases.  No shared values across $\mathbb{G}$'s; shared values are allowed within $\mathbb{G}$'s.
+\begin{equation*}
+\QQ=
+\begin{bmatrix}
+\mathbb{G}_1&0&0\\
+0&\mathbb{G}_2&0\\
+0&0&\mathbb{G}_3\\
+\end{bmatrix}
+\end{equation*}
+The $\mathbb{G}$'s must be one of the special cases listed above: unconstrained, diagonal (with fixed or shared values), equal variance-covariance, block diagonal (with shared or unshared blocks), and block-symmetric (with shared or unshared blocks).  Fixed blocks are allowed, but then the covariances with the free blocks must be zero:
+\begin{equation*}
+\QQ=
+\begin{bmatrix}
+\mathbb{F}&0&0&0\\
+0&\mathbb{G}_1&0&0\\
+0&0&\mathbb{G}_2&0\\
+0&0&0&\mathbb{G}_3
+\end{bmatrix}
+\end{equation*}
+Fixed blocks must have only fixed values (zero is a fixed value) but the fixed values can be different from each other.  The free blocks must have only free values (zero is not a free value).  
+
+\subsection{The general $\RR$ update equation}
+The $\RR$ update equation for blocked symmetric matrices with optional independent fixed blocks is completely analogous to the $\QQ$ equation.  Thus if $\RR$ has the form
+\begin{equation*}
+\RR=
+\begin{bmatrix}
+\mathbb{F}&0&0&0\\
+0&\mathbb{G}_1&0&0\\
+0&0&\mathbb{G}_2&0\\
+0&0&0&\mathbb{G}_3
+\end{bmatrix}
+\end{equation*}
+Again the $\mathbb{G}$'s must be one of the special cases listed above: unconstrained, diagonal (with fixed or shared values), equal variance-covariance, block diagonal (with shared or unshared blocks), and block-symmetric (with shared or unshared blocks).  Fixed blocks are allowed, but then the covariances with the free blocks must be zero
+
+The update equation is
+\begin{equation}\label{eq:R.general}
+\begin{split}
+&\pmb{\rho}_{j+1}  =  \frac{1}{T} (\DD_r^\top\DD_r)^{-1}\DD_r^\top \vec\bigg(\sum_{t=1}^T \RR_{t,{j+1}}  
+ \bigg)\\
+&\quad\quad\quad\quad\vec(\RR)_{j+1} = \ff_r + \DD_r \pmb{\rho}_{j+1}
+\end{split}
+\end{equation}
+The $\RR_{t,j+1}$ used at time step $t$ in equation \eqref{eq:R.general} is the term that appears in the summation in the unconstrained update equation with no missing values (equation \ref{eq:R.update.unconstrained}):
+\begin{equation}
+\begin{split}
+\RR_{t,j+1}&=\bigg(  
+ \hatOt - \hatYXt\ZZ^\top - \ZZ\hatYXt^\top 
+ - \hatyt\aa^\top - \aa\hatyt^\top \\
+&\quad + \ZZ\hatPt\ZZ^\top + \ZZ\hatxt\aa^\top + \aa\hatxt^\top\ZZ^\top 
+ + \aa\aa^\top \bigg)
+\end{split}
+\end{equation}
+
+\section{Computing the expectations in the update equations}\label{sec:compexpectations}
+For the update equations, we need to compute the expectations of $\XX_t$ and $\YY_t$ and their products conditioned on 1) the observed data $\YY(1)=\yy(1)$ and 2) the parameters at time $t$, $\Theta_j$.  This section shows how to compute these expectations.  Throughout the section, I will normally leave off the conditional $\YY(1)=\yy(1),\Theta_j$ when specifying an expectation. Thus any $\E[ ]$ appearing without its conditional is conditioned on $\YY(1)=\yy(1),\Theta_j$.  However if there are additional or different conditions those will be shown.  Also all expectations are over the joint distribution of $XY$ unless explicitly specified otherwise.
+
+Before commencing, we need some notation for the observed and unobserved elements of the data.
+The $n \times 1$ vector $\yy_t$ denotes the potential observations at time $t$. If some elements of $\yy_t$ are missing, that means some elements are equal to NA (or some other missing values marker):
+\begin{equation}
+\yy_t=\begin{bmatrix}
+y_1\\
+NA\\
+y_3\\
+y_4\\
+NA\\
+y_6
+\end{bmatrix}
+\end{equation}
+We denote the non-missing observations as $\yy_t(1)$ and the missing observations as $\yy_t(2)$.  Similar to $\yy_t$, $\YY_t$ denotes all the $\YY$ random variables at time $t$.  The $\YY_t$'s with an observation are  $\YY_t(1)$ and those without an observation are denoted $\YY_t(2)$. 
+
+Let $\OMG_t^{(1)}$ be the matrix that extracts only $\YY_t(1)$ from $\YY_t$ and $\OMG_t(2)$ be the matrix that extracts only $\YY_t(2)$.  For the example above,
+\begin{equation}
+\begin{split}
+&\YY_t(1)=\OMG_t^{(1)} \YY_t,\quad \OMG_t^{(1)} = 
+\begin{bmatrix}
+1&0&0&0&0&0\\
+0&0&1&0&0&0\\
+0&0&0&1&0&0\\
+0&0&0&0&0&1\\
+\end{bmatrix}\\
+&\YY_t(2)=\OMG_t^{(2)} \YY_t,\quad \OMG_t^{(2)} = 
+\begin{bmatrix}
+0&1&0&0&0&0\\
+0&0&0&0&1&0
+\end{bmatrix}
+\end{split}
+\end{equation}
+
+We will define another set of matrices that zeros out the missing or non-missing values. Let $\IIm_t^{(1)}$ denote a diagonal matrix that zeros out the $\YY_t(2)$ in $\YY_t$ and $\IIm_t^{(2)}$ denote a matrix that zeros out the $\YY_t(1)$ in $\YY_t$.  For the example above, 
+\begin{equation}
+\begin{split}
+\IIm_t^{(1)} &= (\OMG_t^{(1)})^\top\OMG_t^{(1)} =
+\begin{bmatrix}
+1&0&0&0&0&0\\
+0&0&0&0&0&0\\
+0&0&1&0&0&0\\
+0&0&0&1&0&0\\
+0&0&0&0&0&0\\
+0&0&0&0&0&1\\
+\end{bmatrix}\quad\text{and}\\
+\IIm_t^{(2)} &= (\OMG_t^{(2)})^\top\OMG_t^{(2)} =
+\begin{bmatrix}
+0&0&0&0&0&0\\
+0&1&0&0&0&0\\
+0&0&0&0&0&0\\
+0&0&0&0&0&0\\
+0&0&0&0&1&0\\
+0&0&0&0&0&0\\
+\end{bmatrix}.
+\end{split}
+\end{equation}
+
+\subsection{Expectations involving only $\XX_t$}\label{sec:kalman.smoother}
+The Kalman smoother provides the expectations involving only $\XX_t$ conditioned on all the data from time 1 to $T$.  
+\begin{subequations}\label{eq:kfsoutput}
+\begin{align}
+&\hatxt = \E[\XX_t]\label{eq:xt}\\
+&\widetilde{\VV}_t = \var[\XX_t]\\
+&\widetilde{\VV}_{t,t-1} = \cov[\XX_t,\XX_{t-1}]\\
+&\text{From $\hatxt$, $\widetilde{\VV}_t$, and $\widetilde{\VV}_{t,t-1}$, we compute}\nonumber\\
+&\hatPt=\E[\XX_t\XX_t^\top]= \widetilde{\VV}_t + \hatxt\hatxt^\top\label{eq:Pt}\\
+&\hatPttm=\E[\XX_{t}\XX_{t-1}^\top]=\widetilde{\VV}_{t,t-1} +\hatxt\hatxtm^\top\label{eq:Ptt1}
+\end{align}
+\end{subequations}
+The $\hatPt$ and $\hatPttm$ equations arise from the computational formula for variance (equation \ref{eq:comp.formula.variance}). Note the smoother is different than the Kalman filter as the filter does not provide the expectations of $\XX_t$ conditioned on all the data (time 1 to $T$) but only on the data up to time $t$.  
+
+The classic Kalman smoother is an algorithm to compute these expectations conditioned on no missing values in $\yy$. However, the algorithm  can be easily modified to give the expected values of $\XX$ conditioned on the incomplete data, $\YY(1)=\yy(1)$ \citep[sec. 6.4, eqn 6.78, p. 348]{ShumwayStoffer2006}.  
+In this case, the usual filter and smoother equations are used with the following modifications to the parameters and data used in the equations.  If the $i$-th element of $\yy_t$ is missing, zero out the $i$-th rows in $\yy_t$, $\aa$ and $\ZZ$.  Thus if the 2nd and 5th elements of $\yy_t$ are missing,
+\begin{equation}\label{eq:yaZ.miss}
+\yy_t=\begin{bmatrix}
+y_1\\
+0\\
+y_3\\
+y_4\\
+0\\
+y_6\\
+\end{bmatrix}, \quad
+\aa_t=\begin{bmatrix}
+a_1\\
+0\\
+a_3\\
+a_4\\
+0\\
+a_6\\
+\end{bmatrix}, \quad
+\ZZ_t=\begin{bmatrix}
+z_{1,1}&z_{1,2}&...\\
+0&0&...\\
+z_{3,1}&z_{3,2}&...\\
+z_{4,1}&z_{4,2}&...\\
+0&0&...\\
+z_{6,1}&z_{6,2}&...\\
+\end{bmatrix}
+\end{equation}
+
+The $\RR$ parameter used in the filter equations is also modified.  We need to zero out the covariances between the non-missing, $\yy_t(1)$, and missing, $\yy_t(2)$, data.  For the example above, if
+\begin{equation}
+\RR = \begin{bmatrix}
+r_{1,1}&r_{1,2}&r_{1,3}&r_{1,4}&r_{1,5}&r_{1,6}\\
+r_{2,1}&r_{2,2}&r_{2,3}&r_{2,4}&r_{2,5}&r_{2,6}\\
+r_{3,1}&r_{3,2}&r_{3,3}&r_{3,4}&r_{3,5}&r_{3,6}\\
+r_{4,1}&r_{4,2}&r_{4,3}&r_{4,4}&r_{4,5}&r_{4,6}\\
+r_{5,1}&r_{5,2}&r_{5,3}&r_{5,4}&r_{5,5}&r_{5,6}\\
+r_{6,1}&r_{6,2}&r_{6,3}&r_{6,4}&r_{6,5}&r_{6,6}\\
+\end{bmatrix}
+\end{equation}
+then the $\RR$ we use at time $t$, will have zero covariances between the non-missing elements 1,3,4,6 and the missing elements 2,5:
+\begin{equation}
+\RR_t = \begin{bmatrix}
+r_{1,1}&0&r_{1,3}&r_{1,4}&0&r_{1,6}\\
+0&r_{2,2}&0&0&r_{2,5}&0\\
+r_{3,1}&0&r_{3,3}&r_{3,4}&0&r_{3,6}\\
+r_{4,1}&0&r_{4,3}&r_{4,4}&0&r_{4,6}\\
+0&r_{5,2}&0&0&r_{5,5}&0\\
+r_{6,1}&0&r_{6,3}&r_{6,4}&0&r_{6,6}\\
+\end{bmatrix}
+\end{equation}
+
+Thus, the data and parameters used in the filter and smoother equations are
+\begin{equation}
+\begin{split}
+\yy_t&=\IIm_t^{(1)}\yy_t\\
+\aa_t&=\IIm_t^{(1)}\aa\\
+\ZZ_t&=\IIm_t^{(1)}\ZZ\\
+\RR_t &= \IIm_t^{(1)}\RR\IIm_t^{(1)} + \IIm_t^{(2)}\RR\II_t^{(2)}
+\end{split}
+\end{equation}
+$\aa_t$, $\ZZ_t$ and $\RR_t$ only are used in the Kalman filter and smoother.  They are not used in the EM update equations.  However when coding the algorithm, it is convenient to replace the NAs (or whatever the missing values placeholder is) in $\yy_t$ with zero so that there is not a problem with NAs appearing in the computations.
+
+\subsection{Expectations involving $\YY_t$}\label{sec:exp.Y}
+First, replace the missing values in $\yy_t$ with zeros\footnote{The only reason is so that in your computer code, if you use NA or NaN as the missing value marker, NA-NA=0 and 0*NA=0 rather than NA.} and then the expectations are given by the following equations.  The derivations for these equations are given in the subsections to follow.
+\begin{subequations}\label{eq:Yt.exp}
+\begin{align}
+\hatyt &= \E[\YY_t]=\yy_t-\IR_t(\yy_t-\ZZ\hatxt-\aa)\label{eq:hatyt}\\
+\hatOt &= \E[\YY_t\YY_t^\top]=\IIm_t^{(2)}(\IR_t\RR + \IR_t\ZZ\hatVt\ZZ^\top\IR_t^\top)\IIm_t^{(2)}  +  \hatyt\hatyt^\top \label{eq:hatOt}\\
+\hatYXt&= \E[\YY_t\XX_t^\top] = \IR_t\ZZ\hatVt + \hatyt\hatxt^\top \label{eq:hatyxttm}\\
+\hatYXttm&= \E[\YY_t\XX_{t-1}^\top] = \IR_t\ZZ\hatVttm + \hatyt\hatxtm^\top \label{eq:hatyxt}\\
+\text{where }\IR_t &= \II-\RR(\OMG_t^{(1)})^\top(\OMG_t^{(1)}\RR(\OMG_t^{(1)})^\top)^{-1}\OMG_t^{(1)}\label{eq.IRt}\\
+\text{and }\IIm_t^{(2)}&=(\OMG_t^{(2)})^\top\OMG_t^{(2)}
+\label{eq:IRt}
+\end{align}
+\end{subequations}
+If $\yy_t$ is all missing, $\OMG_t^{(1)}$ is a $0 \times n$ matrix, and we define $(\OMG_t^{(1)})^\top(\OMG_t^{(1)}\RR(\OMG_t^{(1)})^\top)^{-1}\OMG_t^{(1)}$ to be a $n \times n$ matrix of zeros.  If $\RR$ is diagonal, then $\RR(\OMG_t^{(1)})^\top(\OMG_t^{(1)}\RR(\OMG_t^{(1)})^\top)^{-1}\OMG_t^{(1)}=\IIm_t^{(1)}$ and $\IR_t=\IIm_t^{(2)}$.  This will mean that in $\hatyt$ the $\yy_t(2)$ are given by $\ZZ\hatxt+\aa$, as expected when $\yy_t(1)$ and $\yy_t(2)$ are independent.
+
+If there are zeros on the diagonal of $\RR$ (section \ref{sec:degenerate}), the definition of $\Delta_t$ is changed slightly from that shown in equation \ref{eq:Yt.exp}. Let $\mho_t^{(r)}$ be the matrix that extracts the elements of $\yy_t$ where $\yy_t(i)$ is not missing and $\RR(i,i)$ is not zero. Then
+\begin{equation}
+\IR_t = \II-\RR(\mho_t^{(r)})^\top(\mho_t^{(r)}\RR(\mho_t^{(r)})^\top)^{-1}\mho_t^{(r)}
+\label{eq:IRt.degen}
+\end{equation}
+
+\subsection{Derivation of the expected value of $\YY_t$}
+In the MARSS equation, the observation errors are denoted $\vv_t$.  This is a specific realization from a random variable $\VV_t$ that is distributed multivariate normal with mean 0 and variance $\RR$.  $\VV_t$ is not to be confused with $\widetilde{\VV}_t$ in equation \ref{eq:kfsoutput}, which is unrelated\footnote{I apologize for the confusing notation, but $\widetilde{\VV}_t$ and $\vv_t$ are somewhat standard in the MARSS literature and it is standard to use a capital letter to refer to a random variable.  Thus $\VV_t$ would be the standard way to refer to the random variable associated with $\vv_t$.} to $\VV_t$. If there are no missing values, then we condition on $\YY_t=\yy_t$ and
+\begin{equation}
+\begin{split}
+\E[\YY_t|\YY(1)=\yy(1)] = \E[\YY_t|\YY_t=\yy_t] = \yy_t\\
+\end{split}
+\end{equation}
+If there are no observed values, then 
+\begin{equation}
+\begin{split}
+\E[\YY_t|\YY(1)=\yy(1)]=\E[\YY_t] = \E[\ZZ\XX_t+\aa+\VV_t] = \ZZ\hatxt+\aa
+\end{split}
+\end{equation}
+If only some of the $\YY_t$ are observed, then we use the conditional probability for a multivariate normal distribution (here shown for a bivariate case):
+\begin{equation}\label{eq:cond.multi.normal}
+\text{If, }\begin{bmatrix}
+Y_1\\
+Y_2\end{bmatrix}
+\sim 
+\MVN\biggl( \begin{bmatrix}
+\mu_1\\
+\mu_2
+\end{bmatrix}, \begin{bmatrix}
+\Sigma_{11}&\Sigma_{12}\\
+\Sigma_{21}&\Sigma_{22}\end{bmatrix}\biggr)
+\end{equation}
+Then, 
+\begin{equation}
+\begin{split}
+(Y_1|Y_1=y_1) &=y_1,\quad\text{and}\\
+(Y_2|Y_1=y_1) &\sim \MVN(\bar{\mu},\bar{\Sigma}),\quad\text{where}\\
+\bar{\mu}&= \mu_2+\Sigma_{21}\Sigma_{11}^{-1}(y_1-\mu_1)\\
+\bar{\Sigma} &= \Sigma_{22}-\Sigma_{21}\Sigma_{11}^{-1}\Sigma_{12} 
+\end{split}
+\end{equation}
+
+From this property, we can write down the distribution of $\YY_t$ conditioned on $\YY_t(1)=\yy_t(1)$ and $\XX_t=\xx_t$:
+\begin{equation}
+\begin{bmatrix}
+\YY_t(1)|\XX_t=\xx_t\\
+\YY_t(2)|\XX_t=\xx_t
+\end{bmatrix}
+\sim 
+\MVN\biggl( \begin{bmatrix}
+\OMG_t^{(1)}(\ZZ\xx_t+\aa)\\
+\OMG_t^{(2)}(\ZZ\xx_t+\aa)
+\end{bmatrix}, \begin{bmatrix}
+\RR_{t,11}&\RR_{t,12}\\
+\RR_{t,21}&\RR_{t,22}
+\end{bmatrix}\biggr)
+\end{equation}
+Thus, 
+\begin{equation}\label{eq:varY}
+\begin{split}
+(\YY_t(1)&|\YY_t(1)=\yy_t(1),\XX_t=\xx_t) = \OMG_t^{(1)}\yy_t\quad\text{and}\\
+(\YY_t(2)&|\YY_t(1)=\yy_t(1),\XX_t=\xx_t) \sim \MVN(\ddot{\mu},\ddot{\Sigma})\quad\text{where}\\
+\ddot{\mu}&= \OMG_t^{(2)}(\ZZ\xx_t+\aa)+\RR_{t,21}(\RR_{t,11})^{-1}\OMG_t^{(1)}(\yy_t-\ZZ\xx_t-\aa)\\
+\ddot{\Sigma}&= \RR_{t,22} - \RR_{t,21}(\RR_{t,11})^{-1}\RR_{t,12} \\
+\end{split}
+\end{equation}
+
+Note that since we are conditioning on $\XX_t=\xx_t$, we can replace $\YY$ by $\YY_t$ in the conditional:
+$$\E[\YY_t|\YY(1)=\yy(1),\XX_t=\xx_t]=\E[\YY_t|\YY_t(1)=\yy_t(1),\XX_t=\xx_t].$$
+From this and the distributions in equation \eqref{eq:varY}, we can write down $\hatyt=\E[\YY_t|\YY(1)=\yy(1),\Theta_j]$:
+\begin{equation}
+\begin{split}
+\hatyt&=\E_{XY}[\YY_t|\YY(1)=\yy(1)]\\
+&=\int_{\xx_t}\int_{\yy_t}\yy_t f(\yy_t|\yy_t(1),\xx_t)d\yy_t f(\xx_t)d\xx_t \\
+&=\E_X[\E_{Y|x}[\YY_t|\YY_t(1)=\yy_t(1),\XX_t=\xx_t]]\\
+&=\E_X[\yy_t-\IR_t(\yy_t-\ZZ\XX_t-\aa)]\\
+&=\yy_t-\IR_t(\yy_t-\ZZ\hatxt-\aa)\\
+\text{where }\IR_t &= \II-\RR(\OMG_t^{(1)})^\top(\RR_{t,11})^{-1}\OMG_t^{(1)}
+\end{split}
+\end{equation}
+$(\OMG_t^{(1)})^\top(\RR_{t,11})^{-1}\OMG_t^{(1)}$ is a $n \times n$ matrix with 0s in the non-(11) positions. If the $k$-th element of $\yy_t$ is observed, then $k$-th row and column of $\IR_t$ will be zero.
+Thus if there are no missing values at time $t$, $\IR_t=\II-\II=0$. If there are no observed values at time $t$, $\IR_t$ will reduce to $\II$. 
+
+\subsection{Derivation of the expected value of $\YY_t\YY_t^\top$}
+The following outlines a\footnote{The following derivations are painfully ugly, but appear to work.  There are surely more elegant ways to do this; at least, there must be more elegant notations.} derivation.  If there are no missing values, then we condition on $\YY_t=\yy_t$ and
+\begin{equation}
+\begin{split}
+\E[\YY_t &\YY_t^\top|\YY(1)=\yy(1)] = \E[\YY_t \YY_t^\top|\YY_t=\yy_t]\\
+&=\yy_t\yy_t^\top.
+\end{split}
+\end{equation}
+If there are no observed values at time $t$, then 
+\begin{equation}
+\begin{split}
+\E[\YY_t &\YY_t^\top]\\ 
+&=\var[\ZZ\XX_t+\aa+\VV_t]+\E[\ZZ\XX_t+\aa+\VV_t]\E[\ZZ\XX_t+\aa+\VV_t]^\top\\
+&=\var[\VV_t]+\var[\ZZ\XX_t]+(\E[\ZZ\XX_t+\aa]+\E[\VV_t])(\E[\ZZ\XX_t+\aa]+\E[\VV_t])^\top\\
+&=\RR+\ZZ\hatVt\ZZ^\top + (\ZZ\hatxt+\aa)(\ZZ\hatxt+\aa)^\top
+\end{split}
+\end{equation}
+
+When only some of the $\YY_t$ are observed, we use again the conditional probability of a multivariate normal (equation \ref{eq:cond.multi.normal}).  From this property, we know that 
+\begin{equation}
+\begin{split}
+&\var_{Y|x}[\YY_t(2)\YY_t(2)^\top|\YY_t(1)=\yy_t(1),\XX_t=\xx_t]=\RR_{t,22} - \RR_{t,21}(\RR_{t,11})^{-1}\RR_{t,12},\\
+&\var_{Y|x}[\YY_t(1)|\YY_t(1)=\yy_t(1),\XX_t=\xx_t]=0\\
+\text{and }&\cov_{Y|x}[\YY_t(1),\YY_t(2)|\YY_t(1)=\yy_t(1),\XX_t=\xx_t]=0\\
+\\
+\text{Thus }&\var_{Y|x}[\YY_t|\YY_t(1)=\yy_t(1),\XX_t=\xx_t]\\
+&=(\OMG_t^{(2)})^\top(\RR_{t,22} - \RR_{t,21}(\RR_{t,11})^{-1}\RR_{t,12})\OMG_t^{(2)}\\
+&=(\OMG_t^{(2)})^\top(\OMG_t^{(2)}\RR(\OMG_t^{(2)})^\top - \OMG_t^{(2)}\RR(\OMG_t^{(1)})^\top(\RR_{t,11})^{-1}\OMG_t^{(1)}\RR(\OMG_t^{(2)})^\top)\OMG_t^{(2)}\\
+&=\IIm_t^{(2)}(\RR-\RR(\OMG_t^{(1)})^\top(\RR_{t,11})^{-1}\OMG_t^{(1)}\RR)\IIm_t^{(2)}\\
+&=\IIm_t^{(2)}\IR_t\RR\IIm_t^{(2)}
+\end{split}
+\end{equation}
+The $\IIm_t^{(2)}$ bracketing both sides is zero-ing out the rows and columns corresponding to the $\yy_t(1)$ values.
+
+Now we can compute the $\E_{XY}[\YY_t\YY_t^\top|\YY(1)=\yy(1)]$.  The subscripts are added to the $\E$ to emphasize that we are breaking the multivariate expectation into an inner and outer expectation.
+\begin{equation}
+\begin{split}
+\hatOt&=\E_{XY}[\YY_t\YY_t^\top|\YY(1)=\yy(1)]=\E_X[\E_{Y|x}[\YY_t\YY_t^\top|\YY_t(1)=\yy_t(1),\XX_t=\xx_t]]\\
+&=\E_X\bigl[\var_{Y|x}[\YY_t|\YY_t(1)=\yy_t(1),\XX_t=\xx_t] \\
+&\quad + \E_{Y|x}[\YY_t|\YY_t(1)=\yy_t(1),\XX_t=\xx_t]
+\E_{Y|x}[\YY_t|\YY_t(1)=\yy_t(1),\XX_t=\xx_t]^\top\bigr]\\
+&=\E_X[\IIm_t^{(2)}\IR_t\RR\IIm_t^{(2)}] +\E_X[(\yy_t-\IR_t(\yy_t-\ZZ\XX_t-\aa))(\yy_t-\IR_t(\yy_t-\ZZ\XX_t-\aa))^\top]\\
+&=\IIm_t^{(2)}\IR_t\RR\IIm_t^{(2)} + \var_X\bigl[\yy_t-\IR_t(\yy_t-\ZZ\XX_t-\aa)\bigr]\\ &\quad +\E_X[\yy_t-\IR_t(\yy_t-\ZZ\XX_t-\aa)]\E_X[\yy_t-\IR_t(\yy_t-\ZZ\XX_t-\aa)]^\top\\
+&=\IIm_t^{(2)}\IR_t\RR\IIm_t^{(2)}  + \IIm_t^{(2)}\IR_t\ZZ\hatVt\ZZ^\top\IR_t^\top\IIm_t^{(2)} + \hatyt\hatyt^\top  \\
+\end{split}
+\end{equation}
+Thus,
+\begin{equation}
+\hatOt=\IIm_t^{(2)}(\IR_t\RR + \IR_t\ZZ\hatVt\ZZ^\top\IR_t^\top)\IIm_t^{(2)}  +  \hatyt\hatyt^\top  \\
+\end{equation}
+
+\subsection{Derivation of the expected value of $\YY_t\XX_t^\top$}
+If there are no missing values, then we condition on $\YY_t=\yy_t$ and
+\begin{equation}
+\begin{split}
+\E[\YY_t \XX_t^\top|\YY(1)=\yy(1)] = \yy_t\E[\XX_t^\top]=\yy_t\hatxt^\top
+\end{split}
+\end{equation}
+If there are no observed values at time $t$, then 
+\begin{equation}
+\begin{split}
+\E[\YY_t &\XX_t^\top|\YY(1)=\yy(1)]\\ 
+&=\E[(\ZZ\XX_t+\aa+\VV_t)\XX_t^\top]\\
+&=\E[\ZZ\XX_t\XX_t^\top+\aa\XX_t^\top+\VV_t\XX_t^\top]\\
+&=\ZZ\hatPt+\aa\hatxt^\top+\cov[\VV_t,\XX_t]+\E[\VV_t]\E[\XX_t]^\top\\
+&=\ZZ\hatPt+\aa\hatxt^\top
+\end{split}
+\end{equation}
+Note that $\VV_t$ and $\XX_t$ are independent (equation \ref{eq:MARSS}). $\E[\VV_t]=0$ and $\cov[\VV_t,\XX_t]=0$.
+
+Now we can compute the $\E_{XY}[\YY_t\XX_t^\top|\YY_(1)=\yy(1)]$.  
+\begin{equation}
+\begin{split}
+\hatYXt&=\E_{XY}[\YY_t\XX_t^\top|\YY(1)=\yy(1)]\\
+&=\cov[\YY_t,\XX_t|\YY_t(1)=\yy_t(1)]+\E_{XY}[\YY_t|\YY(1)=\yy(1)]\E_{XY}[\XX_t^\top|\YY(1)=\yy(1)]^\top\\
+&=\cov[\yy_t-\IR_t(\yy_t-\ZZ\XX_t-\aa)+\VV^*_t,\XX_t]+\hatyt\hatxt^\top \\
+&=\cov[\yy_t,\XX_t]-\cov[\IR_t\yy_t,\XX_t]+\cov[\IR_t\ZZ\XX_t,\XX_t] +\cov[\IR_t\aa,\XX_t]\\
+&\quad + \cov[\VV^*_t,\XX_t]+\hatyt\hatxt^\top \\
+&=0 - 0 + \IR_t\ZZ\hatVt + 0 + 0 + \hatyt\hatxt^\top \\
+&= \IR_t\ZZ\hatVt + \hatyt\hatxt^\top
+\end{split}
+\end{equation}
+This uses the computational formula for covariance: $\E[\YY\XX^\top]=\cov[\YY,\XX]+\E[\YY]\E[\XX]^\top$. $\VV^*_t$ is a random variable with mean 0 and variance $\RR_{t,22} - \RR_{t,21}(\RR_{t,11})^{-1}\RR_{t,12}$ from equation \eqref{eq:varY}.  $\VV^*_t$ and $\XX_t$ are independent of each other, thus $\cov[\VV^*_t,\XX_t^\top]=0$.
+
+\subsection{Derivation of the expected value of $\YY_t\XX_{t-1}^\top$}
+The derivation of $\E[\YY_t\XX_{t-1}^\top]$ is similar to the derivation of $\E[\YY_t\XX_{t-1}^\top]$:
+\begin{equation}
+\begin{split}
+\hatYXt&=\E_{XY}[\YY_t\XX_{t-1}^\top|\YY(1)=\yy(1)]\\
+&=\cov[\YY_t,\XX_{t-1}|\YY_t(1)=\yy_t(1)] + \E_{XY}[\YY_t|\YY(1)=\yy(1)]\E_{XY}[\XX_{t-1}^\top|\YY(1)=\yy(1)]^\top\\
+&=\cov[\yy_t-\IR_t(\yy_t-\ZZ\XX_t-\aa)+\VV^*_t,\XX_{t-1}]+\hatyt\hatxtm^\top \\
+&=\cov[\yy_t,\XX_{t-1}]-\cov[\IR_t\yy_t,\XX_{t-1}]+\cov[\IR_t\ZZ\XX_t,\XX_{t-1}] \\
+&\quad +\cov[\IR_t\aa,\XX_{t-1}] + \cov[\VV^*_t,\XX_{t-1}]+\hatyt\hatxtm^\top \\
+&=0 - 0 + \IR_t\ZZ\hatVttm + 0 + 0 + \hatyt\hatxtm^\top \\
+&= \IR_t\ZZ\hatVttm + \hatyt\hatxtm^\top
+\end{split}
+\end{equation}
+
+\section{Degenerate variance modifications}\label{sec:degenerate}
+It is possible that the model has deterministic and probabilistic elements; mathematically this means that one or the other of $\RR$ or $\QQ$ have zeros on the diagonal in which case some of the observation or state processes are deterministic.  Assuming the model is solvable (one solution and not over-determined), we can modify the Kalman smoother and EM algorithm to handle models with deterministic elements.    The motivation behind the degenerate variance modification is that we want to use one set of EM update equations for all models in the MARSS class---regardless of whether they are partially or fully degenerate.  The notation here is painful, but the actual math is not difficult to implement.
+
+As an example of a solvable versus unsolvable model, consider the following. If
+\begin{equation}
+\RR=\begin{bmatrix}
+0&0&0&0\\
+0&a\neq0&0&0\\
+0&0&b\neq0&0\\
+0&0&0&0\\\end{bmatrix},
+\end{equation}
+then following are bad versus ok $\ZZ$ matrices.
+\begin{equation}
+\ZZ_{\text{bad}}=\begin{bmatrix}
+c&d&0\\
+z(2,1)&z(2,2)&z(2,3)\\
+z(3,1)&z(3,1)&z(3,1)\\
+c&d&0
+\end{bmatrix},\quad
+\ZZ_{\text{ok}}=\begin{bmatrix}
+c&0&0\\
+z(2,1)&z(2,2)&z(2,3)\\
+z(3,1)&z(3,1)&z(3,1)\\
+c&d\neq0&0
+\end{bmatrix}
+\end{equation}
+Because $y_t(1)$ and $y_t(4)$ have zero observation variance, the first $\ZZ$ reduces to this for $x_t(1)$ and $x_t(2)$:
+\begin{equation}
+\begin{bmatrix}
+y_t(1)\\
+y_t(4)
+\end{bmatrix}=
+\begin{bmatrix}
+c x_t(1) + d x_t(2)\\
+c x_t(1) + d x_t(2)
+\end{bmatrix}
+\end{equation}
+and since $y_t(1)\neq y_t(4)$, potentially, that is not solvable.  The second $\ZZ$ reduces to
+\begin{equation}
+\begin{bmatrix}
+y_t(1)\\
+y_t(4)
+\end{bmatrix}=
+\begin{bmatrix}
+c x_t(1)\\
+c x_t(1) + d x_t(4)
+\end{bmatrix}
+\end{equation}and that is solvable for any $y_t(1)$ and $y_t(4)$ combination.  Notice that in the latter case, $x_t(1)$ and $x_t(2)$ are fully specified by $y_t(1)$ and $y_t(4)$.  This property will be used below to deal with numerical errors that crop up when diagonal elements of $\RR$ are equal to zero.
+
+\subsection{Kalman filter and smoother modifications}
+In principle, when one of the $\QQ$ or $\RR$ variances is zero\footnote{The corresponding covariances will also be zero.}, the standard Kalman filter/smoother equations would still work and provide the correct state outputs and likelihood.  In practice however errors will be generated if one passes a variance matrix with zeros on the diagonal because under certain situations, one of the matrix inverses will involve a matrix with a zero on the diagonal in the Kalman filter/smoother equations and this will lead to an the computer code throwing an error.  
+
+When $\RR$ has zeros on the diagonal, problems arise in the Kalman update part of the Kalman filter.  
+The Kalman gain\footnote{Refer to Shumway and Stoffer, e.g., for the Kalman filter equations.  I am skipping over that to just show the changes to the recursion equations.} is 
+\begin{equation}\label{eq:KKt.2}
+\KK_t = \VV_t^{t-1}\ZZ_t^\top(\ZZ_t\VV_t^{t-1}\ZZ_t^\top + \RR_t)^{-1}
+\end{equation}
+Here, $\ZZ_t$ is the missing values modified $\ZZ$ matrix with the $i$-th rows zero-ed out if the $i$-th element of $\yy_t$ is missing (section \ref{sec:kalman.smoother}, equation \ref{eq:yaZ.miss}).  Thus if the $i$-th element of $\yy_t$ is missing and the $(i,i)$ element of $\RR$ is zero, the $(i,i)$ element of $(\ZZ_t\VV_t^{t-1}\ZZ_t^\top + \RR_t)$ will be zero also and one cannot take its inverse.  In addition, if the initial value $\xx_1$ is treated as fixed but unknown then $\VV_1^0$ will be a $m \times m$ matrix of zeros.  Again in this situation $(\ZZ_t\VV_t^{t-1}\ZZ_t^\top + \RR_t)$ will have zeros at any $(i,i)$ elements where $\RR$ is also zero.
+
+The first case, where zeros on the diagonal arise due to missing values in the data, can be solved using the  matrix which pulls out the rows and columns corresponding to the non-missing values ($\OMG_t^{(1)}$).  Replace $\big(\ZZ_t\VV_t^{t-1}\ZZ_t^\top + \RR_t\big)^{-1}$ in equation \eqref{eq:KKt.2} with
+\begin{equation}
+(\OMG_t^{(1)})^\top\big(\OMG_t^{(1)}(\ZZ_t\VV_t^{t-1}\ZZ_t^\top + \RR_t)(\OMG_t^{(1)})^\top\big)^{-1}\OMG_t^{(1)}
+\end{equation}
+Wrapping in $\OMG_t^{(1)}(\OMG_t^{(1)})^\top$ gets rid of all the zero rows/columns in $\ZZ_t\VV_t^{t-1}\ZZ_t^\top + \RR_t$, and the matrix is reassembled with the zero rows/columns reinserted by wrapping in $(\OMG_t^{(1)})^\top\OMG_t^{(1)}$.  This works because $\RR_t$ is the missing values modified $\RR$ (section \ref{sec:missing}) and is block diagonal across the $i$ and non-$i$ rows/columns, and $\ZZ_t$ has the $i$-columns zero-ed out. Thus removing the $i$ columns and rows before taking the inverse has no effect on the product $\ZZ_t(...)^{-1}$. When $\VV_1^0=\mathbf{0}$, set $\KK_1=\mathbf{0}$ without computing the inverse (see equation \ref{eq:KKt.2} where $\VV_1^0$ appears on the left).
+
+There is also a numerical issue to deal with.  When the $(i,i)$ elements of $\RR$ are zero, some of the elements of $\xx_t$ may be completely specified (fully known) given $\yy_t$.  Let's call these fully known elements of $\xx_t$, the $k$-th elements.  In this case, the $k$-th row and column of $\VV_t^t$ must be zero because given $y_t(i)$, $x_t(k)$ is known (is fixed) and its variance, $\VV_t^t(k,k)$, is zero.  Because  $\KK_t$ is computed using a numerical estimate of the inverse, the standard $\VV_t^t$ update equation (which uses $\KK_t$) will cause these elements to be close to zero but not precisely zero, and they may even be slightly negative on the diagonal. This will cause serious problems when the Kalman filter output is passed on to the EM algorithm. Thus after $\VV_t^t$ is computed using the normal Kalman update equation, we will want to explicitly zero out the $k$ rows and columns in the filter.  
+
+When $\QQ$ has zeros on the diagonal, then we might also have similar numerical errors in $\JJ$ in the Kalman smoother.  The $\JJ$ equation\footnote{Again, refer to Shumway and Stoffer for the Kalman filter recursions.} is 
+\begin{equation}\label{eq:Jt.2}
+\begin{split}
+\JJ_t &= \VV_{t-1}^{t-1}\BB^\top(\VV_t^{t-1})^{-1}\\
+&\text{where }\VV_t^{t-1} = \BB \VV_{t-1}^{t-1} \BB^\top + \QQ
+\end{split}
+\end{equation}
+If $\QQ$ has zeros on the diagonal, the corresponding $\JJ_t$ elements become:
+\begin{equation}\label{eq:Jt.3}
+\begin{split}
+\JJ_t &= \VV_{t-1}^{t-1}\BB^\top(\BB \VV_{t-1}^{t-1} \BB^\top)^{-1}\\
+&= \VV_{t-1}^{t-1}\BB^\top (\BB^\top)^{-1}(\VV_{t-1}^{t-1})^{-1}\BB^{-1}\\
+&= \BB^{-1}
+\end{split}
+\end{equation}
+Note when $\LAM = 0$ and $\QQ=0$, $\JJ_0$ could be set to 0 or $\BB^{-1}$.
+
+\subsection{EM algorithm modifications}
+The constrained update equations for $\QQ$ and $\RR$ (either diagonal w/o missing values or non-diagonal with no missing values) work fine because they deal with fixed values (in this case, zeros) and the derivation does not involve any inverses of non-invertible matrices. However if $\RR$ is non-diagonal and there are missing values, then the $\RR$ update equation  involves $\hatyt$, and that will involve the inverse of $\RR_{11}$  (section \ref{sec:exp.Y}), which might have zeros on the diagonal.  In that case, use the $\IR_t$ modification that deals with zeros on the diagonal of $\RR$ (equation \ref{eq:IRt.degen}).
+
+\subsubsection{Modified likelihood for partially deterministic models}
+Let $\RR^+$ be the sub-setted positive $\RR$ matrix.  For example, if
+\begin{equation}
+\RR=\begin{bmatrix}
+1&0&.2\\
+0&0&0\\
+.2&0&1
+\end{bmatrix},\quad \text{then} \quad
+\RR^+=\begin{bmatrix}
+1&.2\\
+.2&1
+\end{bmatrix}.
+\end{equation}
+Let $\OMG_r^+$ be a $p \times n$  matrix that extracts the $p$ non-zero rows from $\RR$, and can extract $\RR^+$ from $\RR$. The diagonal matrix $(\OMG_r^+)^\top\OMG_r^+ \equiv \II_r^+$ zero's out the zero row in $\RR$ (and any $n \times 1$ row vector.  For the example above, 
+\begin{equation}
+\begin{split}
+\RR^+&=\OMG_r^+ \RR (\OMG_r^+)^\top\\
+\yy_t^+&=\OMG_r^+ \yy_t\\
+\OMG_r^+ &= 
+\begin{bmatrix}
+1&0&0\\
+0&0&1
+\end{bmatrix}\quad\quad
+\II_r^+ = (\OMG_r^+)^\top\OMG_r^+ = 
+\begin{bmatrix}
+1&0&0\\
+0&0&0\\
+0&0&1
+\end{bmatrix}
+\end{split}
+\end{equation}
+
+Let $\OMG_r^{(0)}$ be a $(n-p) \times n$  matrix that extracts the $n-p$ zero rows from $\RR$. For the example above, 
+\begin{equation}
+\begin{split}
+\RR^{(0)}&=\OMG_r^{(0)} \RR (\OMG_r^{(0)})^\top\\
+\yy_t^{(0)}&=\OMG_r^{(0)} \yy_t\\
+\OMG_r^{(0)} &= 
+\begin{bmatrix}
+0&1&0\\
+\end{bmatrix}\quad\quad
+\II_r^{(0)} = (\OMG_r^{(0)})^\top\OMG_r^{(0)} = 
+\begin{bmatrix}
+0&0&0\\
+0&1&0\\
+0&0&0
+\end{bmatrix}
+\end{split}
+\end{equation}
+Similarly,  $\OMG_q^+$ extracts the non-zero rows from $\QQ$ and  $\OMG_q^{(0)}$ extracts the zero rows.
+
+Using these definitions, we can rewrite the MARSS model by separating out the deterministic parts ($\QQ=0$):
+\begin{equation}\label{eq:degen.model1}
+\begin{split}
+\xx_t^{(0)}&=\OMG_q^{(0)}\xx_t=\OMG_q^{(0)}\BB\xx_{t-1} + \OMG_q^{(0)}\uu\\
+\xx_t^+&=\OMG_q^+\xx_t=\OMG_q^+\BB\xx_{t-1} + \OMG_q^+\uu + \ww_t^+\\
+\ww_t^+ &\sim \MVN(0,\QQ^+)\\
+\xx_0& \sim \MVN(\xixi,\LAM)
+\\
+\yy_t^{(0)}&=\OMG_r^{(0)}\yy_t=\OMG_r^{(0)}(\ZZ\II_q^+\xx_t + \ZZ(\OMG_q^{(0)})^\top\OMG_q^{(0)}(\BB\xx_{t-1}+\uu) + \aa)\\
+\yy_t^+&=\OMG_q^+\yy_t=\OMG_q^+(\ZZ\II_q^+\xx_t + \ZZ\II_q^{(0)}(\BB\xx_{t-1}+\uu) + \aa) + \vv_t^+\\
+\vv_t^+ &\sim \MVN(0,\RR^+)
+\end{split}
+\end{equation}
+In order for this to be solvable, we require that $\OMG_r^{(0)}\ZZ\II_q^{(0)}$ is all zeros so that $\BB$ and $\uu$ do not appear in the $\yy^{(0)}$ equation, and then they disappear in the $\yy^{(0)}$ equation as shown above.  That is, if state process $x_i$ (in $\xx$) is deterministic (0 process variance), then no observation processes $y$ in $\yy$ that involves that $x_i$ (through $\ZZ$) shall have 0 observation variance.  Also notice that $\OMG_r^{(0)}\ZZ$ and $\OMG_r^{(0)}\aa$ appear in the $\yy^{(0)}$ equation and not in the $\yy^+$ equation.  This means that $\OMG_r^{(0)}\ZZ$ and $\OMG_r^{(0)}\aa$ cannot be estimated but must be fixed terms.
+
+Summarizing, this equation becomes
+\begin{equation}\label{eq:degen.model2}
+\begin{split}
+\xx_t^{(0)}&=\BB^{(0)}\xx_{t-1} + \uu^{(0)}\\
+\xx_t^+&=\BB^+\xx_{t-1} + \uu^+ + \ww_t^+\\
+\ww_t^+ &\sim \MVN(0,\QQ^+)\\
+\xx_0& \sim \MVN(\xixi,\LAM)
+\\
+\yy_t^{(0)}&=\ZZ^{(0)}\xx_t + \aa^{(0)}\\
+\yy_t^+&=\ZZ^+\xx_t + \aa^+ + \vv_t^+\\
+&=\ZZ^+\II_q^+\xx_t + \ZZ^+\II_q^{(0)}\xx_t + \aa^+ + \vv_t^+\\
+\vv_t^+ &\sim \MVN(0,\RR^+)
+\end{split}
+\end{equation}
+As discussed above, we require that $\OMG_r^{(0)}\ZZ\II_q^{(0)}$ is all zeros while $\OMG_r^+\ZZ\II_q^{(0)}$ has no rows that are all zeros.  This equation is conceptually the same as equation 4.2.28 in Harvey (1989).
+
+We want to write down the joint likelihood of $\yy^+=\{\yy_1^+,\yy_2+,\yy_3+,...\}$ and $\xx^+=\{\xx_1^+,\xx_2^+,\xx_3^+,...\}$. 
+We can write the joint log-likelihood function for the + elements using equation \eqref{eq:degen.model1} and the likelihood function for a multivariate normal distribution.  
+\begin{equation}\label{eq:degen.logL}
+\begin{split}
+&\Psi^+ = \log\LL(\yy^+,\xx^+ ; \Theta) = \\
+&-\frac{1}{2}\sum_1^T (\yy_t^+ - \ZZ^+(\II_q^+\xx_t + \II_q^{(0)}\xx_t) - \aa^+)^\top (\RR^+)^{-1}\\ 
+&\quad (\yy_t^+ - \ZZ^+(\II_q^+\xx_t + \II_q^{(0)}\xx_t) - \aa^+) -\frac{T}{2}\log |\RR^+|\\
+&  -\frac{1}{2}\sum_1^T (\xx_t^+ - \BB^+ \xx_{t-1} - \uu^+)^\top (\QQ^+)^{-1} (\xx_t^+ - \BB^+ \xx_{t-1} - \uu^+) - \frac{T}{2}\log |\QQ^+|\\
+&  -\frac{1}{2}(\xx_0 - \xixi)^\top \VV_0^{-1}(\xx_0 - \xixi) - \frac{1}{2}\log |\LAM| -\frac{n}{2}\log 2\pi \\
+\end{split}
+\end{equation}
+$n$ is the number of data points.  If either $\RR$ or $\QQ$ are all zero, the line in the log-likelihood equation involving $\RR^+$ or $\QQ^+$ disappears.
+Notice that $\aa^{(0)}$ and $\ZZ^{(0)}$ do not appear, which means that the rows of $\aa$ and $\ZZ$ associated with deterministic $\yy$ do not appear.  Since these parameters do not appear in the likelihood (as written above), we cannot maximize the expected log-likelihood with respect to them.  Notice also that $\BB^{(0)}$ and $\uu^{(0)}$ appear in the $\yy$ part of the likelihood while $\BB^+$ and $\uu^+$ appear in the $\xx$ part.
+
+If $\xx_0$ is treated as fixed ($\LAM=0$), then the likelihood takes a slightly different form using equation \eqref{eq:degen.model2}
+\begin{equation}\label{eq:degen.logL.x0.fixed}
+\begin{split}
+&\Psi^+ = \log\LL(\yy^+,\xx^+ ; \Theta) = \\
+&-\frac{1}{2}\sum_1^T (\yy_t^+ - \ZZ^+(\II_q^+\xx_t + \II_q^{(0)}\xx_t) - \aa^+)^\top (\RR^+)^{-1}\\ &\quad (\yy_t^+ - (\ZZ^+\II_q^+\xx_t + \ZZ^+(\II_q^+\xx_t + \II_q^{(0)}\xx_t) - \aa^+) -\frac{T}{2}\log |\RR^+|\\
+&-\frac{1}{2}\sum_1^T (\xx_t^+ - \BB^+ \xx_{t-1} - \uu^+)^\top (\QQ^+)^{-1} (\xx_t^+ - \BB^+ \xx_{t-1} - \uu^+)\\
+& - \frac{T}{2}\log |\QQ^+| -  \frac{n}{2}\log 2\pi\\
+&\quad \text{where }\xx_0 \equiv \xixi  \\
+\end{split}
+\end{equation}
+
+\subsubsection{$\ZZ^+$ and $\aa^+$ update equations for partially deterministic models}
+The $\aa$ and $\ZZ$ update equations involve both $\hatyt$ and the inverse of $\RR$ and thus must be modified allow zeros on the diagonal of $\RR$.   
+
+Because we require that $\ZZ^{(0)}$ and $\aa^{(0)}$ are fixed, we can rewrite the $\ZZ$ update equation in the case where there are zeros on the diagonal of $\RR$ as the constrained update equation for $\ZZ$ (equation \ref{eq:general.Z.update}) with $\RR^{-1}$ replaced with $\RR^*$:
+\begin{equation}\label{eq:degen.Z.update}
+\begin{split}
+&\pmb{\zeta}_{j+1} = \bigg(\sum_{t=1}^T(\DD_z^\top(\hatPt \otimes \RR^*)\DD_z)\bigg)^{-1}\DD_z^\top \times\\ &\quad \sum_{t=1}^T\big( \vec(\RR^*(\hatYXt-\aa\hatxt^\top)) -(\hatPt  \otimes \RR^*)\ff_z\big)
+\end{split}
+\end{equation}
+where $\RR^*=(\OMG_r^+)^\top(\RR^+)^{-1}\OMG_r^+$.  Combining $\pmb{\zeta}_{j+1}$ with $\ZZ_\text{fixed}$, we arrive at the vec of the updated $\ZZ$ matrix:
+\begin{equation}
+\vec(\ZZ_{j+1})  = \ff_z + \DD_z\pmb{\zeta}_{j+1}
+\end{equation}
+Because the $\ZZ^{(0)}$ elements are fixed, $\DD_z^\top(\hatPt \otimes \RR^*)\DD_z$ is invertible.  As usual, $\ZZ$ elements must be fixed in such a way that the model has one solution.  
+
+Similarly, the derivation for the constrained $\aa$ update equation also reduces to the constrained $\aa$ equation (equation \ref{eq:general.a.update}) with $\RR^{-1}$ replaced with $\RR^*$:
+\begin{equation}\label{eq:degen.a.update}
+\pmb{\alpha}_{j+1} = \frac{1}{T}\big(\DD_a^\top\RR^*\DD_a\big)^{-1}
+ \DD_a^\top\RR^*\sum_{t=1}^T \big(\hatyt-\ZZ\hatxt -\ff_a \big)
+\end{equation}
+The new $\aa$ parameter is then
+\begin{equation}\label{eq:degen.a.update2}
+\aa_{j+1} = \ff_a + \DD_a\pmb{\alpha}_{j+1},
+\end{equation}
+The $\aa^{(0)}$ elements are fixed which means that  $\DD_a^\top\RR^*\DD_a$ is invertible.  For example, if $\RR$ is all zeros and $\ZZ$ is a column vector, then all the $\aa$ elements must be fixed.
+
+\subsubsection{$\uu$ update equation for partially deterministic models with diagonal $\BB^{(0)}$}
+To derive the update equation for $\uu$, we need to take the partial derivative of $\Psi^+$ holding everything constant except $\uu$.  If a state process is fully deterministic and $\BB$ is diagonal, then we cannot hold $\xx^{(0)}$ constant while changing $\uu^{(0)}$.  If we change $\uu^{(0)}$, then $\xx^{(0)}$ must change because it is deterministic.  This is in contrast to $\uu^+$ which can be changed while holding $\xx^+$ constant, because $\xx^+$ is stochastic and all values are possible for a given $\uu^+$ (albeit maybe not as likely).
+
+When $\BB^{(0)}$ is diagonal and there are no $\BB$ elements linking the $\BB^+$ and $\BB^{(0)}$ blocks, the equation for the deterministic state processes becomes $x_t = b x_{t-1} + u$ which is simply 
+\begin{equation}
+\begin{split}
+x_t=&b^t x_0 + u\sum_{i=0}^{t-1}b^i = \\
+&b^t x_0 + u\frac{1-b^t}{1-b}, b \neq 1\\
+&x_0 + u t, b = 1
+\end{split}
+\end{equation}
+Thus we will replace the $\II_q^{(0)}\xx_t$ term appearing in $\Psi^+$ (equation \ref{eq:degen.logL}) with 
+\begin{equation}\label{eq:x0.q0}
+\begin{split}
+\II_q^{(0)}\xx_t&=(\BB^{(0)})^t \xx^{(0)}_0 + (\II_q^{(0)}-(\BB^{(0)})^t)(\II-\BB^{(0)})^{-1}\uu^{(0)}\\
+&=\BB^\diamondsuit\xx_0 + \BB^\sharp\uu\\
+&\text{where }\BB^\diamondsuit=(\II_q^{(0)}\BB\II_q^{(0)})^t\\
+&\text{and }\BB^\sharp=(\II_q^{(0)}-\BB^\diamondsuit)(\II_m-\II_q^{(0)}\BB\II_q^{(0)})^{-1}
+\end{split}
+\end{equation}
+Thus $\Psi^+$ becomes
+\begin{equation}\label{eq:degen.logL.u}
+\begin{split}
+&\Psi^+ = \log\LL(\yy^+,\xx^+ ; \Theta) = \\
+&-\frac{1}{2}\sum_1^T (\yy_t^+ - \ZZ^+(\II_q^+\xx_t + \II_q^{(0)}(\BB^\diamondsuit\xx_0 + \BB^\sharp\uu)) - \aa^+)^\top (\RR^+)^{-1}\\ 
+&\quad (\yy_t^+ - \ZZ^+(\II_q^+\xx_t + \II_q^{(0)}(\BB^\diamondsuit\xx_0 + \BB^\sharp\uu)) - \aa^+) -\frac{T}{2}\log |\RR^+|\\
+& -\frac{1}{2}\sum_1^T (\xx_t^+ - \BB^+ \xx_{t-1} - \uu^+)^\top (\QQ^+)^{-1} (\xx_t^+ - \BB^+ \xx_{t-1} - \uu^+)\\
+& - \frac{T}{2}\log |\QQ^+| - \frac{1}{2}(\xx_0 - \xixi)^\top \LAM^{-1}(\xx_0 - \xixi) - \frac{1}{2}\log |\LAM| -\frac{n}{2}\log 2\pi \\
+\end{split}
+\end{equation}
+This works because $\II_q^{(0)}\BB\II_q^{(0)}$ is diagonal.
+The $\uu^{(0)}$ parameter appears in the $\yy$ part of the likelihood and $\uu^+$ appears in the $\xx$ part. However, because $\uu$ can have shared elements, it is possible that a $\uu$ element is shared across  $\uu^{(0)}$ and $\uu^+$.  We write then $\uu$ as $\ff_u + \DD_u \pmb{\upsilon}$, put that in equation \eqref{eq:degen.logL.u}, and differentiate with respect to $\pmb{\upsilon}$ rather than $\uu^{(0)}$ or $\uu^+$.
+
+The rest of the derivation steps are similar to those for the general update equation (analogous to equation \ref{eq:u.general.update1}).  Take the derivative of $\Psi^+$ (equation \ref{eq:degen.logL.u}) with respect to $\pmb{\upsilon}$.  Note that $\II_q^{(0)}=(\II_q^{(0)})^\top$ and that $\II_q^{(0)}(\II-\BB^t)(\II-\BB)^{-1}\II_q^{(0)}$ is a diagonal matrix and thus can be moved (i.e., if $A$ and $D$ are diagonal, $AD=DA$ and $D^\top=D$).  After taking the derivative with respect to $\pmb{\upsilon}$, we get:
+\begin{equation}
+\begin{split}\label{eq:u.degen}
+&\DD_u^\top(\RR^\sharp + T\QQ^*)\DD_u\pmb{\upsilon}=\\
+&\quad \DD_u^\top\II_q^{(0)}\sum_{t=1}^T \BB^\sharp\ZZ^\top\RR^*\big( \hatyt-\ZZ\II_q^+\hatxt - \ZZ\II_q^{(0)}(\BB^\diamondsuit\hatxzero + \BB^\sharp\ff_u) -\aa \big) \\
+&\quad + \DD_u^\top\II_q^+\QQ^*\sum_{t=1}^T \big(\hatxt-\BB\hatxtm - \ff_u \big)\\
+&\text{where }\RR^*=(\OMG_r^+)^\top(\RR^+)^{-1}\OMG_r^+\\
+&\text{and }\RR^\sharp=\sum_{t=1}^T \BB^\sharp\ZZ^\top\RR^*\ZZ\BB^\sharp \\
+&\text{and }\QQ^*=(\OMG_q^+)^\top(\QQ^+)^{-1}\OMG_q^+
+\end{split}
+\end{equation}
+
+Again, this update equation is based on constraining $\II_q^{(0)}\BB\II_q^{(0)}$  to be diagonal and $\II_q^+\BB\II_q^{(0)}$ and $\II_q^{(0)}\BB\II_q^+$ to be zero.  This means that $\BB$ can be rearranged to look like so, where the $c$'s show the $\BB^{(0)}$ block and the $b$'s show the $\BB^+$ block:
+\begin{equation}
+\begin{bmatrix}
+c&0&0&0&0\\
+0&c&0&0&0\\
+0&0&b&b&b\\
+0&0&b&b&b\\
+0&0&b&b&b\\
+\end{bmatrix}
+\end{equation}
+
+Note that $\RR^\sharp + \QQ^*$ does not have any zero rows or columns since we require that any state process with zero variance is observed with errors and the corresponding row/column of $\ZZ^\top\RR^*\ZZ$ will be non-zero.  Also note that because $\QQ^*=\II_q^+\QQ^*\II_q^+$ by definition, $\RR^\sharp$ is contributing to the $u's$ associated with $\QQ=0$ and $\QQ^*$ contributes to the $u's$ associated with $\QQ \neq 0$.
+
+Thus, the updated $\pmb{\upsilon}$ is
+\begin{equation}
+\begin{split}\label{eq:u.degen.update1}
+\pmb{\upsilon}_{j+1} &= \big(\DD_u^\top(\RR^\sharp + T\QQ^*)\DD_u\big)^{-1}\DD_u^\top \times\\
+&\quad \bigg( \sum_{t=1}^T \BB^\sharp\ZZ^\top\RR^*\big( \hatyt - \ZZ\II_q^+\hatxt - \ZZ\BB^\diamondsuit\hatxzero - \ZZ\BB^\sharp\ff_u -\aa \big) \\
+&\quad + \II_q^+\QQ^*\sum_{t=1}^T \big(\hatxt-\BB\hatxtm - \ff_u \big) \bigg)\\
+\end{split}
+\end{equation}
+and
+\begin{equation}\label{eq:u.degen.update2}
+\uu_{j+1} = \ff_u + \DD_u\pmb{\upsilon}_{j+1},
+\end{equation}
+where $\BB^\diamondsuit$ and $\BB^\sharp$ are defined in equation \eqref{eq:x0.q0} and $\RR^\sharp$, $\RR^*$ and $\QQ^*$ are defined in equation \eqref{eq:u.degen}.  If $\xx_0$ is treated as fixed, $\hatxzero$ is replaced with $\xixi$, otherwise it has its usual definition ($\E[\XX_0|\yy(1),\Theta_j]$).  
+
+Conceptually, I think the approach described here is the same as the approach presented in section 4.2.5 of \citep{Harvey1989}, but it is a little more general because it deals with the case where some $\uu$ elements are shared (linear functions of some set of shared values), possibly across deterministic and stochastic elements.  Also, I present it here within the context of the EM algorithm, so solving for the maximum-likelihood $\uu$ appears in the context of maximizing $\Psi^+$ with respect to $\uu$ for the update equation at iteration $j+1$.
+
+\subsubsection{$\xixi$ update equation for partially deterministic models with diagonal $\BB^{(0)}$}
+Take the derivative of $\Psi^+$ (equation \ref{eq:degen.logL.u}) with respect to $\pp$ where $\xixi = \ff_\xi + \DD_\xi \pp$.  The constrained $\pp$ update equation  when $\QQ$ has zeros on the diagonal is then
+\begin{equation}\label{eq:xi.degen}
+\begin{split}
+&\DD_\xi^\top( \RR^\diamondsuit + \BB^\top\QQ^*\BB )\DD_\xi\pp = \\
+&\quad \DD_\xi^\top\bigg( \II_q^{(0)}\sum_{t=1}^T \BB^\diamondsuit\ZZ^\top\RR^*\big( \hatyt-\ZZ\II_q^+\hatxt - \ZZ\BB^\sharp\uu- \ZZ\BB^\diamondsuit\ff_\xi -\aa \big) \\
+&\quad + \II_q^+\BB^\top\QQ^* \big( \hatxone - \BB\ff_\xi - \uu \big) \bigg)\\
+&\text{where }\RR^\diamondsuit=\sum_{t=1}^T \BB^\diamondsuit\ZZ^\top\RR^*\ZZ\BB^\diamondsuit
+\end{split}
+\end{equation}
+The matrices $\BB^\diamondsuit$ and $\BB^\sharp$ are defined in equation \eqref{eq:x0.q0}, and $\RR^*$ and $\QQ^*$ are defined in equation \eqref{eq:u.degen}.  $\BB^{(0)}$ is constrained to be diagonal.
+
+Thus, the updated $\pp$ is
+\begin{equation}\label{eq:xi.degen.update1}
+\begin{split}
+\pp_{j+1} &= \big( \DD_\xi^\top( \RR^\diamondsuit + \BB^\top\QQ^*\BB )\DD_\xi \big)^{-1}
+\DD_\xi^\top \times\\
+&\bigg( \II_q^{(0)}\sum_{t=1}^T \BB^\diamondsuit\ZZ^\top\RR^*\big( \hatyt-\ZZ\II_q^+\hatxt - \ZZ\BB^\sharp\uu - \ZZ\BB^\diamondsuit\ff_\xi -\aa \big) \\
+&\quad + \II_q^+\BB^\top\QQ^* \big( \hatxone - \BB\ff_\xi - \uu \big) \bigg)
+\end{split}
+\end{equation}
+and
+\begin{equation}\label{eq:xi.degen.update2}
+\xixi_{j+1} = \ff_\xi + \DD_\xi\pp_{j+1},
+\end{equation}
+
+\subsubsection{$\BB$ update equation for partially deterministic models when $\BB^{(0)}$ is diagonal and not fixed}
+If $\BB^{(0)}$ is diagonal and fixed, we can use the usual constrained update equation for $\BB$.  But if we wanted to estimate $\BB^{(0)}$, the problem becomes difficult as outlined here.  First we would write $\Psi^+$ in equation \eqref{eq:degen.logL.u} as a function of $\pmb{\beta}$ instead of $\BB$.  
+Note that $\BB^\diamondsuit\XX_0$ and $\BB^\sharp\uu$ are column vectors.  We could use relation \eqref{eq:vec.Aa} to show that:
+\begin{equation}\label{eq:B.degen2}
+\begin{split}
+&\II_q^{(0)}\BB^\diamondsuit\II_q^{(0)}\XX_0 = (\XX_0^\top \otimes \II)( (\ff_b^{(0)})^t + \DD_b^{(0)}\pmb{\beta}^t ),\\
+&\II_q^{(0)}\BB^\sharp\II_q^{(0)}\uu = (\uu^\top \otimes \II)( (\ff_b^{(0)})^\sharp + \DD_b^{(0)}\pmb{\beta}^\sharp ),\\
+&\text{ where }\dd^t \equiv \begin{bmatrix}
+d_1^t\\
+d_2^t\\
+\dots\\
+d_p^t
+\end{bmatrix}\\
+&\text{ where }\dd^\sharp \equiv \begin{bmatrix}
+d_1^t/(1-d_1)\\
+d_2^t/(1-d_2)\\
+\dots\\
+d_p^t/(1-d_p)
+\end{bmatrix}
+\end{split}
+\end{equation}
+The terms $\ff_b^{(0)}$ and $\DD_b^{(0)}$ have the rows corresponding to $\vec(\BB^+)$ zero'ed out.
+
+The derivation I believe would proceed by taking the derivative of $\Psi^+$ with respect to $\pmb{\beta}$.  However we would end up with a polynomial in $\pmb{\beta}$ because we will have the terms $\frac{\partial b^t}{\partial b}$ and $\frac{\partial b^t/(1-b)}{\partial b}$. where $b$ denotes one of the diagonal elements in $\BB^{(0)}$.  That starts to look messy and there might be multiple solutions.  Perhaps another day, I will solve that problem or come upon a more elegant solution.  For now, I will side-step this problem and require that any $\BB^{(0)}$ terms are fixed.
+
+\section{Implementation comments}\label{sec:implementation}
+The EM algorithm is a hill-climbing algorithm and like all hill-climbing algorithms it can get stuck on local maxima.  There are a number approaches to doing a pre-search of the initial conditions space, but a brute force  random Monte Carol search appears to work well \citep{Biernackietal2003}.  It is slow, but normally sufficient.  In my experience, Monte Carlo initial conditions searches become important as the fraction of missing data in the data set increases.  Certainly an initial conditions search should be done before reporting final estimates for an analysis.  However in our\footnote{``Our'' and ``we'' in this section means work and papers by E. E. Holmes and E.J. Ward.} studies on the distributional properties of parameter estimates, we rarely found it necessary to do an initial conditions search.
+
+The EM algorithm will quickly home in on parameter estimates that are close to the maximum, but once the values are close, the EM algorithm can slow to a crawl.   Some researchers start with an EM algorithm to get close to the maximum-likelihood parameters and then switch to a quasi-Newton method for the final search.  In many ecological applications, parameter estimates that differ by less than 3 decimal places are for all practical purposes the same.  Thus we have not used the quasi-Newton final search.
+
+Shumway and Stoffer (2006; chapter 6) imply in their discussion of the EM algorithm that both $\xixi$ and $\LAM$ can be  estimated, though not simultaneously.  Harvey (1989), in contrast, discusses that there are only two allowable cases for the initial conditions: 1) fixed but unknown and 2) a initial condition set as a prior. In case 1, $\xixi$ is $\xx_0$ (or $\xx_1$) and is then estimated as a parameter; $\LAM$ is held fixed at 0.  In case 2, $\xixi$ and $\LAM$ specify the mean and variance of $\XX_0$ (or $\XX_1$) respectively. Neither are estimated; instead, they are specified as part of the model.  
+
+As mentioned in the introduction, misspecification of the prior on $\xx_0$ can have catastrophic and undetectable effects on your parameter estimates.  For many MARSS models, you will never see this problem.  However, if you are fitting models that imply a correlation structure between the hidden states (i.e. the variance-covariance matrix of the $\XX$'s is not diagonal), then your prior can definitely create problems if it does not have the same correlation structure as that implied by your MLE model.  A common default is to use a prior with a diagonal variance-covariance matrix.  This can lead to serious problems if the implied variance-covariance of the $\XX$'s is not diagonal.  A diffuse prior does not get around this since it has a correlation structure also even if it has infinite variance.  
+
+One way you can detect that you have a problem is to start the EM algorithm at the outputs from a Newton-esque algorithm.  If the EM estimates diverge and the likelihood drops, you have a problem.  Here are a few suggestions for getting around the problem:
+\begin{itemize}
+	\item Treat $\xx_0$ as an estimated parameter and set $\VV_0$=0.  If the model is not stable going backwards in time, then treat $\xx_1$ as the estimated parameter; this will allow the data to constrain the $\xx_1$ estimate (since there is no data at $t=0$, $\xx_0$ has no data to constrain it).
+	\item Try a diffuse prior, but first read the info in the KFAS R package about diffuse priors since MARSS uses the KFAS implementation.  In particular, note that you will still be imposing an information on the correlation structure using a diffuse prior; whatever $\VV_0$ you use is telling the algorithm what correlation structure to use.  If there is a mismatch between the correlation structure in the prior and the correlation structure implied by the MLE model, you will not be escaping the prior problem. But sometimes you will know your implied correlation structure.  For example, you may know that the $\xx$'s are independent or you may be able to solve for the stationary distribution a priori if your stationary distribution is not a function of the parameters you are trying to estimate.  Other times you are estimating a parameter that determines the correlation structure (like $\BB$) and you will not know a priori what the correlation structure is.
+\end{itemize}
+	
+In some cases, the update equation for one parameter needs other parameters.  Technically, the Kalman filter/smoother should be run between each parameter update, however following \citet{GhahramaniHinton1996} the default MARSS algorithm skips this step (unless the user sets \verb@control$EMsafe=TRUE@) and each updated parameter is used for subsequent update equations.
+
+\section{MARSS R package}
+R code for the Kalman filter, Kalman smoother, and EM algorithm is provided as a separate R package, MARSS, available on CRAN (http://cran.r-project.org/web/packages/MARSS).  MARSS was developed by Elizabeth Holmes, Eric Ward and Kellie Wills and provides maximum-likelihood estimation and model-selection for both unconstrained and constrained MARSS models. The package contains a detailed user guide which shows various applications. In addition to model fitting via the EM algorithm, the package provides algorithms for bootstrapping, confidence intervals, auxiliary residuals, and model selection criteria.
+
+\bibliography{./tex/Manual}
+\bibliographystyle{apalike}
+
+\end{document}

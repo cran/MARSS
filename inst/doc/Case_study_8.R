@@ -23,8 +23,8 @@ logRedds = log(t(okanaganRedds)[2:3,])
 plot(okanaganRedds[,1], okanaganRedds[,2],
     xlab = "Year", ylab="Redd counts",main="", col="red")
 points(okanaganRedds[,1], okanaganRedds[,3], col="blue")
-legend('topleft', inset=0.1, legend=c("Aerial survey","Ground survey"), col=c("red","blue"),
-pch=21)
+legend('topleft', inset=0.1, legend=c("Aerial survey","Ground survey"),
+ col=c("red","blue"), pch=21)
 
 
 ###################################################
@@ -34,18 +34,18 @@ Q.model="diagonal and equal"
 R.model="diagonal and equal"
 U.model="equal"
 Z.model=factor(c(1,1)) #1 observation time series
-# Fit the single state model, where the time series are assumed to be from the 
-# same population. 
-kem1 = MARSS(logRedds, model=list(Z = Z.model, Q = Q.model, R = R.model,
-   U = U.model))
+# Fit the single state model, where the time series are assumed 
+# to be from thesame population. 
+kem1 = MARSS(logRedds, model=list(Z = Z.model, Q = Q.model, 
+   R = R.model, U = U.model))
 
 
 ###################################################
 ### code chunk number 5: reddmodel2
 ###################################################
 R.model="diagonal and unequal"
-kem2 = MARSS(logRedds, model=list(Z = Z.model, Q = Q.model, R = R.model,
-   U = U.model))
+kem2 = MARSS(logRedds, model=list(Z = Z.model, Q = Q.model, 
+   R = R.model, U = U.model))
 
 
 ###################################################
@@ -65,7 +65,7 @@ kem3 = MARSS(logRedds, model=model3)
 # Code for plotting the fit from the best model
 plot(okanaganRedds[,1], logRedds[1,],
 xlab = "Year", ylab="Redd counts",main="", col="red", ylim=c(0,8))
-points(okanaganRedds[,1], logRedds[2,], col="blue")
+points(okanaganRedds[,1], logRedds[2,], col="blue", pch=2)
 lines(okanaganRedds[,1], c(kem1$states), lty=1, lwd=2)
 lines(okanaganRedds[,1], c(kem1$states + 2*kem1$states.se), lty=1, lwd=1, col="grey40")
 lines(okanaganRedds[,1], c(kem1$states - 2*kem1$states.se), lty=1, lwd=1, col="grey40")

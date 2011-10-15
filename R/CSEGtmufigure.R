@@ -37,7 +37,7 @@ CIWidth=function(T,RelNe) {
 	return(upci-lowci)
 } 
 
-xlabs=expression(paste("Projection interval ",italic(T)," yrs"))
+xlabs=expression(paste("Projection interval ",italic(T)," time steps"))
 ylabs="xe = log10(N0/Ne)"  
 safe.limits=numeric(ngrid); dead.limits=numeric(ngrid)
 minval=1e-16; maxval=1-minval; 
@@ -67,6 +67,6 @@ abline(h=-.3); text(5,-.3+offset,"50%")
 abline(h=-1); text(5,-1+offset,"90%")
 abline(h=-2); text(5,-2+offset,"99%")
 #title(expression(paste("nyrs = ", N, ", hat(mu), = ", mu, sigma[b]," = ",sigma2.b)));  
-title(paste("nyrs = ", N, "mu = ", format(mu, digits=2), "s2.p = ", format(sigma2.b,digits=2)));  
+title(paste("time steps = ", N, "\n mu = ", format(mu, digits=2), "s2.p = ", format(sigma2.b,digits=2)));  
 if(make.legend) legend("topright",inset=0.02, bg="white", c("high certainty P<0.05","high certainty P>0.95", "uncertain", "highly uncertain"), fill=c("white", "black", "grey85", "grey45"))
 }

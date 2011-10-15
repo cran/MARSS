@@ -17,7 +17,7 @@ MARSSmcinit(MLEobj)
   \describe{ 
     \item{\code{MLEobj$control$numInits}}{ Number of random initial value draws. } 
     \item{\code{MLEobj$control$numInitSteps}}{ Maximum number of EM iterations for each random initial value draw. }
-    \item{\code{MLEobj$control$boundsInits}}{ Length 6 list. Each component is a length 2 vector of bounds on the uniform distributions from which initial values will be drawn. See Examples.} 
+    \item{\code{MLEobj$control$boundsInits}}{ Length 6 list. Each component is a length 2 vector of bounds on the uniform distributions from which initial values will be drawn (for A, B, U, and Z). For R and Q, variance-covariance matrices are generated from a wishart distribution with df=bound[1] and S=diag(bound[2],m).  Note, random initial conditions are only used for parameters that are not fixed.} 
   }
   The default values for these are given in \code{MARSSsettings.R} and listed in \code{\link{MARSS}}.
 }
@@ -46,8 +46,8 @@ Center, 2725 Montlake Blvd E., Seattle, WA 98112   type \code{RShowDoc("UserGuid
   fit1
   #Show the inits that were used
   fit1$start
-  #Try fewer initial start locations but more iterations
-  fit2=MARSS(dat, control=list(MCInit=TRUE, numInits=10, numInitSteps = 100))
+  #Try fewer initial start locations and different mean variance (0.1 instead of 1) for R and Q
+  fit2=MARSS(dat, control=list(MCInit=TRUE, numInits=10, numInitSteps = 10, boundsInits=list(Q=c(1,0.1),R=c(1,0.1))))
   fit2
   #Show the inits that were used
   fit2$start

@@ -2,7 +2,7 @@
 \alias{MARSSinits}
 \title{ Initial Values for MLE }
 \description{
-  Sets up generic starting values for parameters for maximum-likelihood estimation algorithms that use an iterative maximization routine needing starting values.   Examples of such algorithms are the Kalman-EM algorithm in \code{\link{MARSSkem}} and Newton methods in \code{\link{MARSSoptim}}.   This is a utility function in the \code{\link{MARSS-package}}.
+  Sets up generic starting values for parameters for maximum-likelihood estimation algorithms that use an iterative maximization routine needing starting values.   Examples of such algorithms are the EM algorithm in \code{\link{MARSSkem}} and Newton methods in \code{\link{MARSSoptim}}.   This is a utility function in the \code{\link{MARSS-package}}.
 }
 \usage{
 MARSSinits(modelObj, inits=list(B=1, U=0, Q=0.05, 

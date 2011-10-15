@@ -48,7 +48,7 @@ is.marssMLE(MLEobj)
       \item{\code{silent}}{ Suppresses printing of progress bar, error messages and convergence information. } 
     }
   }
-  \item{\code{method}}{ A string specifying the estimation method. MARSS 1.0 allows "kem" for Kalman-EM and "BFGS" for quasi-Newton. }
+  \item{\code{method}}{ A string specifying the estimation method. MARSS allows "kem" for EM and "BFGS" for quasi-Newton. }
   \item{\code{par}}{ A list with 8 matrices of estimated parameter values Z, A, R, B, U, Q, x0, V0. }
   \item{\code{kf}}{ A list containing Kalman filter/smoother output.}
   \item{\code{numIter}}{ Number of iterations which were required for convergence. }

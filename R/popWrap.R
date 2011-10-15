@@ -77,7 +77,11 @@ for(el in req.args) {
 ## KW Set m
 n = ifelse(is.null(dim(y)), 1, dim(y)[1])
 m = NA
-if (identical(model$Z, "use fixed/free")) m = dim(fixed$Z)[2]
+if (identical(model$Z, "unconstrained")) m = n
+if (identical(model$Z, "equalvarcov")) m = n
+if (identical(model$Z, "diagonal and equal")) m = n
+if (identical(model$Z, "diagonal and unequal")) m = n
+if (identical(model$Z, "onestate")) m = 1
 if (identical(model$Z, "identity")) m = n
 if (is.factor(model$Z)) m = length(levels(model$Z)) 
 if (is.matrix(model$Z)) m = dim(model$Z)[2] 

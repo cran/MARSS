@@ -25,7 +25,7 @@ MARSSmcinit = function(MLEobj) {
   dim.tmp = list(Z=c(n,m), A=c(n,1), R=c(n,n), B=c(m,m), U=c(m,1), Q=c(m,m))
   # since boundsInits names are different
   tmp = MLEobj$control$boundsInits
-  bounds.tmp = list(B=tmp$B, U=tmp$U, Q=tmp$logQ, Z=tmp$Z, A=tmp$A, R=tmp$logR)
+  bounds.tmp = list(B=tmp$B, U=tmp$U, Q=tmp$Q, Z=tmp$Z, A=tmp$A, R=tmp$R)
   init = bestinits = MLEobj$start
   bestLL = -1.0e10
 
@@ -45,19 +45,20 @@ MARSSmcinit = function(MLEobj) {
         Ztmp <- matrix(0, dim.param[1]*dim.param[2], numGroups)  # matrix to allow shared values
         for(i in free.levels) 
           Ztmp[which(as.vector(free.tmp[[el]])==i), which(free.levels==i)] <- 1
-	if (el %in% c("Q", "R")) {
-          element.random = array(exp(runif(numGroups, bounds.param[1], bounds.param[2])), dim=c(numGroups,1))
-	}
-	else {
-	  element.random = array(runif(numGroups, bounds.param[1], bounds.param[2]), dim=c(numGroups,1))
-	}
-        param.random = array(Ztmp%*%element.random, dim = dim.param)
-      }
-      else param.random=0
-   
+	      if(el %in% c("Q", "R")) {   #This doesn't preserve sharing constraints but does do random starts drawn from a wishart dist
+	        if( bounds.param[1] < m){ df=m }else{ df=bounds.param[1] }
+	        S=diag(bounds.param[2],m)
+	        param.random = rwishart(df, S)/df
+	      }else{
+	        element.random = array(runif(numGroups, bounds.param[1], bounds.param[2]), dim=c(numGroups,1))
+          param.random = array(Ztmp%*%element.random, dim = dim.param)
+	      }
+      }else{ param.random=MLEobj$model$fixed[[el]] }
+      #if some vals are  fixed, fix them
+      fixed.vals = !is.na(MLEobj$model$fixed[[el]])
       fix.tmp = MLEobj$model$fixed[[el]]
-      fix.tmp[is.na(fix.tmp)] = 0 
-      init.loop[[el]] = fix.tmp + param.random 
+      param.random[fixed.vals]=fix.tmp[fixed.vals] 
+      init.loop[[el]] = param.random 
     }
 
     ## x0

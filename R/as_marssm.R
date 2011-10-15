@@ -33,7 +33,10 @@ as.marssm <- function(wrapperObj)
       for(i in X.names) fixed$Z[which(model$Z==i), which(as.vector(X.names)==i)] <- 1
       free$Z = array(NA, dim=model.dims$Z)
     }
-    
+    if(identical(model$Z,"onestate")) { 
+      free$Z=array(NA,dim=model.dims[[el]])
+      fixed$Z = array(1,dim=model.dims[[el]])
+    }
   for(el in model.elem) {
     if(is.factor(model[[el]]) && model.dims[[el]][1]==model.dims[[el]][2] && el!="Z") {
       free[[el]]=array(NA,dim=model.dims[[el]])
@@ -89,11 +92,6 @@ as.marssm <- function(wrapperObj)
   if(identical(model[[el]],"zero")) { 
     free[[el]]=array(NA,dim=model.dims[[el]])
     fixed[[el]] = array(0,dim=model.dims[[el]]) 
-  }
-  if(identical(model[[el]],"ones")) { 
-    free[[el]]=array(NA,dim=model.dims[[el]])
-    fixed[[el]] = array(1,dim=model.dims[[el]])
-    if(el %in% c("Q","R","B","V0")) fixed[[el]] = makediag(1,nrow=model.dims[[el]][1])
   }
   if(is.matrix(model[[el]])) {
       if(is.numeric(model[[el]])){

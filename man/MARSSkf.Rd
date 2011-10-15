@@ -6,8 +6,10 @@
   Implements the Kalman filter/smoother for MARSS models. This is a base function in the \code{\link{MARSS-package}}.  \code{MARSSkf()} is a native R implementation that allows x0 to be at t=0 or t=1 (data starts at t=1).  \code{MARSSkfas()} uses the Kalman filter-smoother functions in the KFAS package.  This requires that x0 be at t=1 (kf.x0="x10"), but the functions use more efficient and more stable algorithms.  Exact diffuse priors are also allowed in the KFAS Kalman filter function.
 }
 \usage{
-MARSSkf(y, parList, missing.matrix = NULL, miss.value = NULL, init.state="x00", debugkf=FALSE)
-MARSSkfas(y, parList, missing.matrix = NULL, miss.value= NULL, init.state="x10", debugkf=FALSE, diffuse=FALSE)
+MARSSkf(y, parList, missing.matrix = NULL, miss.value = NULL,
+        init.state="x00", debugkf=FALSE)
+MARSSkfas(y, parList, missing.matrix = NULL, miss.value= NULL, init.state="x10", 
+        debugkf=FALSE, diffuse=FALSE)
 }
 \arguments{
   \item{y}{ A matrix (not dataframe), sites (rows) x years (columns). See Details regarding handling of missing values. }

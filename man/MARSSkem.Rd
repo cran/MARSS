@@ -27,7 +27,7 @@ Objects of class \code{\link{marssMLE}} may be built from scatch but are easier 
       \item{\code{MCInit}}{ If TRUE, Monte Carlo initialization will be performed by \code{\link{MARSSmcinit}}. } 
       \item{\code{numInits}}{ Number of random initial value draws to be used with \code{\link{MARSSmcinit}}. Ignored if \code{MCInit=FALSE}. } 
       \item{\code{numInitSteps}}{ Maximum number of EM iterations for each random initial value draw to be used with \code{\link{MARSSmcinit}}. Ignored if \code{MCInit=FALSE}. }
-      \item{\code{boundsInits}}{ Length 6 list. Each component is a length 2 vector of bounds on the uniform distributions from which initial values will be drawn to be used with \code{MARSSmcinit()}. Ignored if \code{MCInit=FALSE}. See Examples.}
+      \item{\code{boundsInits}}{ Length 6 list. Each component is a length 2 vector of bounds on the uniform distributions (for B, U, and A) from which initial values will be drawn to be used with \code{MARSSmcinit()}. For R and Q, the 2 bounds specify the df and S(=diag(bound[2],m)) for a wishart distribution. Ignored if \code{MCInit=FALSE}. See Examples.}
       \item{\code{silent}}{ Suppresses printing of progress bars, error messages, warnings and convergence information. }    
     }
 }
@@ -75,12 +75,12 @@ Totronto, Dept. of Computer Science.
 Harvey, A. C. (1989) Chapter 5 in Forecasting, structural time series models and the
 Kalman filter. Cambridge University Press, Cambridge, UK.
   
-  The user guide:  Holmes, E. E. and E. J. Ward (2010) Analysis of multivariate time-series
+The user guide:  Holmes, E. E. and E. J. Ward (2010) Analysis of multivariate time-series
 using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
 Center, 2725 Montlake Blvd E., Seattle, WA 98112   type \code{RShowDoc("UserGuide",package="MARSS")} to see.          
 
-  The EM algorithm: Holmes, E. E. (2010).  Derivation of the EM algorithm for constrained and unconstrained multivariate autoregressive
-state-space (MARSS) models.  Type \code{RShowDoc("refs/Holmes2010",package="MARSS")} to open a copy.
+Holmes, E. E. (2010).  Derivation of the EM algorithm for constrained and unconstrained multivariate autoregressive
+state-space (MARSS) models.  \code{RShowDoc("refs/Holmes2010",package="MARSS")} to open a copy.
 }
 \author{ 
   Eli Holmes and Eric Ward, NOAA, Seattle, USA.  

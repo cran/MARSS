@@ -206,3 +206,20 @@ return(list(f=f, D=D.mat))
 }
 
 Imat = function(x) return(diag(1,x))
+
+rwishart=function (nu, V) 
+{
+#function adapted from bayesm package
+#author Peter Rossi, Graduate School of Business, University of Chicago
+    m = nrow(V)
+    df = (nu + nu - m + 1) - (nu - m + 1):nu
+    if (m > 1) {
+        T = diag(sqrt(rchisq(c(rep(1, m)), df)))
+        T[lower.tri(T)] = rnorm((m * (m + 1)/2 - m))
+    }else {
+        T = sqrt(rchisq(1, df))
+    }
+    U = chol(V)
+    C = t(T) %*% U
+    return(crossprod(C))
+}
