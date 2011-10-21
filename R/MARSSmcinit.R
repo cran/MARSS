@@ -46,8 +46,8 @@ MARSSmcinit = function(MLEobj) {
         for(i in free.levels) 
           Ztmp[which(as.vector(free.tmp[[el]])==i), which(free.levels==i)] <- 1
 	      if(el %in% c("Q", "R")) {   #This doesn't preserve sharing constraints but does do random starts drawn from a wishart dist
-	        if( bounds.param[1] < m){ df=m }else{ df=bounds.param[1] }
-	        S=diag(bounds.param[2],m)
+	        if( bounds.param[1] < dim.param[1]){ df=dim.param[1] }else{ df=bounds.param[1] }
+	        S=diag(bounds.param[2],dim.param[1])
 	        param.random = rwishart(df, S)/df
 	      }else{
 	        element.random = array(runif(numGroups, bounds.param[1], bounds.param[2]), dim=c(numGroups,1))

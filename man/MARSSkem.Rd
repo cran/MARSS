@@ -80,7 +80,7 @@ using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
 Center, 2725 Montlake Blvd E., Seattle, WA 98112   type \code{RShowDoc("UserGuide",package="MARSS")} to see.          
 
 Holmes, E. E. (2010).  Derivation of the EM algorithm for constrained and unconstrained multivariate autoregressive
-state-space (MARSS) models.  \code{RShowDoc("refs/Holmes2010",package="MARSS")} to open a copy.
+state-space (MARSS) models. Link is on the CRAN page under EMDerivation.pdf.
 }
 \author{ 
   Eli Holmes and Eric Ward, NOAA, Seattle, USA.  

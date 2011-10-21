@@ -112,8 +112,7 @@ The user guide:  Holmes, E. E. and E. J. Ward (2010) Analysis of multivariate ti
 using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
 Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuide",package="MARSS")} to open a copy.          
 
-Holmes, E. E. (2010).  Derivation of the EM algorithm for constrained and unconstrained multivariate autoregressive
-state-space (MARSS) models.  Type \code{RShowDoc("refs/Holmes2010",package="MARSS")} to open a copy.
+Holmes, E. E. (2010).  Derivation of the EM algorithm for constrained and unconstrained multivariate autoregressive state-space (MARSS) models.  Link on the CRAN page under EMDerivation.pdf
 }
 \author{ 
   Eli Holmes, Eric Ward and Kellie Wills, NOAA, Seattle, USA.  

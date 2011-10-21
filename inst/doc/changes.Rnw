@@ -2,7 +2,7 @@
 \documentclass[12pt]{article}
 \title{Change log}
 \begin{document}
-\section{Changes between versions 2.6 and 2.5}
+\section{Changes between versions 2.7 and 2.5}
 \begin{description}
     \item[added sections on covariates and lag-p model] added these sections to the user guide.
     \item[MCInit not working for non-diagonal R and Q] replaced function for randomly drawing matrices with a random draw from a wishart distribution.
