@@ -32,6 +32,12 @@ MARSSaic = function(MLEobj, output=c("AIC","AICc"), Options=list(nboot=1000, ret
     cat("\n","Errors were caught in MARSSaic \n", msg, sep="") 
     stop("Stopped in MARSSaic() due to problem(s) with the MLE object passed in.\n", call.=FALSE)
     }
+
+  if(("AICbp" %in% output | "AICbb" %in% output) & !(MLEobj$method %in% c(kem.methods,optim.methods))){
+    msg = " If you are computing a bootstrap AIC, MLE object must be from kem or BFGS method.\n"
+    cat("\n","Errors were caught in MARSSaic \n", msg, sep="") 
+    stop("Stopped in MARSSaic() due to problem(s) with the MLE object passed in.\n", call.=FALSE)
+  }
   return.list=list()
 
   ## Some renaming for readability
@@ -78,7 +84,7 @@ MARSSaic = function(MLEobj, output=c("AIC","AICc"), Options=list(nboot=1000, ret
     }
 
     boot.params = MARSSboot(MLEobj, nboot=Options$nboot, output="parameters", sim=bootstrap.method,
-          param.gen="KalmanEM", silent=TRUE)$boot.params
+          param.gen="MLE", silent=TRUE)$boot.params
 
     # feature request 540
     if((bootstrap.method == "parametric") && ("boot.params" %in% output)) MLEobj$boot.params = boot.params

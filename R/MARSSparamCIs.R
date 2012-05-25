@@ -3,7 +3,6 @@
 #   This returns CIs for ML parameter estimates
 #######################################################################################################
 MARSSparamCIs = function(MLEobj, method="hessian", alpha=0.05, nboot=1000) {
-#this function expects a marssMLE object  as output by KalmanEM
 if(!(method %in% c("hessian","parametric","innovations"))) stop("Stopped in MARSSparamCIs(). Current methods are hessian, parametric, and innovations.\n", call.=FALSE)
 if(!is.marssMLE(MLEobj)) stop("Stopped in MARSSparamCIs(). This function needs a valid marss MLE object.\n", call.=FALSE)
 if(method=="hessian")  {
@@ -50,7 +49,7 @@ if(method=="hessian")  {
 } #if method hessian
 if(method %in% c("parametric", "innovations"))  {
     boot.params = MARSSboot(MLEobj, nboot=nboot, output="parameters", sim=method,
-          param.gen="KalmanEM", silent=TRUE)$boot.params
+          param.gen="MLE", silent=TRUE)$boot.params
     vector.lowCI = apply(boot.params,1,quantile,probs=alpha/2)
     par.lowCI = MARSSvectorizeparam(MLEobj, vector.lowCI)$par
     vector.upCI = apply(boot.params,1,quantile,probs=1-alpha/2)

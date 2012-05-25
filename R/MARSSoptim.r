@@ -73,15 +73,17 @@ MARSSoptim = function(MLEobj) {
   # figure out which kf routine to use
     kf.function = "MARSSkf"
     kf.comment = ""
-  if( MLEobj$control$kf.x0 == "x10" & !(substr(MLEobj$method, nchar(MLEobj$method)-1, nchar(MLEobj$method))=="kf") ){  #if user did not request MARSSkf
-       kf.function = "MARSSkfas"
-       kf.comment="Try using method=BFGSkf to force MARSSkf to be used."
-    } 
+#Block use of KFAS; 5-23-12
+#  if( MLEobj$control$kf.x0 == "x10" & !(substr(MLEobj$method, nchar(MLEobj$method)-1, nchar(MLEobj$method))=="kf") ){  #if user did not request MARSSkf
+#       kf.function = "MARSSkfas"
+#       kf.comment="Try using method=BFGSkf to force MARSSkf to be used."
+#    } 
     optim.output = list(convergence=53, message=c(kf.function, " call used to compute log likelihood encountered numerical problems\n and could not return logLik. ", kf.comment, "\n", sep=""))
    }
-  
-  if(MLEobj$control$kf.x0 == "x10") kf.function="MARSSkfas"
-  if(MLEobj$control$kf.x0 == "x00") kf.function="MARSSkf"
+#Block use of KFAS; 5-23-12
+  kf.function="MARSSkf"
+#  if(MLEobj$control$kf.x0 == "x10") kf.function="MARSSkfas"
+#  if(MLEobj$control$kf.x0 == "x00") kf.function="MARSSkf"
   if( substr(tmp.MLEobj$method, nchar(tmp.MLEobj$method)-1, nchar(tmp.MLEobj$method))=="kf" ) kf.function="MARSSkf"
        
   MLEobj.return=list(); class(MLEobj.return) = "marssMLE"
@@ -152,7 +154,9 @@ neglogLik = function(x, MLEobj=NULL){  #NULL assignment needed for optim call sy
     if( substr(MLEobj$method, nchar(MLEobj$method)-1, nchar(MLEobj$method))=="kf" ){  #if user requests MARSSkf
         negLL = MARSSkf(MLEobj$model$data, MLEobj$par, miss.value = MLEobj$model$miss.value, init.state=MLEobj$control$kf.x0 )$logLik    
     }else{ #use kfas
-       negLL = MARSSkfas(MLEobj$model$data, MLEobj$par, miss.value = MLEobj$model$miss.value, init.state=MLEobj$control$kf.x0, diffuse=MLEobj$control$diffuse )$logLik
+       #negLL = MARSSkfas(MLEobj$model$data, MLEobj$par, miss.value = MLEobj$model$miss.value, init.state=MLEobj$control$kf.x0, diffuse=MLEobj$control$diffuse )$logLik
+       #this is the block to not use KFAS functions
+       negLL = MARSSkf(MLEobj$model$data, MLEobj$par, miss.value = MLEobj$model$miss.value, init.state=MLEobj$control$kf.x0 )$logLik    
     }
     
     }

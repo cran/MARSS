@@ -5,7 +5,7 @@
 #   return(list(boot.params=boot.params, boot.data=boot.data, model=MLEobj, nboot=nboot, output=output, sim=sim, param.gen=param.gen, control=control))
 #######################################################################################################
 MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric", 
-  param.gen="KalmanEM", control=NULL, silent=FALSE) {
+  param.gen="MLE", control=NULL, silent=FALSE) {
 
   # all equation numbers refer to Chapter 6, Shumway & Stoffer
   # tSteps is the number of time steps to do in each bootstrap of the data
@@ -20,7 +20,7 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
   #      parametric uses parametric bootstrapping
   #      innovations uses Stoffer and Walls method
   # param.gen = how to generate the parameters.
-  #      KalmanEM
+  #      MLE estimate via method determined by MLEobj$method
   #      hessian
   # control is a list which holds options for the estimation function (see help file)
   # silent controls whether a progress bar is shown
@@ -35,10 +35,12 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
     msg=c(msg," Incorrect function arg. output must be either all, data, parameters (in quotes).\n")
   if(FALSE %in% (sim %in% c("parametric","innovations"))) 
     msg=c(msg, " Incorrect function arg. sim must be either parametric or innovations (see help file).\n")
-  if(FALSE %in% (param.gen %in% c("KalmanEM", "hessian"))) 
-    msg=c(msg, " Incorrect function arg. est.method must be either KalmanEM or hessian (see help file).\n")
+  if(FALSE %in% (param.gen %in% c("MLE", "hessian"))) 
+    msg=c(msg, " Incorrect function arg. est.method must be either MLE or hessian (see help file).\n")
   if(FALSE %in% (silent %in% c(TRUE, FALSE))) 
     msg=c(msg, " Incorrect function arg. silent must be TRUE or FALSE")
+  if(!(MLEobj$method %in% c(kem.methods, optim.methods))) 
+    msg=c(msg, " MLE object method must be a kem or optim method.")
   if(!is.null(msg)){
     cat("\n","Errors were caught in MARSSboot \n", msg, sep="") 
     stop("Stopped in MARSSboot() due to problem(s) with function arguments.\n", call.=FALSE)
@@ -143,19 +145,21 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
   if(sim == "innovations")
     boot.data = MARSSinnovationsboot(MLEobj, nboot=nboot )$boot.data
 
-  #####This part generates the bootstrap parameter
+  #####This part generates the bootstrap parameter estimates
   if("parameters" %in% output){
     for(i in 1:nboot) {
-      if( param.gen == "KalmanEM" ) {   
+      if( param.gen == "MLE" ) {   
 	        newmod = MLEobj$model
 	        boot.control = MLEobj$control; boot.control$silent = TRUE #turn off output from MARSSkem()
 	        newmod$data = array(boot.data[,,i], dim=dim(boot.data)[1:2])
-          mle.object = list(model=newmod, start=MLEobj$start, control=boot.control )
-	        boot.model = MARSSkem(mle.object)
+          mle.object = list(model=newmod, start=MLEobj$start, control=boot.control, method=MLEobj$method )
+          #kem.methods and optim.methods defined in MARSSsettings
+	        if(mle.object$method %in% kem.methods) boot.model = MARSSkem(mle.object) 
+	        if(mle.object$method %in% optim.methods) boot.model = MARSSoptim(mle.object) 
 	        boot.params[,i] = MARSSvectorizeparam(boot.model)
 	# b495
 	if (i == 1) rownames(boot.params) = names(MARSSvectorizeparam(boot.model))
-      } #if KalmanEM
+      } #if MLE
 
       if( param.gen == "hessian" ) {
 	# b495

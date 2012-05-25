@@ -65,9 +65,7 @@ msg=NULL
     }
     if(bad.str) {
       problem=TRUE
-      if(identical(model[[el]],"use fixed/free"))
-      msg = c(msg, paste(" Use of fixed/free matrices to specify model struct. is not allowed for ", el, "\n", sep=""))
-      else msg = c(msg, paste(" The model value for ", el, " is not allowed.\n If you are trying to set a fixed parameter value, wrap value in matrix().\n If you are trying to set shared parameter elements, wrap in factor().\n If you are trying to set a text string, see ?MARSS for the allowed strings.\n", sep=""))
+      msg = c(msg, paste(" The model value for ", el, " is not allowed.\n See ?MARSS for the allowed values.\n", sep=""))
       }
     #if factor, must be allowed to be factor
     if(is.factor(wrapperObj$model[[el]]) && !(el %in% allowed$factors)) {
@@ -117,11 +115,6 @@ msg=NULL
   #Check that if A is scaling, then Z spec will lead to a design matrix b589
   if(identical(model$A,"scaling")){
    if(is.matrix(model$Z) && !is.design(model$Z)) {
-        problem=TRUE
-        msg = c(msg, " If A is scaling(the default), then Z must be a design matrix:(0,1) and rowsums=1.\n")
-        }
-   if(identical(model$Z,"use fixed/free") || !is.null(wrapperObj$fixed$Z))
-        if(!is.design(wrapperObj$fixed$Z)){
         problem=TRUE
         msg = c(msg, " If A is scaling(the default), then Z must be a design matrix:(0,1) and rowsums=1.\n")
         }
@@ -248,6 +241,3 @@ msg=NULL
   
   return(TRUE)
 }
-
-
-

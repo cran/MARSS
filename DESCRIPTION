@@ -1,9 +1,10 @@
 Package: MARSS
 Type: Package
 Title: Multivariate Autoregressive State-Space Modeling
-Version: 2.8
-Date: 2011-1-30
-Depends: MASS, mvtnorm, nlme, KFAS
+Version: 2.9
+Date: 2012-5-25
+Depends: MASS, mvtnorm, nlme
+Suggests: Hmisc, maps, xtable, KFAS
 Author: Eli Holmes, Eric Ward, and Kellie Wills, NOAA, Seattle, USA
 Maintainer: Eli Holmes <eli.holmes@noaa.gov>
 Description: The MARSS package provides maximum-likelihood parameter
@@ -28,6 +29,6 @@ Description: The MARSS package provides maximum-likelihood parameter
 License: GPL-2
 LazyData: yes
 BuildVignettes: yes
-Packaged: 2012-01-30 19:12:23 UTC; xholmesel
+Packaged: 2012-05-30 05:30:30 UTC; holmesel
 Repository: CRAN
-Date/Publication: 2012-01-30 20:18:12
+Date/Publication: 2012-05-30 06:47:54
