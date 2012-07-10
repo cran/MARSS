@@ -20,6 +20,9 @@ else  {
 }
 par(mfrow=c(3,2))
 
+#set up pi
+pi=get("pi",pos="package:base")
+
 #a=read.table(data, skip=dataskip)
 a=as.matrix(data)
 if(dim(a)[2]!=2) stop("Stopped in CSEGriskfigure() because this function requires a data file with 2 columns; time in first column.", call.=FALSE)
@@ -31,15 +34,15 @@ nyr=length(a[,1])
 dat=a[,2]
 if(!is.na(miss.value)){ dat[dat!=miss.value]=log(dat[dat!=miss.value])
 }else{ dat=log(dat) } 
-kem = MARSS(dat, silent=TRUE, miss.value=miss.value) 
-kem = MARSSparamCIs(kem)	
+kem = MARSS(dat, model=list(U=matrix("U")),silent=TRUE, miss.value=miss.value) 
+if(kem$par$Q!=0) kem = MARSSparamCIs(kem)	
 
 #PANEL #1 plot the data
 plot(a[,1],a[,2],type="p", bty="L", xaxp=c(a[1,1],a[nyr,1],nyr-1),
 xlab="", ylab="Pop. Estimate", ylim=c(.9*min(a[,2],na.rm=TRUE),1.1*max(a[,2],na.rm=TRUE)), xlim=c(a[1,1]-1,a[nyr,1]+1))
 lines(a[,1],exp(kem$states[1,]),col="red")
 title(
-paste("u est = ",format(kem$par$U,digits=2)," (95% CIs ",format(kem$par.lowCI$U,digits=2),", ", format(kem$par.upCI$U,digits=2),")", "\n","Q est = ",format(kem$par$Q,digits=2)),cex.main=.9)
+  paste("u est = ",format(kem$par$U,digits=2)," (95% CIs ",format(kem$par.lowCI[["U.U"]],digits=2),", ", format(kem$par.upCI[["U.U"]],digits=2),")", "\n","Q est = ",format(kem$par$Q,digits=2)),cex.main=.9)
 
 #PANEL #2 plot the cdf of extinction
 tyrs = 1:te 
@@ -60,6 +63,8 @@ if(N0 <= thresh){ kal.cdf = rep(1,te)
 
 plot(tyrs,kal.cdf,xlab="time steps into future",ylab="probability to hit threshold",ylim=c(0,1),bty="l",type="l")
 title(paste("Prob. to hit ", format(thresh,digits=1)))
+
+if(kem$par$Q!=0){
 
 #Add CIs to cdf of quasi-extinction plot if requested
 nsim=CI.sim
@@ -147,8 +152,11 @@ CSEGtmufigure(N=nyr, u=kal.u, s2p=kal.Q, make.legend=FALSE)
 
 # KW
 par(mfrow=c(1, 1))
-
 if(return.model) return(kem)
+}else{
+  cat("Extinction PDF plots not possible because Q estimate is 0.\n")
+  if(return.model) return(kem)
+}
 }
 
 

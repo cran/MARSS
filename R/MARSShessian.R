@@ -2,20 +2,21 @@
 #   MARSShessian functions
 #   Adds Hessian, parameter var-cov matrix, and parameter mean to a marssMLE object
 #######################################################################################################
-MARSShessian = function(MLEobj) {
+MARSShessian = function(MLEobj, fun="MARSSkf") {
 
   paramvector = MARSSvectorizeparam(MLEobj)
 
-  kfNLL=function(paramvec, MLEobj){
-    new.model = MARSSvectorizeparam(MLEobj, parvec=paramvec)
-    y = new.model$model$data
-    kf = MARSSkf(y, parList=new.model$par, missing.matrix=new.model$model$M, miss.value=new.model$model$miss.value)
+  kfNLL=function(paramvec, MLEobj, fun){
+    new.MLEobj = MARSSvectorizeparam( MLEobj, parvec=paramvec )
+    kf=eval(call(fun, new.MLEobj))
     return(-kf$logLik)
   }
 
   #Hessian and gradient
-  emhess = fdHess(paramvector, function(paramvector, MLEobj) kfNLL(paramvector, MLEobj), MLEobj)
+  emhess = fdHess(paramvector, function(paramvector, MLEobj, fun) kfNLL(paramvector, MLEobj, fun), MLEobj, fun)
   MLEobj$Hessian = emhess$Hessian
+  rownames(MLEobj$Hessian)=names(paramvector)
+  colnames(MLEobj$Hessian)=names(paramvector)
   MLEobj$gradient = emhess$gradient
 
   parSigma = try(solve(MLEobj$Hessian), silent=TRUE)

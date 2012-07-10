@@ -33,7 +33,8 @@ CSEGriskfigure(data, te = 100, absolutethresh = FALSE, threshold = 0.1,
   If \code{return.model=TRUE}, an object of class \code{\link{marssMLE}}.
 }
 \references{ 
-Holmes, E. E. and E. J. Ward. 2010. Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science Center, 2725 Montlake Blvd E., Seattle, WA 98112; this is the user guide accessed via \code{RShowDoc("UserGuide",package="MARSS")}
+Holmes, E. E., E. J. Ward, and M. D. Scheuerell (2012) Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
+Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuide",package="MARSS")} to open a copy.
 
 (theory behind the figure) Holmes, E. E., J. L. Sabo, S. V. Viscido, and W. F. Fagan. (2007) A statistical approach to quasi-extinction forecasting. Ecology Letters 10:1182-1198.
 

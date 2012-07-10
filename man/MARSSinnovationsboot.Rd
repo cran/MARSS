@@ -34,9 +34,7 @@ Stoffer, D. S., and K. D. Wall. 1991. Bootstrapping state-space models: Gaussian
 \seealso{ \code{\link{stdInnov}} \code{\link{MARSSparamCIs}} \code{\link{MARSSboot}} }
 \examples{
   dat = t(harborSealnomiss)
-  dat = dat[2:nrow(dat),]
-  MLEobj = MARSS(dat, model=list(U="equal",Q="diagonal and equal"))
+  dat = dat[2:3,]
+  MLEobj = MARSS(dat, model=list(U="equal",Q=diag(.01,2)))
   boot.obj = MARSSinnovationsboot(MLEobj)
 }
-
-

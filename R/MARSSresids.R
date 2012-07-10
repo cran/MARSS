@@ -2,8 +2,8 @@ MARSSresids = function(MLEobj){
 #Reference page 9 in Messy Time Series
 #By definition there are no residuals for t=1
 TT = dim(MLEobj$model$data)[2]
-m = dim(MLEobj$par$Q)[1]
-n = dim(MLEobj$par$R)[1]
+m = dim(MLEobj$model$fixed$x0)[1]
+n = dim(MLEobj$model$data)[1]
 rt = matrix(0,m,TT)
 ut = matrix(0,n,TT)
 et = st.et = matrix(0,n+m,TT)
@@ -11,15 +11,18 @@ var.et = array(0,dim=c(n+m,n+m,TT))
 Nt = array(0,dim=c(m,m,TT))
 Mt = array(0,dim=c(n,n,TT))
 Jt = matrix(0,m,TT)
-G = matrix(0,n,n+m)
-if(!any(takediag(MLEobj$par$R)==0)) G[,1:n] = t(chol(MLEobj$par$R))
-H = matrix(0,m,n+m)
-if(!any(takediag(MLEobj$par$Q)==0)) H[,(n+1):(n+m)] = t(chol(MLEobj$par$Q))
+if(is.null(MLEobj$kf)) MLEobj$kf=MARSSkf(MLEobj)
 vt = MLEobj$kf$Innov
 Ft = MLEobj$kf$Sigma
-Tt = MLEobj$par$B
-Zt = MLEobj$par$Z
 for(t in seq(TT,2,-1)){
+H = matrix(0,m,n+m)
+Qt=parmat(MLEobj,"Q",t=t)$Q
+if(!any(takediag(Qt)==0)) H[,(n+1):(n+m)] = t(chol(Qt))
+G = matrix(0,n,n+m)
+Rt=parmat(MLEobj,"R",t=t)$R
+if(!any(takediag(Rt)==0)) G[,1:n] = t(chol(Rt))
+Tt = parmat(MLEobj,"B",t=t)$B
+Zt = parmat(MLEobj,"Z",t=t)$Z
 Ftinv = solve(Ft[,,t])
 Kt = Tt%*%matrix(MLEobj$kf$Kt[,,t],m,n) #R is dropping the dims so we force it to be nxm
 Lt = Tt - Kt%*%Zt

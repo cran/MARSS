@@ -50,10 +50,11 @@ is.marssMLE(MLEobj)
   }
   \item{\code{method}}{ A string specifying the estimation method. MARSS allows "kem" for EM and "BFGS" for quasi-Newton. }
   \item{\code{par}}{ A list with 8 matrices of estimated parameter values Z, A, R, B, U, Q, x0, V0. }
-  \item{\code{kf}}{ A list containing Kalman filter/smoother output.}
+  \item{\code{kf}}{ A list containing Kalman filter/smoother output if \code{control$trace} is > 0.}
   \item{\code{numIter}}{ Number of iterations which were required for convergence. }
   \item{\code{convergence}}{ Convergence status and errors. 0 means converged successfully.  Anything else means an error or warning.}
   \item{\code{logLik}}{ Log-likelihood. }
+  \item{\code{call}}{ A list of all the arguments passed into the MARSS call.  Not required for most functions, but is a record of what was used to call MARSS for checking and can be used to customize the printing of MARSS output. }
 }
 }
 

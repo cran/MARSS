@@ -9,7 +9,7 @@ MARSSresids(MLEobj)
 }
 \arguments{
   \item{MLEobj}{ An object of class \code{\link{marssMLE}}. 
-  This object must have \code{$par}, \code{$model} and \code{$kf} elements containing MLE parameter estimates from e.g. \code{\link{MARSSkem}}. }
+  This object must have \code{$par}, \code{$model} and \code{$kf} elements containing MLE parameter estimates from e.g. \code{\link{MARSSkem}}. This may require setting \code{control$trace=1} in the \code{MARSS} call so that the \code{kf} list is attached to the MLE object.}
 }
 \details{
   Uses the algorithm on page 112 of Harvey, Koopman and Penzer (1998) to compute the standardized model residuals.  
@@ -28,7 +28,7 @@ A list with the following components
 \seealso{ \code{\link{MARSSkem}} \code{\link{marssMLE}} }
 \examples{
   dat = t(harborSeal)
-  dat = dat[2:4,]
+  dat = dat[c(2,11),]
   MLEobj = MARSS(dat)
   std.resids = MARSSresids(MLEobj)$std.et
 }

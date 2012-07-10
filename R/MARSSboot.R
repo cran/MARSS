@@ -20,7 +20,7 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
   #      parametric uses parametric bootstrapping
   #      innovations uses Stoffer and Walls method
   # param.gen = how to generate the parameters.
-  #      MLE estimate via method determined by MLEobj$method
+  #      MLE
   #      hessian
   # control is a list which holds options for the estimation function (see help file)
   # silent controls whether a progress bar is shown
@@ -119,9 +119,9 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
   if("parameters" %in% output) boot.params=array(NA,dim=c(length(MARSSvectorizeparam(MLEobj)),nboot))  
  
   ##### Read in model parameters
-  m = dim(MLEobj$par$Z)[2]
-  TT = dim(model$data)[2]  # length of time series
-  n = dim(MLEobj$par$Z)[1]   
+  m = dim(MLEobj$model$fixed$x0)[1]
+  TT = dim(MLEobj$model$data)[2]  # length of time series
+  n = dim(MLEobj$model$data)[1]   
 
   ##### If using hessian to generate boot parameters, check if parSigma is already set
   if(param.gen=="hessian" & (is.null(MLEobj$parSigma) | is.null(MLEobj$parMean))){
@@ -140,20 +140,19 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
 
   #####This part creates and stores the bootstrap data (not parameters yet just data)
   if(sim == "parametric")
-    boot.data = MARSSsimulate(MLEobj$par, miss.loc=model$data, miss.value=model$miss.value, tSteps=TT, nsim=nboot )$sim.data  # make new data
+    boot.data = MARSSsimulate(MLEobj, miss.loc=model$data, tSteps=TT, nsim=nboot )$sim.data  # make new data
 
   if(sim == "innovations")
     boot.data = MARSSinnovationsboot(MLEobj, nboot=nboot )$boot.data
 
-  #####This part generates the bootstrap parameter estimates
+  #####This part generates the bootstrap parameter
   if("parameters" %in% output){
     for(i in 1:nboot) {
-      if( param.gen == "MLE" ) {   
+      if( param.gen == "MLE" ) {
 	        newmod = MLEobj$model
 	        boot.control = MLEobj$control; boot.control$silent = TRUE #turn off output from MARSSkem()
-	        newmod$data = array(boot.data[,,i], dim=dim(boot.data)[1:2])
+	        newmod$data = array(boot.data[,,i], dim=dim(boot.data)[1:2])  
           mle.object = list(model=newmod, start=MLEobj$start, control=boot.control, method=MLEobj$method )
-          #kem.methods and optim.methods defined in MARSSsettings
 	        if(mle.object$method %in% kem.methods) boot.model = MARSSkem(mle.object) 
 	        if(mle.object$method %in% optim.methods) boot.model = MARSSoptim(mle.object) 
 	        boot.params[,i] = MARSSvectorizeparam(boot.model)

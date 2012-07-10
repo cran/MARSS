@@ -5,14 +5,10 @@
   Computes the expected value of random variables involving Y for the EM algorithm. This is a base function in the \code{\link{MARSS-package}}.
 }
 \usage{
-MARSShatyt(y, parList, kfList, missing.matrix = NULL, miss.value= NULL)
+MARSShatyt( MLEobj )
 }
 \arguments{
-  \item{y}{ A matrix (not dataframe), sites (rows) x years (columns). See Details regarding handling of missing values. }
-  \item{parList}{ A list with 8 matrices Z, A, R, B, U, Q, x0, V0, specifying parameter values. An example is the \code{par} element in a \code{\link{marssMLE}} object.}
-  \item{kfList}{ A list with the output from \code{\link{MARSSkf}}.}
-  \item{missing.matrix}{ Optional matrix specifying which observations are missing. See Details. }
-  \item{miss.value}{ How are missing values represented in the data? Either miss.value or missing.matrix must be supplied. If both are supplied, then miss.value will be ignored with no warning(!). }
+  \item{ MLEobj }{ A \code{\link{marssMLE}} object with the \code{par} element of estimated parameters, \code{model} element with the model description and data. }
   }
 \details{
 For state space models, \code{MARSShatyt()} computes the expectations involving Y.  If Y is completely observed, this entails simply replacing Y with the observed y.  When Y is only partially observed, the expectation involves the conditional expectation of a multivariate normal. 
@@ -32,8 +28,8 @@ A list with the following components (n is the number of state processes). Names
   \item{ok}{ (T/F) Whether errors were generated. }
 }
 \references{
-Holmes, E. E. (2010) Derivation of the EM algorithm for constrained and unconstrained multivariate autoregressive state-space (MARSS) models. Technical report. NOAA Fisheries, Northwest Fisheries Science
-Center, 2725 Montlake Blvd E., Seattle, WA 98112
+Holmes, E. E. (2012) Derivation of the EM algorithm for constrained and unconstrained multivariate autoregressive state-space (MARSS) models. Technical report. NOAA Fisheries, Northwest Fisheries Science
+Center, 2725 Montlake Blvd E., Seattle, WA 98112. Type \code{RShowDoc("EMDerivation",package="MARSS")} to open a copy.
 }
 \author{ 
   Eli Holmes, NOAA, Seattle, USA.  

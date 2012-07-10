@@ -39,11 +39,11 @@ Stoffer and Wall (1991) present an algorithm for generating CIs via a non-parame
   \item{nboot}{ Number of bootstraps performed. }
   \item{output}{ Type of output returned.} 
   \item{sim}{ Type of bootstrap. }
-  \item{param.gen}{ Parameter generation method: "hessian" or "MLE".  } 
+  \item{param.gen}{ Parameter generation method: "hessian" or "KalmanEM".  } 
 }
 \references{ 
-Holmes, E. E. and E. J. Ward. 2010. Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
-Center, 2725 Montlake Blvd E., Seattle, WA 98112; this is the user guide accessed via \code{RShowDoc("UserGuide",package="MARSS")}
+Holmes, E. E., E. J. Ward, and M. D. Scheuerell (2012) Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
+Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuide",package="MARSS")} to open a copy.
 
 Stoffer, D. S., and K. D. Wall. 1991. Bootstrapping state-space models: Gaussian maximum likelihood estimation and the Kalman filter. Journal of the American Statistical Association 86:1024-1033.
 
@@ -62,21 +62,17 @@ Cavanaugh, J. E., and R. H. Shumway. 1997. A bootstrap variant of AIC for state-
   #normally nboot would be >1000 at least
   dat = t(harborSealnomiss)
   dat = dat[2:4,]
-  #normally one would not use the delta logLik test for convergence (abstol)
-  #but used here with big abstol and minit to speed up the example
-  kem = MARSS(dat, model=list(U="equal",Q="diagonal and equal"), 
-     control=list(minit=40,abstol=0.1))
+  #maxit set low to speed up the example
+  kem = MARSS(dat, model=list(U="equal",Q=diag(.01,3)), 
+     control=list(maxit=50))
   hess.list = MARSSboot(kem, param.gen="hessian", nboot=5)
   # (no missing values)
   boot.list = MARSSboot(kem, output="all", sim="innovations", nboot=5)
 
-  # Bootstrap CIs for data with missing values
+  # Parametric bootstrap CIs for data with missing values
   dat = t(harborSealWA)
   dat = dat[2:4,]
-  kem = MARSS(dat, model=list(Q="diagonal and equal"), 
-     control=list(minit=40,abstol=0.1))
+  kem = MARSS(dat, model=list(Q=diag(.01,3)), 
+     control=list(maxit=50))
   boot.list = MARSSboot(kem, output="all", sim="parametric", nboot=5)
 }
-
-
-

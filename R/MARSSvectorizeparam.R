@@ -7,84 +7,73 @@ MARSSvectorizeparam = function(MLEobj, parvec=NA) {
   #if parvec=NA) returns a vector version of all the estimated parameters (for use in say optim) from a mssm  model
   #if parvec is passed in) returns a marssMLE object with par fixed by parvec
   
-  ## Order of elements is alphabetical
-  en = c("A", "B", "Q", "R", "U", "V0", "x0", "Z")
   free = MLEobj$model$free
   fixed = MLEobj$model$fixed
-  param = MLEobj$par
+  en = c("Z","A","R","B","U","Q","x0","V0") #sets order for paramvec
+  param = MLEobj$par  #might be NULL if not set yet
 
   ## If parvec = NA
   if(length(parvec)==1 && is.na(parvec[1])) {
     paramvector = NULL
 
     for(elem in en) {
-      this.free = free[[elem]]
-      this.param = param[[elem]]
-      mat.names = unique(as.vector(this.free[!is.na(this.free)]))
-      ## match() finds first appearance of each 
-      matchvec = match(mat.names, this.free)
-      tmp = this.param[matchvec]
+      if(dim(param[[elem]])[1]>0){ #there are estimates
+      mat.names = colnames(free[[elem]])
+      tmp = as.vector(param[[elem]]) 
       mat.names = paste(rep(elem, length(mat.names)), rep(".", length(mat.names)), mat.names, sep="")
       names(tmp) = mat.names
       paramvector = c(paramvector, tmp)
+      }
     }
     return(paramvector)
   } # end if parvec==NA
 
 
-  ## If parvec passed in, use to set MLEobj$par	
+  ## If parvec passed in, use it to set MLEobj$par	
   else { 
-    parlen = 0; maxvec = NULL; par = NULL
+    parlen = 0; maxvec = NULL; par = list()
 
     ## Check length(parvec) matches number of free params
     for(elem in en) {
-      this.free = free[[elem]] 
-      mx = length(unique(as.vector(this.free[!is.na(this.free)])))
+      mx = dim(free[[elem]])[2]
       parlen = parlen + mx
       maxvec = c(maxvec, mx)
     }
     if(length(parvec) != parlen) stop("Stopped in MARSSvectorizeparam(). Length of param vector does not match # of free params.\n", call.=FALSE)
     names(maxvec) = en
     
-    ## Fill in values, matrix by matrix
+    ## Fill in values, elem by elem
     for(elem in en) {
-
-      this.free = free[[elem]]
-      this.fixed = fixed[[elem]]
-      if(any(!is.na(this.free))) { ## if any free params
+      if( dim(free[[elem]])[2]>0 ) { ## if any free params
         mx = maxvec[[elem]]
-
+        free.names = colnames( free[[elem]] )
         ## Params for this element
         elemvec = parvec[1:mx]
-	if (is.null(names(elemvec))) {
-	  num.names = unique(as.vector(this.free[!is.na(this.free)]))
-        }
-	else {
-	  ## remove prefix
-	  prefix = paste(elem, ".", sep="")
-	  num.names = sub(prefix, "", names(elemvec))
-	}
-	## check name match
-        if(!all(num.names %in% this.free)) 
-	  stop(paste("Stopped in MARSSvectorizeparam(). parvec names don't match model$free names in parameter", elem,"\n"),call.=FALSE)      
+	      if (is.null(names(elemvec))) {
+	         num.names = free.names
+        }else {
+	        ## remove prefix
+	        prefix = paste(elem, ".", sep="")
+	        num.names = sub(prefix, "", names(elemvec))
+        }      
+	      ## check name match
+        if( !all(num.names %in% free.names )) 
+	          stop(paste("Stopped in MARSSvectorizeparam(). parvec names don't match model$free names in parameter", elem,"\n"),call.=FALSE)      
         ## Remove "used" values from parvec
         parvec = parvec[(mx+1):length(parvec)]
 
-        ## Match names in matrix to param vector names  
-        matchvec = match(this.free, num.names)   
-        ## elemvec[matchvec] gets param values as vector
-	#tmp = elemvec[matchvec]
-	tmp = matrix(elemvec[matchvec], nrow=nrow(this.free))
+        ## Match order of names in paramvec to order of names in columns of free matrix  
+        matchvec = match(free.names, num.names)   
+        elemvec=elemvec[matchvec] #reorder the elem vec to match colnames in free
 
-	## Incorporate the fixed params
-	fixedidx = which(!is.na(this.fixed))
-	tmp[fixedidx] = this.fixed[fixedidx]
+        tmp = matrix(elemvec,mx,1)
         tmp = list(tmp); names(tmp) = elem
         par = c(par, tmp)
-      } #end if(any(!is.na(this.free)))
-
-  else { ## use fixed matrix
-	   par = c(par, fixed[elem])
+      } #end if any free elem
+      else { ## use fixed matrix
+        tmp = matrix(0,0,1)
+        tmp = list(tmp); names(tmp) = elem
+        par = c(par, tmp)
       }
 
     } #end elem loop

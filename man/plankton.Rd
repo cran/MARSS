@@ -5,7 +5,11 @@
 \docType{data}
 \title{ Plankton Data Sets }
 \description{
-  Example data sets for use in MARSS vignettes for the \code{\link{MARSS-package}}. The "lakeWAplankton" plankton counts have been standardized to a mean of zero and variance of 1 (Z-score transformation). The second column in "lakeWAplankton" is simply a index for the count.  Columns 3 and 4 are month and month^2 but they have also been Z-score transformed.  Since MARSS functions require time to be across columns, these data matrices must be transposed before passing into MARSS functions.      The Ives data are unlogged.  \code{ivesDataLP} and \code{ivesDataByWeek} are the same data with LP having the missing weeks in winter removed while in ByWeek, the missing values are left in.
+  Example data sets for use in MARSS vignettes for the \code{\link{MARSS-package}}. 
+  
+  The "lakeWAplankton" plankton counts have been standardized to a mean of zero and variance of 1 (Z-score transformation). The second column in "lakeWAplankton" is simply a index for the count.  Columns 3 and 4 are month and month^2 but they have also been Z-score transformed.  Since MARSS functions require time to be across columns, these data matrices must be transposed before passing into MARSS functions.
+  
+  The Ives data are from Ives et al. (2003) for West Long Lake (the low planktivory case).  The Ives data are unlogged.  \code{ivesDataLP} and \code{ivesDataByWeek} are the same data with LP having the missing weeks in winter removed while in ByWeek, the missing values are left in.  The phosporous column is the experimental input rate + the natural input rate for phosphorous, and Ives et al. used 0.1 for the natural input rate when no extra phosporous was added.  The phosporous input rates for weeks with no sampling (and no experimental phosporous input) have been filled with 0.1 in the "by week" data.
 }
 \usage{
 data(ivesDataLP)

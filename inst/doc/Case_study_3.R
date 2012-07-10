@@ -27,10 +27,10 @@ for(i in 1:9) {
 
 kem = MARSS(sealData, model=list(Z=Z.model, Q=Q.model, R=R.model, U=U.model))
 
-# the parameter estimates
+# the parameter estimates; just the estimated elements
 kem$par$U
-diag(kem$par$Q) #since 0s are on the off-diagonals, we only need to see the diagonal
-diag(kem$par$R)
+kem$par$Q
+kem$par$R
 #num parameters, loglike, AIC (or use kem$AICc if you wish)
 c(kem$num.params, kem$logLik, kem$AIC)
 

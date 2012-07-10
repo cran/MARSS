@@ -3,17 +3,19 @@
 ###############################################################################################################################################
 
 print.marssm <- function (x, ...) 
-    {    
+    {
+    
       if (is.null(dim(x$data))) n = 1
       else n = dim(x$data)[1]
-      m=dim(x$fixed$Q)[1]
+      m=dim(x$fixed$x0)[1]
       
       cat(paste("\nModel Structure is\n","m: ", m," state process(es)\n", "n: ", n," observation time series\n",sep=""))
       tmp = NULL
 
       ## Print model structure for each parameter
       rpt = describe.marssm(x)
-      if(is.design(x$fixed$Z)){
+      Z.mat = unvec(x$fixed$Z[,,1,drop=FALSE],dim=c(n,m))
+      if( dim(x$fixed$Z)[3]==1 & is.design(Z.mat) & is.fixed(x$free$Z) ){
         ## Print sites by group
         group.names=rpt$Z
         if(!is.null(rownames(x$data))) data.names=rownames(x$data)

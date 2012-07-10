@@ -25,9 +25,8 @@ MARSSmcinit(MLEobj)
   A list with 8 matrices Z, A, R, B, U, Q, x0, V0, specifying initial values for parameters for iteration 1 of the EM algorithm.
 }
 \references{ 
-  The user guide:  Holmes, E. E. and E. J. Ward (2010) Analysis of multivariate time-series
-using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
-Center, 2725 Montlake Blvd E., Seattle, WA 98112   type \code{RShowDoc("UserGuide",package="MARSS")} to see.          
+  The user guide:  Holmes, E. E., E. J. Ward, and M. D. Scheuerell (2012) Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
+Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuide",package="MARSS")} to open a copy.    
 
  }
 \author{ 
@@ -41,7 +40,7 @@ Center, 2725 Montlake Blvd E., Seattle, WA 98112   type \code{RShowDoc("UserGuid
 \dontrun{ 
   #Note doing a Monte-Carlo search takes a long, long time
   dat = t(harborSeal)
-  dat = dat[2:nrow(dat),]
+  dat = dat[c(2,nrow(dat)),]
   fit1=MARSS(dat, control=list(MCInit=TRUE))
   fit1
   #Show the inits that were used

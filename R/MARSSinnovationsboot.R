@@ -9,15 +9,27 @@ MARSSinnovationsboot = function(MLEobj, nboot=1000, minIndx=3 ) {
       stop("Stopped in MARSSinnovationsboot() because this algorithm resamples from the innovations and doesn't allow missing values.\n", call.=FALSE)
 
    # The following need to be present in model: parameter estimates + Sigma, Kt, Innov; the latter 3 are part of $kf
-   if(any(is.null(MLEobj$par), is.null(MLEobj$kf), is.null(MLEobj$model$data)))
-      stop("Stopped in MARSSinnovationsboot(). The passed in marssMLE object is missing something (par, data, or kf).\n", call.=FALSE)
+   if(any(is.null(MLEobj$par), is.null(MLEobj$model$data)))
+      stop("Stopped in MARSSinnovationsboot(). The passed in marssMLE object is missing par or model$data elements.\n", call.=FALSE)
+   if(is.null(MLEobj$kf)){ kf=MARSSkf(MLEobj)
+   }else{ kf=MLEobj$kf } 
    
    ## Rename things for code readability
    model=MLEobj$model
-   TT = dim(model$data)[2]
-   m = dim(MLEobj$par$Z)[2]   
-   n = dim(MLEobj$par$Z)[1]
-   kf = MLEobj$kf
+   TT = dim(MLEobj$model$data)[2]
+   m = dim(MLEobj$model$fixed$x0)[1]   
+   n = dim(MLEobj$model$data)[1]
+   f=MLEobj$model$fixed
+   d=MLEobj$model$free
+   pari=parmat(MLEobj,t=1)
+
+   #### make a list of time-varying parameters
+   time.varying = list()
+   for(elem in names(MLEobj$model$free)) {
+    if( (dim(d[[elem]])[3] == 1) & (dim(f[[elem]])[3] == 1)){
+        time.varying[[elem]] = FALSE
+      }else{ time.varying[[elem]] = TRUE }  #not time-varying
+   }
       
    ##### Set holders for output
    newData = matrix(NA, n, TT)    #store as written for state-space eqn with time across columns
@@ -32,7 +44,8 @@ MARSSinnovationsboot = function(MLEobj, nboot=1000, minIndx=3 ) {
       std.innovations = stdInnov(kf$Sigma, kf$Innov)  # standardized innovations; time across rows
       eig = eigen(kf$Sigma[,,i])   # calculate inv sqrt(sigma[1])
       sigma.Sqrt[,,i] = eig$vectors %*% makediag(sqrt(eig$values)) %*% t(eig$vectors)
-      BKS[,,i] = MLEobj$par$B %*% kf$Kt[,,i] %*% sigma.Sqrt[,,i]   # this is m x n
+      if(time.varying$B & i>1) pari$B = parmat(MLEobj,"B",t=i)$B
+      BKS[,,i] = pari$B %*% kf$Kt[,,i] %*% sigma.Sqrt[,,i]   # this is m x n
     }
 
    for(i in 1:nboot){
@@ -44,11 +57,15 @@ MARSSinnovationsboot = function(MLEobj, nboot=1000, minIndx=3 ) {
       e[,1:minIndx] = as.matrix(std.innovations[,1:minIndx])
       e[,(minIndx+1):TT] = as.matrix(std.innovations[,samp])
       # newStates is a[] in the writeup by EH
-      newStates[,1] = MLEobj$par$x0
+      newStates[,1] = pari$x0
       #newStates[,2] = B %*% x0 + U + B %*% Kt[,,1] %*% sigma.Sqrt[,,1] %*% e[,1]
-      for(t in 1:TT) {  
-         newStates[,t+1] = MLEobj$par$B %*% newStates[,t] + MLEobj$par$U + BKS[,,t] %*% e[,t]
-         newData[,t] = MLEobj$par$Z %*% newStates[,t] + MLEobj$par$A + sigma.Sqrt[,,t] %*% e[,t]
+      for(t in 1:TT) {
+         if(time.varying$B & i>1) pari$B = parmat(MLEobj,"B",t=i)$B
+         if(time.varying$U & i>1) pari$U = parmat(MLEobj,"U",t=i)$U
+         if(time.varying$Z & i>1) pari$Z = parmat(MLEobj,"Z",t=i)$Z
+         if(time.varying$A & i>1) pari$A = parmat(MLEobj,"A",t=i)$A
+         newStates[,t+1] = pari$B %*% newStates[,t,drop=FALSE] + pari$U + BKS[,,t] %*% e[,t,drop=FALSE]
+         newData[,t] = pari$Z %*% newStates[,t,drop=FALSE] + pari$A + sigma.Sqrt[,,t] %*% e[,t,drop=FALSE]
       }
 
       newStates = newStates[,2:(TT+1)]

@@ -1,6 +1,8 @@
 ## MARSSinits  
 ## Set up inits
 ## These will be checked by the MLE object checker.
+## Will return a par list that looks just like MLEobj par list
+## Wants either a scalar (dim=NULL) or a matrix the same size as $par[[elem]]
 
 MARSSinits <- function(modelObj, inits=list(B=1, U=0, Q=0.05, Z=1, A=0, R=0.05, x0=-99, V0=5), method)
 {
@@ -10,63 +12,78 @@ for(elem in names(default)){
   if(is.null(inits[[elem]])) inits[[elem]]=default[[elem]]
 }
   y = modelObj$data
-  m = dim(modelObj$fixed$Z)[2]
-  n = dim(modelObj$fixed$Z)[1]
+  m = dim(modelObj$fixed$x0)[1]
+  n = dim(modelObj$data)[1]
+  d = modelObj$free
+  f = modelObj$fixed
   miss.value = modelObj$miss.value
-
-  D=as.design(modelObj$fixed$x0, modelObj$free$x0)$D  #need this many places
-  f=as.design(modelObj$fixed$x0, modelObj$free$x0)$f  #need this many places
+  parlist = list()
   
-  if(length(inits$V0)==1){
-    if( is.fixed(modelObj$fixed$x0) ){ inits$V0=makediag(inits$V0, nrow=m)
-      }else inits$V0 = inits$V0 * D%*%t(D) #if some x0 are shared, they need V0 with 100% correlation
-    }
-  if(length(inits$V0)==m){
-    if( is.fixed(modelObj$fixed$x0) || all(inits$V0==0) ) inits$V0=makediag(inits$V0, nrow=m)
-    }      
-      
-  if(!is.matrix(inits$V0)  || dim(inits$V0)[1]!=m || dim(inits$V0)[2]!=m) #there was a problem
-     stop("Stopped in MARSSinits() because inits$V0 is not a mxm matrix.  See help file.\n", call.=FALSE)
-  if(!is.fixed(modelObj$fixed$x0) && !all( (!(D%*%t(D)))*inits$V0==0 ))
-     warning("The initial V0 looks wrong (look at start$V0). A wrong init V0 will mean a wrong logLik value.")
+  par.dims=list(Z=c(n,m),A=c(n,1),R=c(n,n),B=c(m,m),U=c(m,1),Q=c(m,m),x0=c(m,1),V0=c(m,m))
 
-  for(elem in c("A","U","Z")) {
-    if(is.fixed(modelObj$fixed[[elem]])){ inits[[elem]] = modelObj$fixed[[elem]]
-    }else { #use inits but replace any fixed elements with their fixed values
-      inits[[elem]]=array(inits[[elem]],dim=dim(modelObj$fixed[[elem]]))
-      inits[[elem]][!is.na(modelObj$fixed[[elem]])]= modelObj$fixed[[elem]][!is.na(modelObj$fixed[[elem]])]
-    }
-    }
+  for(elem in names(par.dims)){
+  if(is.fixed(modelObj$free[[elem]])){ parlist[[elem]]=matrix(0,0,1) #always this when fixed
+  }else{ #not fixed
+    #must be either length 1 or same length as the number of estimated values for elem
+    if( !((is.null(dim(inits[[elem]])) & length(inits[[elem]])==1) | isTRUE(all.equal(dim(inits[[elem]]),c(dim(modelObj$free[[elem]])[2],1)))) ){
+      stop(paste("MARSSinits: ",elem," inits must be either a scalar (dim=NULL) or the same size as the par$",elem," element"),sep="")
+      }
+    parlist[[elem]]=matrix(inits[[elem]],dim(modelObj$free[[elem]])[2],1)
   
-  for(elem in c("Q","R","B","V0")) {  #if inits is a scalar to vector, make init a diagonal matrix
-    if(is.fixed(modelObj$fixed[[elem]])){ inits[[elem]] = modelObj$fixed[[elem]]
-    }else{ if(length(inits[[elem]])==length(modelObj$fixed[[elem]]) ){
-      inits[[elem]]= inits[[elem]]=array(inits[[elem]],dim=dim(modelObj$fixed[[elem]]))
-    }else{ if(length(inits[[elem]])==1 || length(inits[[elem]])==dim(modelObj$fixed[[elem]])[1]){
-      inits[[elem]]=makediag( inits[[elem]], nrow=dim(modelObj$fixed[[elem]])[1] )
-      } }
-    # replace any fixed elements with their fixed values
-    inits[[elem]][!is.na(modelObj$fixed[[elem]])]= modelObj$fixed[[elem]][!is.na(modelObj$fixed[[elem]])]
-    }
-    if(!is.matrix(inits[[elem]])) #there was a problem.  
-     stop(paste("Stopped in MARSSinits() because inits$",elem," is not a matrix.  See help file.\n",sep=""), call.=FALSE)
-    }
-    
-  if( is.fixed(modelObj$fixed$x0) ){ inits$x0 = modelObj$fixed$x0 
-  }else{      
+    if(elem %in% c("B","Q","R","V0") & is.null(dim(inits[[elem]]))) {  
+      #if inits is a scalar, make init a diagonal matrix
+      #this is a debuging line; this should have been caught earlier
+      tmp=vec(makediag( inits[[elem]], nrow=par.dims[[elem]][1] ))
+
+      # replace any fixed elements with their fixed values
+      fixed.row=apply(d[[elem]]==0,1,all) #fixed over all t
+      tmp[fixed.row]=f[[elem]][fixed.row,1,1] #replace with fix value at time t
+      #The funky colSum code sums a 3D matrix over the 3rd dim
+      #I want to apply this tmp to all the variances and use an average over the d and f if they are time-varying
+      #otherwise I could end up with 0s on the diagonal
+      numvals=colSums(aperm(d[[elem]],c(3,1,2))!=0,dims=1)
+      delem=colSums(aperm(d[[elem]],c(3,1,2)),dims=1)/numvals; delem[numvals==0]=0
+      numvals=colSums(aperm(f[[elem]],c(3,1,2))!=0,dims=1)
+      felem=colSums(aperm(f[[elem]],c(3,1,2)),dims=1)/numvals; felem[numvals==0]=0
+      #use a pseudoinverse here so D's with 0 columns don't fail
+      parlist[[elem]]=pinv(t(delem)%*%delem)%*%t(delem)%*%(tmp-felem)
+    } #c("Q","R","B","V0")
+
+    if(elem=="x0"){
+    dx0=sub3D(d$x0,t=1)
+    fx0=sub3D(f$x0,t=1)
     if(identical(unname(inits$x0),-99)) {  #get estimate of x0
       y1=y[,1,drop=FALSE]
       if(is.na(miss.value)){ #replace NAs with 0s
         y1[ is.na(y1) ] = 0 
       }else{ y1[ y1==miss.value ] = 0 }
-      #the following is by solving for x1 using y1=Z*(D*pipi+f)+a
-      pipi = solve(t(D)%*%D)%*%t(D)%*%(solve(t(inits$Z)%*%inits$Z)%*%t(inits$Z)%*%(y1-inits$A) - f)
-      inits$x0 = D%*%pipi+f
-    }else{ #use inits but replace any fixed elements with their fixed values
-      inits[[elem]]=array(inits[[elem]],dim=dim(modelObj$fixed[[elem]]))
-      inits[[elem]][!is.na(modelObj$fixed[[elem]])]= modelObj$fixed[[elem]][!is.na(modelObj$fixed[[elem]])]
-    }
-  }
-
-  inits
+      Zmat=sub3D(f$Z,t=1)+sub3D(d$Z,t=1)%*%parlist$Z
+      Zmat=unvec(Zmat,dim=c(n,m))
+      Amat=sub3D(f$A,t=1)+sub3D(d$A,t=1)%*%parlist$A
+      if(modelObj$tinitx==0){ #y=Z*(B*pi+U)+A
+        Bmat=sub3D(f$B,t=1)+sub3D(d$B,t=1)%*%parlist$B
+        Bmat=unvec(Bmat,dim=c(m,m))
+        Umat=sub3D(f$U,t=1)+sub3D(d$U,t=1)%*%parlist$U 
+      }else{ #y=Z*pi + A
+        Bmat=diag(1,m)
+        Umat=matrix(0,m,1)
+      }
+      #the following is by solving for pipi using 
+      #y1=Z1*(D*pipi+f)+a if tinit=1 or y1=Z1*(B(D*pipi+f)+U)+A if tinit=0
+      tmp=Zmat%*%Bmat%*%dx0
+      if(is.solvable(tmp)=="underconstrained"){
+          if(modelObj$tinitx==0){
+            stop("MARSSinits: Z B d_x0 is underconstrained and inits for x0 cannot be computed.  \n Pass in inits$x0 manually using inits=list(x0=...).\n  This probably means you have a problem with your model however.")
+          }else{
+            stop("MARSSinits: Z d_x0 is underconstrained and inits for x0 cannot be computed.  \n Pass in inits$x0 manually using inits=list(x0=...).\n  This probably means you have a problem with your model however.")
+          }
+      }
+      parlist$x0 = pinv(tmp)%*%(y1-Zmat%*%Bmat%*%fx0-Zmat%*%Umat-Amat)
+    } #inits$x0=-99 means solve for x0 
+   } #elem == x0
+  rownames( parlist[[elem]] )=colnames( d[[elem]] )
+  } #if elem not fixed
+  } #for across elems
+  
+  parlist
 }

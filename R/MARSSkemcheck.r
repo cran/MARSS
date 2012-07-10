@@ -1,100 +1,269 @@
-MARSSkemcheck = function(modelObj, method="kem", kf.x0=NULL){
+MARSSkemcheck = function( MLEobj ){
 #This checks that the model can be handled by the MARSSkem algorithm
+# Most of this is implementing the restrictions in Summary of Requirements for Degenerate Models in derivation
+modelObj=MLEobj$model
 fixed = modelObj$fixed
 free = modelObj$free
-m=dim(fixed$Q)[1]; n=dim(fixed$R)[1]
+m=dim(fixed$x0)[1]; n=dim(modelObj$data)[1]
 TT=dim(modelObj$data)[2]
-errmsg = " Try using foo=MARSS(..., fit=FALSE), then summary(foo$model) to see what model you are trying to fit.\n"
+correct.dim1 = c(Z=n,A=n,R=n,B=m, U=m, Q=m, x0=m, V0=m)
+correct.dim2 = c(Z=m,A=1,R=n,B=m, U=1, Q=m, x0=1, V0=m)
+pseudolim=1E-8
+ok=TRUE
+msg=NULL
 
-#ensure that kf.x0 is passed in
-  if(is.null(kf.x0))
-    stop("Stopped in MARSSkemcheck() because kf.x0 not passed into function.\n", call.=FALSE)
+# If TT=2 then kf will break
+  if(TT<=2){
+    msg=c(msg, "The number of time steps is <=2.\nMore than 2 data points are needed to estimate parameters.\n")
+    ok=FALSE
+    }
 
-# If T=2 then kf will break
-  if(TT<=2)
-    stop("Stopped in MARSSkemcheck() because the number of time steps is <=2.\nMore than 2 data points are needed to estimate parameters.\n", call.=FALSE)
-
-  ############ Check that B is within the unit circle
-   if(is.fixed(fixed$B) && !all(abs(eigen(fixed$B,only.values=TRUE)$values)<=1)){ 
-      msg=c(" In MARSS 2.0 all the eigenvalues of B must be within the unit circle: all(abs(eigen(fixed$B)$values)<=1)\n", errmsg)
-      cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
-      stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
-      }
-
+  ############ Check that if fixed, B is within the unit circle
+   for(t in 1:max(dim(free$B)[3],dim(fixed$B)[3])){
+    ifixed=min(t,dim(fixed$B)[3])
+    if( is.fixed(free$B[,,ifixed,drop=FALSE]) ){  #works on 3D matrices
+    #parmat needs modelObj and par list
+    tmp.MLEobj=list( model=modelObj,par=list(B=matrix(0,0,1)) ) #B is fixed so par is set to fixed value
+    parB = parmat(tmp.MLEobj,"B",t=t)$B
+    if( !all(abs(eigen(parB,only.values=TRUE)$values)<=1)){ 
+      msg=c(msg, " All the eigenvalues of B must be within the unit circle: all(abs(eigen(fixed$B)$values)<=1)\n")
+      ok=FALSE
+    } }
+   } #end for over time to check B
+   
    ############ Check that if R has 0s, then the corresponding row of A and Z are fixed
-   # and that if x0 is fixed, data = Z%*%x0
-   diag.R=takediag(fixed$R);  diag.R[is.na(diag.R)]=1
-   R.degen.elements=(diag.R==0)
-   if(any(R.degen.elements)){
-      allowed.to.be.degen = !is.na(fixed$A[R.degen.elements]) & !apply(is.na(fixed$Z[R.degen.elements,,drop=FALSE]),1,any)
-      if(any(!allowed.to.be.degen,na.rm=TRUE)) {
-        msg=c(" If an element of the diagonal of R is 0, the corresponding row of A and Z must be fixed.\n", errmsg)
-        cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="")
-        stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
-      }
+   # See Summary of Requirements for Degenenate Models in EMDerivations.pdf
+   el="R"
+   #extracts the r=0 rows (or cols)
+   diag.rows = 1 + 0:(correct.dim1[[el]] - 1)*(correct.dim1[[el]] + 1)
+   Tmax=0
+   for(par.test in c("R","Z","A")){
+     Tmax = max(Tmax, dim(fixed[[par.test]])[3],dim(free[[par.test]])[3])
+   }
+
+   if(is.null(MLEobj$par)) MLEobj$par=MLEobj$start
+   MLEobj$kf=MARSSkf(MLEobj)
+   if(!MLEobj$kf$ok){ return(list(ok=FALSE, msg=c(MLEobj$kf$errors, msg))) }
+   MLEobj$Ey=MARSShatyt(MLEobj)
+   msg.tmp=NULL
+   for(i in 1:TT){
+      ifixed=min(i,dim(fixed[[el]])[3]); ifree=min(i,dim(free[[el]])[3]) 
+      zero.diags=is.fixed(free[[el]][diag.rows,,ifree,drop=FALSE],by.row=TRUE) & apply(fixed[[el]][diag.rows,,ifixed,drop=FALSE]==0,1,all) #fixed rows and 0
+      if(any(zero.diags)){
+        II0 = makediag(as.numeric(zero.diags))
+        if(i<=Tmax){
+          for( par.test in c("Z","A")){
+            II = diag(1,correct.dim2[[par.test]])
+            ifree.par=min(i,dim(free[[par.test]])[3])
+            dpart = sub3D(free[[par.test]],t=ifree.par)
+            par.not.fixed = any( ((II %x% II0)%*%dpart)!=0 )
       
-      if(kf.x0=="x10"){
-        fixed.hat.y0=fixed$Z[R.degen.elements,,drop=FALSE]%*%fixed$x0+fixed$A[R.degen.elements,drop=FALSE]
-        data1 = modelObj$data[R.degen.elements,1]
-        data1[data1==modelObj$miss.value]=NA #replace miss.value with NA
-        both.fixed=!is.na(fixed.hat.y0) & !is.na(data1)
-        if(any(both.fixed) & any(!(data1[both.fixed]==fixed.hat.y0[both.fixed]))){
-          msg=c(" If an element of the diagonal of R is 0, the corresponding A, Z, and x0 are fixed, \n
-            and kf.x0=x10 and data are not missing at t=1, then the data must match the fixed values.\n", errmsg)
-          cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="")
-          stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
-        }
+            if(par.not.fixed){
+              msg=c(msg, paste("t=",i,": If an element of the diagonal of R is 0, the corresponding row of", par.test, "must be fixed.\n",sep=""))
+            }
+           } #for par.test
+        } #if par needs to be tested; don't need to do over all TT just up to Tmax
+
+        Z=parmat(MLEobj,"Z",t=i)$Z
+        A=parmat(MLEobj,"A",t=i)$A
+        Z.R0=Z[zero.diags,,drop=FALSE]
+        A.R0=A[zero.diags,,drop=FALSE]
+        y.R0=MLEobj$Ey$ytT[zero.diags,i,drop=FALSE]
+        y.resid = y.R0 - Z.R0%*%MLEobj$kf$xtT[,i,drop=FALSE] - A.R0
+        if(any(y.resid>pseudolim)){
+          msg.tmp=c(msg.tmp, paste(" Z, A, and y for the R=0 rows at time=",i," do not agree. For the R=0 rows, E(y) must equal Z * E(x) + A.\n",sep=""))
+          }
+       }#any zero.diags
+  } #end for loop over time
+  if(!is.null(msg)){
+    msg=c(msg, msg.tmp[1:min(10,length(msg.tmp))]) #error msgs could be really long, only print first 10
+    ok=FALSE
+  }
+      
+
+   ############ Check that II_q^{0} is time constant
+   # See Summary of Requirements for Degenenate Models in EMDerivations.pdf
+   Tmax=0
+   for(par.test in c("Q")){
+     Tmax = max(Tmax, dim(fixed[[par.test]])[3],dim(free[[par.test]])[3])
+   }
+   II0=list()
+   for(i in 1:Tmax){
+      for(el in c("Q")){
+        ifixed=min(i,dim(fixed[[el]])[3]); ifree=min(i,dim(free[[el]])[3]) 
+        diag.rows = 1 + 0:(correct.dim1[[el]] - 1)*(correct.dim1[[el]] + 1)
+        zero.diags=is.fixed(free[[el]][diag.rows,,ifree,drop=FALSE],by.row=TRUE) & apply(fixed[[el]][diag.rows,,ifixed,drop=FALSE]==0,1,all) #fixed rows
+        II0Q = makediag(as.numeric(zero.diags))
+        II0Q = unname(II0[[el]])
       }
+      if(i==1){
+         II0Q.1=II0Q
+      }else{
+         if(!isTRUE(all.equal(II0Q, II0Q.1))){
+            msg=c(msg, paste("t=",i,": The placement of 0 variances in Q must be time constant.\n",sep=""))
+            ok=FALSE
+         }
+      }
+   } #end for loop over time
+
+
+   ############ Check that if R and Q both have 0s, then the U and Bs are appropriately fixed
+   # See Summary of Requirements for Degenenate Models in EMDerivations.pdf
+   Tmax=0
+   for(par.test in c("R","Q","U","B","Z")){
+     Tmax = max(Tmax, dim(fixed[[par.test]])[3],dim(free[[par.test]])[3])
+   }
+   II0=list()
+   for(i in 1:Tmax){
+      for(el in c("R","Q")){
+        ifixed=min(i,dim(fixed[[el]])[3]); ifree=min(i,dim(free[[el]])[3]) 
+        diag.rows = 1 + 0:(correct.dim1[[el]] - 1)*(correct.dim1[[el]] + 1)
+        zero.diags=is.fixed(free[[el]][diag.rows,,ifree,drop=FALSE],by.row=TRUE) & apply(fixed[[el]][diag.rows,,ifixed,drop=FALSE]==0,1,all) #fixed rows
+        II0[[el]] = makediag(as.numeric(zero.diags))
+      }
+      for( el in c("B","U")){
+          ifree=min(i,dim(free[[el]])[3])
+          #I don't know what par$Z will be.  I want to create a par$Z where there is a non-zero value for any potentially non-zero Z's
+          tmp.MLEobj=list(model=modelObj, par=list(Z=matrix(1,dim(free$Z)[2],1)))
+          tmp.MLEobj$model$fixed$Z[tmp.MLEobj$model$fixed$Z!=0]=1
+          tmp.MLEobj$model$free$Z[tmp.MLEobj$model$free$Z!=0]=1
+          parZ=parmat(tmp.MLEobj,"Z",t=i)$Z
+          II = diag(1,correct.dim2[[el]])
+          
+          dpart = sub3D(free[[el]],t=ifree)
+          par.not.fixed = any( ((II %x% (II0$R%*%parZ%*%II0$Q))%*%dpart)!=0 )
+      
+          if(par.not.fixed){
+            msg=c(msg, paste("t=",i,": If an element of the diagonal of R & Q is 0, the corresponding row of ", par.test, " must be fixed.\n",sep=""))
+            ok=FALSE
+          }
+        } #for par.test
+   } #end for loop over time   
+
+   ############ Check that B^{0} is fixed
+   # See Summary of Requirements for Degenenate Models in EMDerivations.pdf
+   Tmax=0
+   for(par.test in c("B")){
+     Tmax = max(Tmax, dim(fixed[[par.test]])[3],dim(free[[par.test]])[3])
+   }
+   II0=list()
+   for(i in 1:Tmax){
+      for(el in c("Q")){
+        ifixed=min(i,dim(fixed[[el]])[3]); ifree=min(i,dim(free[[el]])[3]) 
+        diag.rows = 1 + 0:(correct.dim1[[el]] - 1)*(correct.dim1[[el]] + 1)
+        zero.diags = is.fixed(free[[el]][diag.rows,,ifree,drop=FALSE],by.row=TRUE) & apply(fixed[[el]][diag.rows,,ifixed,drop=FALSE]==0,1,all) #fixed rows
+        II0[[el]] = makediag(as.numeric(zero.diags))
+      }
+      for( el in c("B")){
+          ifree=min(i,dim(free[[el]])[3])
+          II = diag(1,correct.dim2[[el]])
+          dpart = sub3D(free[[el]],t=ifree)
+          par.not.fixed = any( ((II %x% II0$Q)%*%dpart)!=0 )
+      
+          if(par.not.fixed){
+            msg=c(msg, paste("t=",i,": If an element of the diagonal of Q is 0, the corresponding row and col of ", par.test, " must be fixed.\n",sep=""))
+            ok=FALSE
+          }
+        } #for par.test
+   } #end for loop over time   
+
+
+   ############ Check that if u^{0} or xi^{0} are estimated, B adjacency matrix is time invariant
+   # See Summary of Requirements for Degenenate Models in EMDerivations.pdf
+   Tmax=0
+   for(par.test in c("U")){
+     Tmax = max(Tmax, dim(fixed[[par.test]])[3],dim(free[[par.test]])[3])
+   }
+   II0=list()
+   el="Q"       
+   diag.rows = 1 + 0:(correct.dim1[[el]] - 1)*(correct.dim1[[el]] + 1)
+   zero.diags = is.fixed(free[[el]][diag.rows,,ifree,drop=FALSE],by.row=TRUE) & apply(fixed[[el]][diag.rows,,1,drop=FALSE]==0,1,all) #fixed rows
+   II0[[el]] = makediag(as.numeric(zero.diags))
+
+   dpart=sub3D(free$x0,t=1)
+   test.adj = any( (II0$Q%*%dpart)!=0 )
+   for(i in 1:Tmax){
+    dpart=sub3D(free$U,t=1)
+    test.adj = test.adj & any( (II0$Q%*%dpart)!=0 )  #II0$Q required to be time constant above
    }
    
-   ############ Check that R and Q don't have 0s in the same place 
-   #Z where 0=0 and !0=1
-   Z.01 = fixed$Z; Z.01[is.na(Z.01)]=1; Z.01=(Z.01!=0)
-   diag.Q=diag(fixed$Q);  diag.Q[is.na(diag.Q)]=TRUE; diag.Q[diag.Q!=0]=TRUE; diag.Q[diag.Q==0]=FALSE
-   Q.degen.elements=!(Z.01%*%diag.Q)
-   if(any(Q.degen.elements & R.degen.elements)) {
-      msg=c(" Warning: an element of the diagonal of R is 0, and the corresponding row of Q is also 0.\n This might lead to MARSS errors.\n", errmsg)
-      cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
-      #stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
-      }
-  
-  diag.Q=takediag(modelObj$fixed$Q)
-  if( any(diag.Q==0,na.rm=TRUE) ){
-    B.0 = fixed$B[diag.Q==0, ,drop=FALSE]
-    ############ Check that the B sub matrix for Q=0 is fixed  
-    if( any( is.na(B.0) ) ){
-          msg=c(" All rows of B corresponding to Q diagonal = 0 must be fixed values.\n", errmsg)
-          cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
-          stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
-    }    
-
-   for(elem in c("U","x0")){
-   elem.0 = fixed[[elem]][diag.Q==0, ,drop=FALSE]
-   ############ If u^(0) is estimated, B.0 must be independent of B.plus for the estimated u.0s 
-   if( any( is.na(elem.0) ) && any(diag.Q!=0,na.rm=TRUE) ){
-    B.00 = fixed$B[is.na(fixed[[elem]]) & diag.Q==0, diag.Q==0]
-    B.0.plus = fixed$B[is.na(fixed[[elem]]) & diag.Q==0, diag.Q!=0]
-    B.plus.0 = fixed$B[diag.Q!=0, is.na(fixed[[elem]]) & diag.Q==0]
-    block.B = all( B.0.plus == 0 ) && all( B.plus.0 == 0 )
-    zero.B00 =  all( B.00 == 0 ) && all(is.na(rowSums( B.0.plus )) | rowSums( B.0.plus )>0 )
-    ############ Check that the abs of all eigenvalues of the B sub matrix for Q=0 are less than or = to 1, B is block diag  
-    if( block.B ){
-        tmp=eigen(B.00, only.values = TRUE)$values
-    if( any( tmp > 1 ) ){
-          msg=c(paste(" There are 0s on the diagonal of Q and corresponding ",elem,"'s are estimated.\n In this case, the abs of all eigenvalues of B.0 block must be less than or = 1.\n",sep=""), errmsg)
-          cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
-          stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
-      } 
-    }
-    if( !block.B & !zero.B00 ){
-          msg=c(paste(" There are 0s on the diagonal of Q and corresponding ", elem,"'s are estimated.\n In this case, B must be block diagonal (B.0 block and B.plus block)\n or B00 must be all 0s.\n",sep=""), errmsg)
-          cat("\n","Errors were caught in MARSSkemcheck \n", msg, sep="") 
-          stop("Stopped in MARSSkemcheck() due to specification problem(s).\n", call.=FALSE)
-    } 
+   if(test.adj){ #means x0^{0} or u^{0} being estimated
+   Tmax=0
+   for(par.test in c("U", "B")){
+     Tmax = max(Tmax, dim(fixed[[par.test]])[3],dim(free[[par.test]])[3])
    }
-   } 
-} #zeros on the diagonal of Q
+   for(i in 1:Tmax){
+      el="B"
+      ifree=min(i,dim(free[[el]])[3])
+      #I don't know what par$B will be.  I want to create a par$B where there is a non-zero value for any potentially non-zero B's
+      tmp.MLEobj=list(model=modelObj, par=list(B=matrix(1,dim(free$B)[2],1)))
+      tmp.MLEobj$model$fixed[[el]][tmp.MLEobj$model$fixed[[el]]!=0]=1
+      tmp.MLEobj$model$free[[el]][tmp.MLEobj$model$free[[el]]!=0]=1
+      adjB=parmat(tmp.MLEobj,el,t=i)[[el]]
+      adjB[adjB!=0]=1; adjB=unname(adjB)
+      if(i==1){
+         adjB.1=adjB
+      }else{
+         if(!isTRUE(all.equal(adjB, adjB.1))){
+            msg=c(msg, paste("t=",i,": If u^{0} or xi^{0} are estimated, the adjacency matrix specified by B must be time constant.\n",sep=""))
+            ok=FALSE
+         }
+      }
+   } #end for loop over time
+   } #if the adj test needs to be done
+   
+############ Check that II_q^{d} and II_q^{is} are time constant
+   # See Summary of Requirements for Degenenate Models in EMDerivations.pdf
+   Tmax=0
+   for(par.test in c("Q")){
+     Tmax = max(Tmax, dim(fixed[[par.test]])[3],dim(free[[par.test]])[3])
+   }
+   IIz=IIp=OMGz=OMGp=IId=IIis=list()
+   for(i in 1:Tmax){
+      el="Q"
+        ifixed=min(i,dim(fixed[[el]])[3]); ifree=min(i,dim(free[[el]])[3]) 
+        diag.rows = 1 + 0:(correct.dim1[[el]] - 1)*(correct.dim1[[el]] + 1)
+        zero.diags=is.fixed(free[[el]][diag.rows,,ifree,drop=FALSE],by.row=TRUE) & apply(fixed[[el]][diag.rows,,ifixed,drop=FALSE]==0,1,all) #fixed rows
+        IIz[[el]] = makediag(as.numeric(zero.diags))
+        IIp[[el]] = diag(1,correct.dim1[[el]])-IIz[[el]]
+        OMGz[[el]] = diag(1,correct.dim1[[el]])[diag(IIz[[el]])==1,,drop=FALSE]
+        OMGp[[el]] = diag(1,correct.dim1[[el]])[diag(IIp[[el]])==1,,drop=FALSE]
+        
+        #I don't know what par$B will be.  I want to create a par$B where there is a non-zero value for any potentially non-zero B's
+        tmp.MLEobj=list(model=modelObj, par=list(B=matrix(1,dim(free$B)[2],1)))
+        tmp.MLEobj$model$fixed$B[tmp.MLEobj$model$fixed$B!=0]=1
+        tmp.MLEobj$model$free$B[tmp.MLEobj$model$free$B!=0]=1
+        Adj.mat=parmat(tmp.MLEobj,"B",t=i)$B
+        Adj.mat[Adj.mat!=0]=1; Adj.mat=unname(Adj.mat)
+        Adj.mat.pow.m = matrix.power(Adj.mat, m) #to find all the linkages
 
-constr.type = describe.marssm(modelObj)   
-return(constr.type)
+        Q.0.rows.of.Adj.mat = OMGz[[el]]%*%Adj.mat.pow.m
+        #These are the columns corresponding to the directly stochastic bit: Q.0.rows.of.Adj.mat%*%t(OMGp$Q)
+        if(dim(OMGp[[el]])[1]!=0){
+        tmp=Q.0.rows.of.Adj.mat
+        #which rows of the + columns are all zero
+        if(dim(Q.0.rows.of.Adj.mat)[1]!=0) tmp=apply(Q.0.rows.of.Adj.mat%*%t(OMGp[[el]])==0,1,all) 
+        tmp=t(OMGz[[el]])%*%matrix(as.numeric(tmp),ncol=1) #expand back outl 1s where the deterministic x's are
+        IId[[el]]=makediag(tmp); IId[[el]]=unname(IId[[el]])
+        IIis[[el]]=diag(1,m)-IId[[el]]-IIp[[el]]; IIis[[el]]=unname(IIis[[el]])
+        }else{ #Q all 0
+         IId[[el]]=diag(1,correct.dim1[[el]])
+         IIis[[el]]=diag(0,correct.dim1[[el]])
+        }
+        if(i==1){
+          IId.1=IId[[el]]
+          IIis.1=IIis[[el]]
+        }else{
+          if(!isTRUE(all.equal(IId[[el]], IId.1))){
+            msg=c(msg, paste("t=",i,": The location of the deterministic x's must be time constant.\n",sep=""))
+            ok=FALSE
+          }
+          if(!isTRUE(all.equal(IIis[[el]], IIis.1))){
+            msg=c(msg, paste("t=",i,": The location of the indirectly stochastic x's must be time constant.\n",sep=""))
+            ok=FALSE
+          }
+       }
+     } #end for loop over time
+
+return(list(ok=ok, msg=msg))
 }

@@ -5,8 +5,7 @@
   Sets up generic starting values for parameters for maximum-likelihood estimation algorithms that use an iterative maximization routine needing starting values.   Examples of such algorithms are the EM algorithm in \code{\link{MARSSkem}} and Newton methods in \code{\link{MARSSoptim}}.   This is a utility function in the \code{\link{MARSS-package}}.
 }
 \usage{
-MARSSinits(modelObj, inits=list(B=1, U=0, Q=0.05, 
-   Z=1, A=0, R=0.05, x0=-99, V0=5), method)
+MARSSinits(modelObj, inits=list(B=1, U=0, Q=0.05, Z=1, A=0, R=0.05, x0=-99, V0=5), method)
 }
 \arguments{
   \item{modelObj}{ An object of class \code{\link{marssm}}. \code{MARSSinits} uses three elements of the model object.
@@ -17,7 +16,7 @@ MARSSinits(modelObj, inits=list(B=1, U=0, Q=0.05,
     }
 }
   \item{inits}{ A list of up to 8 values to construct starting matrices for each parameter in a MARSSmodel.}
-  \item{method}{ The method used to fit the model.  This affects the default init values.}
+  \item{method}{ The fitting algorithm to be used (e.g. kem) }
 }
 \details{
   Creates an \code{inits} parameter list for use by iterative maximization algorithms.  

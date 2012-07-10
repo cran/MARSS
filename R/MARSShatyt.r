@@ -2,50 +2,57 @@
 #   MARSShatyt function
 #   Expectations involving hatyt
 #######################################################################################################
-MARSShatyt = function(y, parList, kfList, missing.matrix = NULL, miss.value= NULL) {
-    if(is.null(missing.matrix) && is.null(miss.value)) stop("Stopped in MARSShatyt() because either missing.matrix or miss.value must be specified.\n")
-    if(!is.null(miss.value) && !is.na(miss.value) && !is.numeric(miss.value)) stop("Stopped in MARSShatyt() because miss.value must be numeric (or NA).")
+MARSShatyt = function( MLEobj ) {
+    modelObj = MLEobj$model
+    if(!is.null(MLEobj$kf)){ kfList = MLEobj$kf
+    }else{ kfList=MARSSkf(MLEobj) }
+    n=dim(modelObj$data)[1]; TT=dim(modelObj$data)[2]; m=dim(modelObj$fixed$x0)[1]
 
-    #Note diff in param names from S&S;B=Phi, Z=A, A not in S&S
-    U=parList$U; Q=parList$Q; R=parList$R;
-    A=parList$A; x0=parList$x0; V0=parList$V0; B=parList$B;
-    Z=parList$Z; #this is the design matrix, called A in S&S  
-    n=dim(y)[1]; TT=dim(y)[2]; m=dim(as.matrix(Q))[1]
-	  if(length(R)==1) diag.R=unname(R) else diag.R = takediag(unname(R))
-	  is.R.diagonal = is.diagonal(R)
-    if(identical(unname(V0), matrix(0,m,m))) x0.is.stochastic = FALSE else x0.is.stochastic = TRUE
-    hatxt=kfList$xtT
-    if(x0.is.stochastic) hatxt1=cbind(kfList$x0T,kfList$xtT[,1:(TT-1),drop=FALSE])
-    if(!x0.is.stochastic) hatxt1=cbind(x0,kfList$xtT[,1:(TT-1),drop=FALSE])
+    #create the YM matrix
+    if(is.na(modelObj$miss.value)){ YM=matrix(as.numeric(!is.na(modelObj$data)),n,TT)
+      }else{ YM=matrix(as.numeric(!(modelObj$data==modelObj$miss.value)),n,TT) } 
+    #Make sure the missing vals in y are zeroed out if there are any
+    y=modelObj$data
+    y[YM==0]=0
+
+    #set-up matrices for hatxt for 1:TT and 1:TT-1
+    IIz=list(); IIz$V0=makediag(as.numeric(takediag(parmat(MLEobj, "V0", t=1)$V0)==0),m)
+    hatxt=kfList$xtT      #1:TT
+    E.x0 = (diag(1,m)-IIz$V0)%*%kfList$x0T+IIz$V0%*%parmat(MLEobj, "x0", t=1)$x0  #0:T-1
+    hatxt1=cbind(E.x0,kfList$xtT[,1:(TT-1),drop=FALSE])
     hatVt=kfList$VtT
     hatVtt1=kfList$Vtt1T
-	  M = missing.matrix
+
 	  msg=NULL
 
     #Construct needed identity matrices
     I.n = diag(1,n)
-	  
-    #if the user didn't pass in the M matrix
-    if(is.null(M)){
-      if(is.na(miss.value)){ YM=matrix(as.numeric(!is.na(y)),n,TT)
-      }else  YM=matrix(as.numeric(!(y==miss.value)),n,TT)
-    }else{
-      if(n==1){YM=matrix(M,1,TT)
-        }else{
-          YM = matrix(1,n,TT)
-          for(t in 1:TT) YM[,t]=diag(M[,,t]) }
-      }
-       
-    #Make sure the missing vals in y are zeroed out if there are any
-    y[YM==0]=0
+	        
+    #Note diff in param names from S&S;B=Phi, Z=A, A not in S&S
+    time.varying = c(); pari=list()
+    for(elem in c("R","Z","A")){  #only params needed for this function
+      if( (dim(modelObj$free[[elem]])[3] == 1) & (dim(modelObj$fixed[[elem]])[3] == 1)){  #not time-varying
+        pari[[elem]]=parmat(MLEobj, elem, t=1)[[elem]]
+        if(elem=="R"){ 
+          if(length(pari$R)==1) diag.R=unname(pari$R) else diag.R = takediag(unname(pari$R))
+          is.R.diagonal = is.diagonal(pari$R) }
+	  }else{ time.varying = c(time.varying, elem) } #which elements are time varying
+	  }#end for loop over elem
+            
              
     #initialize - these are for the forward, Kalman, filter
-    # for notation purposes, 't' represents current point in time, 'T' represents the length of the series
+    # for notation purposes, 't' represents current point in time, 'TT' represents the length of the series
     hatyt = matrix(0,n,TT)     
     hatOt = array(0,dim=c(n,n,TT))     
     hatyxt = hatyxtt1 = array(0,dim=c(n,m,TT))
     
     for (t in 1:TT) {
+      for(elem in time.varying){
+        pari[[elem]]=parmat(MLEobj, elem, t=t)[[elem]] 
+        if(elem=="R"){ 
+          if(length(pari$R)==1) diag.R=unname(pari$R) else diag.R = takediag(unname(pari$R))
+          is.R.diagonal = is.diagonal(pari$R) }
+      }
       if(all(YM[,t]==1)){  #none missing
           hatyt[,t]=y[,t,drop=FALSE]
           hatOt[,,t]=hatyt[,t,drop=FALSE]%*%matrix(hatyt[,t,drop=FALSE],1,n) #matrix() is faster than t()
@@ -60,21 +67,21 @@ MARSShatyt = function(y, parList, kfList, missing.matrix = NULL, miss.value= NUL
         if(!is.R.diagonal && any(YM[,t]==1 & diag.R!=0)){           
           mho.r = I.r[YM[,t]==1 & diag.R!=0,,drop=FALSE]
           t.mho.r = I.r[,YM[,t]==1 & diag.R!=0,drop=FALSE]
-          Rinv = try(chol(mho.r%*%R%*%t.mho.r))
+          Rinv = try(chol(mho.r%*%pari$R%*%t.mho.r))
           #Catch errors before entering chol2inv
           if(class(Rinv)=="try-error") {
             return(list(ok=FALSE, errors="Stopped in MARSShatyt: chol(R) error.\n" ) )      
           }
           Rinv=chol2inv(Rinv) 
-          Delta.r = I.n- R%*%t.mho.r%*%Rinv%*%mho.r
+          Delta.r = I.n- pari$R%*%t.mho.r%*%Rinv%*%mho.r
         }
-        hatyt[,t]=y[,t,drop=FALSE] - Delta.r%*%(y[,t,drop=FALSE]-Z%*%hatxt[,t,drop=FALSE]-A)
-        t.DZ = matrix(Delta.r%*%Z,m,n,byrow=TRUE)
-        hatOt[,,t]=I.2%*%(Delta.r%*%R+Delta.r%*%Z%*%hatVt[,,t]%*%t.DZ)%*%I.2 + hatyt[,t,drop=FALSE]%*%matrix(hatyt[,t,drop=FALSE],1,n)
-        hatyxt[,,t]=hatyt[,t,drop=FALSE]%*%matrix(hatxt[,t,drop=FALSE],1,m)+Delta.r%*%Z%*%hatVt[,,t]
-        hatyxtt1[,,t]=hatyt[,t,drop=FALSE]%*%matrix(hatxt1[,t,drop=FALSE],1,m)+Delta.r%*%Z%*%hatVtt1[,,t]
+        hatyt[,t]=y[,t,drop=FALSE] - Delta.r%*%(y[,t,drop=FALSE]-pari$Z%*%hatxt[,t,drop=FALSE]-pari$A)
+        t.DZ = matrix(Delta.r%*%pari$Z,m,n,byrow=TRUE)
+        hatOt[,,t]=I.2%*%(Delta.r%*%pari$R+Delta.r%*%pari$Z%*%hatVt[,,t]%*%t.DZ)%*%I.2 + hatyt[,t,drop=FALSE]%*%matrix(hatyt[,t,drop=FALSE],1,n)
+        hatyxt[,,t]=hatyt[,t,drop=FALSE]%*%matrix(hatxt[,t,drop=FALSE],1,m)+Delta.r%*%pari$Z%*%hatVt[,,t]
+        hatyxtt1[,,t]=hatyt[,t,drop=FALSE]%*%matrix(hatxt1[,t,drop=FALSE],1,m)+Delta.r%*%pari$Z%*%hatVtt1[,,t]
       }
-    }
+    } #for loop over time
     rtn.list=list(ytT = hatyt, OtT = hatOt, yxtT=hatyxt, yxtt1T=hatyxtt1) 
     return(c(rtn.list,list(ok=TRUE, errors = msg)))
 }

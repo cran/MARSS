@@ -1,108 +1,131 @@
 #####
-#
 # is.marssMLE()
 # Check that the marssMLE object has all the parts it needs 
 # and that these have the proper size and form
-#
 #####
-
 is.marssMLE <- function(MLEobj) 
 {
   if(class(MLEobj) != "marssMLE") stop("Stopped in is.marssMLE() because object class is not marssMLE.\n", call.=FALSE)
   
   msg = c()
  ## Check for required components
-  el = c("model", "start", "control", "method")
-  if( !all(el %in% names(MLEobj)) ){
+ el = c("model", "start", "control", "method")
+ if( !all(el %in% names(MLEobj)) ){
     msg = c(msg, paste("Element", el[!(el %in% names(MLEobj))], "is missing from object.\n"))
-
-  ## If required components present, check that the model is valid
-  }else msg = is.marssm(MLEobj$model)        #returns TRUE or a vector of msgs
+ }
+  ## Break out now if there was a problem
+  if(length(msg) != 0){ 
+    msg=c("\nErrors were caught in is.marssMLE()\n", msg)
+    return(msg)
+  }
+  
+  msg = is.marssm(MLEobj$model)        #returns TRUE or a vector of msgs
+  ## Break out now if there was a problem with the model
+  if(!isTRUE(msg)){ 
+    msg=c("\nErrors were caught in is.marssMLE()\n", msg)
+    return(msg)
+  }
 
   ## is.wholenumber() borrowed from is.integer example
   is.wholenumber <-
     function(x, tol = .Machine$double.eps^0.5)  abs(x - round(x)) < tol
 
-  ## If model is OK, check inits and params
-  if (isTRUE(msg)) {
+  msg = c()   #reset the messages
 
-  msg = c()
-
-  ## Set m, n, and data
-  n = dim(MLEobj$model$fixed$Z)[1]
-  m = dim(MLEobj$model$fixed$Z)[2]
+  ## If model is OK, check start
+  n = dim(MLEobj$model$data)[1]
+  m = dim(MLEobj$model$fixed$x0)[1]
   dat = MLEobj$model$data
-
-  ## if control$diffuse, method="BFGS" and control$kf.x0="x10"
-  if( identical(MLEobj$control$diffuse,TRUE) & !(MLEobj$method=="BFGS" & MLEobj$control$kf.x0=="x10") ) 
-    msg = c(msg, "If you specify a diffuse prior, method must be BFGS and control$kf.x0 set to x10.\n")
-  
-  ## bug 584: check for T=1
-  if( !is.null(dim(dat)) && !is.numeric(dat) ) msg = c(msg, "Data must be numeric.\n")
-  if( !is.null(dim(dat)) && dim(dat)[2] == 1 ) msg = c(msg, "Data has only one time point.\n")
-
-  ## Set up element names
   en = c("Z", "A", "R", "B", "U", "Q", "x0", "V0")
-  
-  ## Correct dimensions for reporting
   correct.dim1 = c(n,n,n,m,m,m,m,m)
   correct.dim2 = c(m,1,n,m,1,m,1,m)
   names(correct.dim1) = names(correct.dim2) = en
 
-  ## Check initial values consistency 
   init.null = dim.init = NULL
 
-  for (el in en) {
+  #make sure each element of start is present and is numeric
+  for (el in en) {   
     init.null.flag <- ( is.null(MLEobj$start[[el]]) || !is.numeric(MLEobj$start[[el]]) )
-    dim.init.flag = FALSE
- 
-    if (!init.null.flag) { 
-      dim.init.flag <- MARSScheckdims(el, MLEobj$start, n, m) 
+
+    dim.init.flag = FALSE 
+    if (!init.null.flag) {   #element is present so check it's dimensions
+      #true means there is a problem
+      dim.init.flag = (dim(MLEobj$model$free[[el]])[2]!=dim(MLEobj$start[[el]])[1]) || dim(MLEobj$start[[el]])[2]!=1
     }
  
     init.null <- c(init.null, init.null.flag)
     dim.init <- c(dim.init, dim.init.flag)  
   }
     problem <- any(c(init.null, dim.init))
-
   if (problem) {    
     if(any(init.null)) {
       msg = c(msg, paste("Missing or non-numeric initial value", en[init.null],"\n"))
     }
     if(any(dim.init)) {
-      msg = c(msg, paste("Dims for initial value ", en[dim.init], " do not match data and/or other state parameters. Dims should be ", correct.dim1[dim.init], " x ", correct.dim2[dim.init],"based on Z dims.\n", sep=""))
+      msg = c(msg, paste("Dims for initial value ", en[dim.init], " do not match model specification.\n", sep=""))
     }    
+  }
+## TEMPORARY UNTIL change Q and R to not allow 0s (with addition of G and H matrices)
+  #make sure not 0s in par unless corresponding rows of D are all zero
+  for(el in c("Q","R","V0")){
+  if(!is.fixed(MLEobj$model$free[[el]])){
+    bad.ts=c()
+    dvars=MLEobj$model$free[[el]][1 + 0:(correct.dim1[[el]] - 1)*(correct.dim1[[el]] + 1),,,drop=FALSE]
+    dvars.cols=apply(dvars!=0,2,sum)!=0   #those var rows that have values, give use the var columns
+    Tmax=max(dim(MLEobj$model$fixed[[el]])[3],dim(MLEobj$model$free[[el]])[3])
+    for(i in 1:Tmax){
+      d=sub3D(MLEobj$model$free[[el]],t=min(i,dim(MLEobj$model$free[[el]])[3]))
+      if(any(colSums(d[,dvars.cols,drop=FALSE])!=0 & MLEobj$start[[el]][dvars.cols]==0)){
+        bad.ts=c(bad.ts,i)
+      }
+    }
+    if(length(bad.ts)!=0){
+     if(length(bad.ts)<5){ ts.char=paste(bad.ts,collapse=", ") 
+     }else{ ts.char=paste(paste(bad.ts[1:5], collapse=", "),",...") }
+     msg = c(msg, paste("At t=",ts.char,", one of the start$", el, " for a variance is 0,\n and the corresponding column of model$free$",el,"[,,t] matrix is not all zero.\n Type MARSSinfo(21) for more information.\n",sep=""))
+     }
+  }
   }
 
   ## Check params consistency if present
   if(!is.null(MLEobj$par)) {
-    tmp = MARSScheckpar(MLEobj$par, n, m)
-    if (!isTRUE(tmp)) msg = c(msg, tmp)
+    dim.par = NULL
+    for (el in en) {
+      dim.flag=FALSE
+      if(!is.null(MLEobj$par[[el]])) {
+         dim.flag = isTRUE(dim(MLEobj$par[[el]])[2]!=1)
+         dim.flag = dim.flag || isTRUE(dim(MLEobj$par[[el]])[1]!=dim(MLEobj$model$free[[el]])[2])
+         dim.par=c(dim.par,dim.flag)
+      }
+    }
+    if(any(dim.par)){
+       msg = c(msg, paste("par element for", en[dim.par],"is incorrect.  Should correspond to dim 2 of free.\n"))
+    }
   }
   
   ## Check controls
   if(!is.null(MLEobj$control)){
     if(!is.list(MLEobj$control)) stop("Stopped in is.marssMLE() because control must be passed in as a list.\n", call.=FALSE)
   control = MLEobj$control
-  en = names(alldefaults[[MLEobj$method]]$control)[!(names(alldefaults[[MLEobj$method]]$control) %in% c("boundsInits"))]
-  ok.null=c("abstol", "REPORT", "reltol", "fnscale", "parscale", "ndeps", "alpha", "beta", "gamma", "type", "lmm", "factr",
+  en = names(alldefaults[[MLEobj$method]]$control)
+  ok.null=c("REPORT", "reltol", "fnscale", "parscale", "ndeps", "alpha", "beta", "gamma", "type", "lmm", "factr",
       "pgtol", "tmax", "temp", "lower", "upper")
   for (el in en) {
     null.flag <- ( is.null(control[[el]]) && !(el %in% ok.null ) )  #those in ok.null can be NULL
     if(null.flag) msg = c(msg, paste(el,"is missing from the control list\n"))
 
     if( !is.null(control[[el]]) ) { #everything must be numeric except these
-      if( el %in% en[!(en %in% c("safe", "MCInit", "allow.degen", "demean.states", "kf.x0", "diffuse"))] ) {
+      if( el %in% en[!(en %in% c("safe", "MCInit", "allow.degen", "demean.states"))] ) {
         null.flag <- (!is.numeric(control[[el]]))
         if(null.flag) msg = c(msg, paste("control list element", el,"is non-numeric\n"))
       }
-      if( (el %in% en[!(en %in% c("safe", "MCInit", "trace", "allow.degen", "demean.states", "kf.x0", "diffuse"))])  && is.numeric(control[[el]]) ) {
+      if( (el %in% en[!(en %in% c("safe", "MCInit", "trace", "allow.degen", "demean.states"))])  && is.numeric(control[[el]]) ) {
         null.flag <- ( control[[el]] <= 0)
         if(null.flag) msg = c(msg, paste("control list element", el,"less than or equal to zero\n"))
       }
-      if (el %in% c("trace") && is.numeric(control[[el]]) ) {
-        null.flag <- ( control[[el]] < 0)
-        if(null.flag) msg = c(msg, paste("control list element", el,"less than zero\n"))
+      if ( (el=="trace") && is.numeric(control[[el]]) ) {
+        null.flag <- ( control[[el]] < -1)
+        if(null.flag) msg = c(msg, paste("control list element trace must be an integer greater than or equal to -1.\n"))
       }
       if (el %in% c("numInits", "numInitSteps", "trace", "minit", "maxit", "min.iter.conv.test", "conv.test.deltaT", "min.degen.iter") && is.numeric(control[[el]])) {
         null.flag <- ( !is.wholenumber(control[[el]]) )
@@ -116,52 +139,50 @@ is.marssMLE <- function(MLEobj)
         null.flag <- ( control[[el]] < 2)
         if(null.flag) msg = c(msg, "control list element conv.test.deltaT must be greater than 2\n")
       }
-      if (el %in% c("safe", "MCInit", "allow.degen", "demean.states", "diffuse")) {
+      if (el %in% c("safe", "MCInit", "allow.degen", "demean.states")) {
         null.flag <- !(control[[el]] %in% c(TRUE, FALSE) )	  
         if(null.flag) msg = c(msg, paste("control list element", el,"is not TRUE or FALSE\n"))
       }
-      if (el %in% c("kf.x0")) {
-        null.flag <- !(control[[el]] %in% c("x00", "x10") )	  
-        if(null.flag) msg = c(msg, paste("control list element", el,"is not x00 or x10\n"))
-      }
+
     } # el is not null     
   }      # for el in en
   } #not null control
   
-  ## Check control$boundsInits
-    if(is.null(control$boundsInits)) msg = c(msg, "control$boundsInits is missing from the control list\n")
-    if(!is.null(control$boundsInits)){
+  ## Check control$MCbounds
+    if(is.null(control$MCbounds)) msg = c(msg, "control$MCbounds is missing from the control list\n")
+    if(!is.null(control$MCbounds)){
     en = c("B", "U", "Q", "R", "A", "Z")
 
     for (el in en) {
-      target = control$boundsInits
+      target = control$MCbounds
       null.flag <- ( is.null(target[[el]]) )
-      if(null.flag) msg = c(msg, paste("control$boundsInits list element", el,"is missing\n"))
+      if(null.flag) msg = c(msg, paste("control$MCbounds list element", el,"is missing\n"))
 
       if(el %in% c("R","Q")){ dim.bound = 2 }else{dim.bound=2}
       null.flag <- ( !is.null(target[[el]]) && length(target[[el]]) != dim.bound)
-      if(null.flag) msg = c(msg, paste("control$boundsInits list element", el,"is not a ",dim.bound,"element vector\n"))
+      if(null.flag) msg = c(msg, paste("control$MCbounds list element", el,"is not a ",dim.bound,"element vector\n"))
  
       if (!null.flag) {
         null.flag <- (!is.numeric(target[[el]]))	  
-        if(null.flag){ msg = c(msg, paste("control$boundsInits list element", el,"is not numeric\n"))
+        if(null.flag){ msg = c(msg, paste("control$MCbounds list element", el,"is not numeric\n"))
         }else {
            if(el %in% c("B", "U", "A", "Z")) {
            null.flag <- (target[[el]][1] >= target[[el]][2])
-           if(null.flag) msg = c(msg, paste("The first element of control$boundsInits$", el," is not smaller than the second\n",sep=""))
+           if(null.flag) msg = c(msg, paste("The first element of control$MCbounds$", el," is not smaller than the second\n",sep=""))
            if (el %in% c("R", "Q")) {
               null.flag <- ( any(target[[el]] <= 0) )	  
-              if(null.flag) msg = c(msg, "One of the elements of control$boundsInits$", el, " is <= 0\n", sep="") }           }	  
+              if(null.flag) msg = c(msg, "One of the elements of control$MCbounds$", el, " is <= 0\n", sep="") }           }	  
         }
       }      
-    }  
-  } #if(!is.null(control$boundsInits))
-    
-  } # end if (isTRUE(msg))
+    }
+  ## if model$diffuse, method="BFGS" and MLEobj$model$tinitx=1
+  if( identical(MLEobj$model$diffuse,TRUE) & !(MLEobj$method=="BFGS" & MLEobj$model$tinitx==1) ) 
+    msg = c(msg, "If you specify a diffuse prior, method must be BFGS and model$tinitx set to 1.\n")    
+  } 
 
 if(length(msg) == 0){ return(TRUE)
 }else {
-  msg=c("\nErrors were caught in is.marssMLE()\n", msg)
+  msg=c("\nErrors were caught in is.marssMLE(). Type MARSSinfo(5) for more information.\n", msg)
   return(msg)
 }
 }

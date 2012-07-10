@@ -49,11 +49,8 @@ Important MARSS functions:
   kellie(dot)wills(at)noaa(dot)gov
 }
 \references{
-The MARSS user guide:  Holmes, E. E. and E. J. Ward (2010) Analysis of multivariate time-series
-using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
-Center, 2725 Montlake Blvd E., Seattle, WA 98112.         
-
-Type \code{RShowDoc("UserGuide",package="MARSS")} at the R command line to open the MARSS user guide.
+The MARSS user guide:  Holmes, E. E., E. J. Ward, and M. D. Scheuerell (2012) Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
+Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuide",package="MARSS")} to open a copy.
 
 Type \code{RShowDoc("index",package="MARSS")} to see all the package documentation, tutorials, and case study scripts.
 }

@@ -39,18 +39,16 @@ plot(Nile,ylab="Flow volume",xlab="Year")
 ###################################################
 ### code chunk number 4: mod.nile.0
 ###################################################
-mod.nile.0 = list(
+mod.nile.0 = list( 
 Z=matrix(1), A=matrix(0), R=matrix("r"),
 B=matrix(1), U=matrix(0), Q=matrix(0),
-x0=matrix("a")
-)
+x0=matrix("a") )
 
 
 ###################################################
 ### code chunk number 5: fit.data.0
 ###################################################
-#The data is in a ts format, 
-#and we need a matrix with time across columns
+#The data is in a ts format, and we need a matrix
 dat = t(as.matrix(Nile))
 #Now we fit the model
 kem.0 = MARSS(dat, model=mod.nile.0)
@@ -62,8 +60,7 @@ kem.0 = MARSS(dat, model=mod.nile.0)
 mod.nile.1 = list(
 Z=matrix(1), A=matrix(0), R=matrix("r"),
 B=matrix(1), U=matrix("u"), Q=matrix(0),
-x0=matrix("a")
-)
+x0=matrix("a") )
 
 
 ###################################################
@@ -78,8 +75,7 @@ kem.1 = MARSS(dat, model=mod.nile.1)
 mod.nile.2 = list(
 Z=matrix(1), A=matrix(0), R=matrix("r"),
 B=matrix(1), U=matrix(0), Q=matrix("q"),
-x0=matrix("pi")
-)
+x0=matrix("pi") )
 
 
 ###################################################
@@ -99,8 +95,13 @@ kem.2 = MARSS(dat, model=mod.nile.2,
 ###################################################
 ### code chunk number 11: fit.data.koop
 ###################################################
-kem.2.koop=MARSS(dat, model=mod.nile.2, 
-  control=list(kf.x0="x10",diffuse=TRUE), inits=kem.2em$par, method="BFGS")
+mod.nile.3 = list(
+Z=matrix(1), A=matrix(0), R=matrix("r"),
+B=matrix(1), U=matrix(0), Q=matrix("q"),
+x0=matrix("pi"), tinitx=1, diffuse=TRUE
+)
+#kem.3.koop=MARSS(dat, model=mod.nile.3, 
+#  inits=kem.2em$par, method="BFGS")
 
 
 ###################################################

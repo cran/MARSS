@@ -31,8 +31,8 @@ When \code{output} includes both \code{"AICbp"} and \code{"boot.params"}, the bo
   Returns the \code{\link{marssMLE}} object that was passed in with additional AIC components added on top as specified in the 'output' argument.
 }
 \references{
-Holmes, E. E. and E. J. Ward. 2010. Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
-Center, 2725 Montlake Blvd E., Seattle, WA 98112; this is the user guide accessed via \code{RShowDoc("UserGuide",package="MARSS")}
+Holmes, E. E., E. J. Ward, and M. D. Scheuerell (2012) Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
+Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuide",package="MARSS")} to open a copy.
  
 Bengtsson, T., and J. E. Cavanaugh. 2006. An improved Akaike information criterion for state-space model selection. Computational Statistics & Data Analysis 50:2635-2654.
 

@@ -1,34 +1,29 @@
 
 ## export functions
 export(
-  as.marssm,
-  checkPopWrap,
+  MARSS.marxss,
+  MARSS.dfa,
   CSEGriskfigure,
   CSEGtmufigure,
   is.marssm,
   is.marssMLE,
-  marssm,
   MARSS,
   MARSSaic,
   MARSSapplynames,
   MARSSboot,
-  MARSScheckdims,
-  MARSScheckpar,
   MARSShessian,
   MARSSinits,
   MARSSinnovationsboot,
   MARSSkem,
   MARSSkemcheck,
   MARSSkf,
-  MARSSLLprofile,
   MARSSmcinit,
   MARSSoptim,
-  MARSSoptions,
   MARSSparamCIs,
   MARSSresids,
   MARSSsimulate,
   MARSSvectorizeparam,
-  popWrap
+  parmat
 )
 
 ## register S3 methods
@@ -40,5 +35,4 @@ S3method(summary, marssMLE)
 ## Imports
 importFrom(MASS, mvrnorm)
 importFrom(mvtnorm, rmvnorm)
-
 

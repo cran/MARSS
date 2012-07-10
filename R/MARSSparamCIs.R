@@ -2,76 +2,53 @@
 #   MARSSparamCIs function
 #   This returns CIs for ML parameter estimates
 #######################################################################################################
-MARSSparamCIs = function(MLEobj, method="hessian", alpha=0.05, nboot=1000) {
+MARSSparamCIs = function(MLEobj, method="hessian", alpha=0.05, nboot=1000, fun="MARSSkf") {
+#this function expects a marssMLE object
+#it will add some vectors of standard errors, biases, low/up CIs to MLEobj
 if(!(method %in% c("hessian","parametric","innovations"))) stop("Stopped in MARSSparamCIs(). Current methods are hessian, parametric, and innovations.\n", call.=FALSE)
 if(!is.marssMLE(MLEobj)) stop("Stopped in MARSSparamCIs(). This function needs a valid marss MLE object.\n", call.=FALSE)
+paramvec = MARSSvectorizeparam(MLEobj)
+if(length(paramvec)==0) stop("Stopped in MARSSparamCIs(). No estimated parameter elements.\n", call.=FALSE)
+paramnames=names(paramvec)
 if(method=="hessian")  {
     #if the model has no Hessian specified, then run emHessian to get it
-    if(is.null(MLEobj$Hessian)) MLEobj = MARSShessian(MLEobj)
+    if(is.null(MLEobj$Hessian)) MLEobj = MARSShessian(MLEobj, fun=fun)
     #standard errors
-    stderr=try(sqrt(diag(solve(MLEobj$Hessian))), silent=TRUE)      #invert the Hessian; wrap in a try() in case it fails
-    if(inherits(stderr, "try-error") || any(is.na(stderr)) ) {
-        paramvector = MARSSvectorizeparam(MLEobj)
-        stderr=rep(NA,length(paramvector))
+    hessInv = try(solve(MLEobj$Hessian))
+    vector.par.se =rep(NA,length(paramvec))
+    if(inherits(hessInv, "try-error") ) {
         warning("MARSSparamCIs: Hessian cannot be inverted; stderr = NA is being returned")
+    }else{
+    is.neg=diag(hessInv)<0
+    vector.par.se[!is.neg] = try(sqrt(diag(hessInv)[!is.neg]), silent=TRUE)      #invert the Hessian; wrap in a try() in case it fails
+    if(inherits(vector.par.se, "try-error") || any(is.nan(vector.par.se))) {
+        warning("MARSSparamCIs: Some of the hessian diagonals cannot be square-rooted; stderr = NA is being returned")
         }
-    #stderr has the stderr in $par for the estimated parameters but $fixed for the fixed
-    stderr.model=MARSSvectorizeparam(MLEobj, stderr)
-    #need to set the se's for the fixed values at NA
-    #the following loops through the elements to do this
- 
-    ## Order of elements is alphabetical
-    free = stderr.model$model$free
-    param = MLEobj$par
-
-    parlen = 0; maxvec = NULL; par.se = NULL; par.upCI = NULL; par.lowCI = NULL
-    ## Check length(parvec) matches number of free params
-    for(elem in model.elem ) { #model.elem is speced in MARSSsettings
-      free.mat = free[[elem]]
-      if(any(!is.na(free.mat))) { ## if any free params
-        this.mat = stderr.model$par[[elem]]
-        na.mat = as.numeric(free[[elem]]) 
-        na.mat[is.na(na.mat)]=NA; na.mat[!is.na(na.mat)]=0
-        this.mat = this.mat + na.mat
-        tmp = list(this.mat); names(tmp) = elem
-	par.se = c(par.se, tmp)
-	tmp = list(param[[elem]] + qnorm(1-alpha/2)*this.mat); names(tmp) = elem
-        par.upCI = c(par.upCI, tmp)
-	tmp = list(param[[elem]] - qnorm(1-alpha/2)*this.mat); names(tmp) = elem
-        par.lowCI = c(par.lowCI, tmp)
-      } #end if(any(!is.na(this.mat)))
-
-      else { ## use free matrix since it will be all NAs (since none free)
-	       par.se = c(par.se, as.numeric(free[[elem]]))
-      } #else no na in free.mat
-    } #end elem loop
-    par.bias = NULL; par.CI.nboot = NULL
+    }
+    vector.par.upCI = paramvec + qnorm(1-alpha/2)*vector.par.se
+    vector.par.lowCI = paramvec - qnorm(1-alpha/2)*vector.par.se
+    vector.par.bias = NULL; par.CI.nboot = NULL
 } #if method hessian
+
 if(method %in% c("parametric", "innovations"))  {
     boot.params = MARSSboot(MLEobj, nboot=nboot, output="parameters", sim=method,
           param.gen="MLE", silent=TRUE)$boot.params
-    vector.lowCI = apply(boot.params,1,quantile,probs=alpha/2)
-    par.lowCI = MARSSvectorizeparam(MLEobj, vector.lowCI)$par
-    vector.upCI = apply(boot.params,1,quantile,probs=1-alpha/2)
-    par.upCI = MARSSvectorizeparam(MLEobj, vector.upCI)$par
+    vector.par.lowCI = apply(boot.params,1,quantile,probs=alpha/2)
+    vector.par.upCI = apply(boot.params,1,quantile,probs=1-alpha/2)
     vector.par.se = sqrt(apply(boot.params,1,var))
-    par.se = MARSSvectorizeparam(MLEobj, vector.par.se)$par
     paramvec = MARSSvectorizeparam(MLEobj)
-    vector.bias = paramvec - apply(boot.params,1,mean)
-    par.bias = MARSSvectorizeparam(MLEobj, vector.bias)$par  
+    vector.par.bias = paramvec - apply(boot.params,1,mean)
     par.CI.nboot = nboot
 }
-#set values to NA for fixed elements
-for(elem in model.elem) { #model.elem is speced in MARSSsettings
-   par.se[[elem]][is.na(MLEobj$model$free[[elem]])]=NA
-   par.lowCI[[elem]][is.na(MLEobj$model$free[[elem]])]=NA
-   par.upCI[[elem]][is.na(MLEobj$model$free[[elem]])]=NA
-   if(!is.null(par.bias)) par.bias[[elem]][is.na(MLEobj$model$free[[elem]])]=NA
-   }
-MLEobj$par.se = par.se
-MLEobj$par.bias = par.bias
-MLEobj$par.upCI = par.upCI
-MLEobj$par.lowCI = par.lowCI
+names(vector.par.se)=paramnames
+if(!is.null(vector.par.bias)) names(vector.par.bias)=paramnames
+names(vector.par.upCI)=paramnames
+names(vector.par.lowCI)=paramnames
+
+MLEobj$par.se = vector.par.se
+MLEobj$par.bias = vector.par.bias
+MLEobj$par.upCI = vector.par.upCI
+MLEobj$par.lowCI = vector.par.lowCI
 MLEobj$par.CI.alpha = alpha
 MLEobj$par.CI.method = method
 MLEobj$par.CI.nboot = par.CI.nboot

@@ -1,31 +1,89 @@
 MARSS Development site
 ------------------------------------
-
 New work on MARSS before posting to CRAN is at ``http://fishbox.iugo-cafe.org/user/e2holmes/MARSS Dev Site''.  Notes on known issues are also posted there.
 
-MARSS Work in Progress, version 3.0
+
+CHANGES IN MARSS 3.0  (07-10-2012)
 ------------------------------------
+Note, the changes are extensive but are internal and should be largely invisible to users of MARSS 2.X.  The MARSS() 3.0 call is backwards compatible to 2.9 except that kf.x0 changed to tinitx and moved from control list to model list.   Use of KFAS remains disabled until I can update to the new version of KFAS.  This slows down method="BFGS", but does not affect method="kem".
 
-- 3.0 allows covariates to be included in a more standard manner such as x(t)=Bx(t-1)+Ug(t)+w(t) and y(t)=Zx(t)+Ah(t)+v(t).  This is more familiar to users and allows more flexibility for the types of models that users want to fit.   3.0 will also fix the EM algorithm so that AR-p models can be fit using it.  BFGS is going south sometimes when fitting these models.  Check ``http://fishbox.iugo-cafe.org/user/e2holmes/MARSS Dev Site'' for beta versions of 3.0.
+- meaning of fixed and free changed. fixed is the f matrix in the EM derivation and free is the D matrix.  Originally, I used a fixed/free pair with NAs.  The new form closely follows the derivation and leads to more unified code.  This required changes in most files to deal with new meaning of fixed and free.
 
-- 3.0 implements the linear constraints on parameters. The MARSSkem function implements a much more general algorithm for constraints, namely linear constraints of the form u=a+beta1 b + beta2 c + ...  But the MARSS wrapper does not give the user a way to access that functionality.  I am working on modifying the MARSS wrappers to allow this.  Requires fairly major changes to the wrapper functions.
+- added element X.names to marssm model object
+
+- added model list to model object so that what the user passed in with the MARSS() call is retained (for reference).
+
+- allow user to spec linear constraints. The main point of 3.0 is so that users can spec intercept + beta_1 p_1 + beta_2 p_2 ... constraints.  Users do this with the usual list matrices using something like "theta+phi" or "2+2*theta+phi".  I added a function to interpret basic math like that with + and *.
+
+- changed args for MARSSkf and MARSShatyt functions. Takes MLEobj now.
+
+- added parmat function. This returns a parameter matrix when given a MLEobj.
+
+- changed par element of MLEobj. It is a vector of only the estimated elements now.  This required changes to user manual where I show specific parameters. If par is fixed, par element is matrix(0,0,1).
+
+- changed kf.x0 and t.x0 to tinitx. This standardized the naming a bit and the name now stands for "t at initial x" which will hopefully be easier to remember.  Removed "x00" and "x10" at least where user will see it.  They are still in the internal code. tinitx is passed in in the model list.
+
+- changed the way the marssm objects are created. Before the code locked one into a MAR-1 state-space form.  However many different types of time series models can be rewritten in MAR1SS form.  This rewriting is onerous for users and I don't want them to have to do that.  Also I wanted to make it easier to write functions to write different time series models in MAR-1 SS form.  Now MARSS() looks for a function called MARSS."form", where form is something like "mar1ss" or "dlm".  This function takes the MARSS inputs (all of them) and transforms the input into a marssm object ready for the fitting functions as the function writer wishes.  All that the function has to do is to return a valid marssm object from the model element of the MARSS() call.  This allows me (or anyone else) to use whatever parameter names they want in the model element.  This way the user can use familiar names for parameters can set some parameters to specific values (like 0).  Or the user could do something totally different with the model element and just have it be a text string like model="my.ts.model.1" or model="my.ts.model.2".   The only constraint is that the function output a proper marssm object and that the control, inits, and MCbounds arguments for MARSS are properly specified.
+
+- removed popWrap.r, checkPopWrap.r, MARSSoptions.r.  Became obsolete with above changes
+
+- added checkMARSSInputs.r and checkModelList.r. These replaced the functionality of popWrap.r and checkPopWrap.r
+
+- added MARSS.marxss.r  This is the first MARSS.form() function.  This is a standardized format for so that I can add other forms easily.
+
+- changed MARSSkf.r so that K (Kalman gain) is 0 when tinitx=1 and V0=0. Changed MARSSkf.r to allow some of diagonals of V0 to be 0 and others non zero.  Got rid of many of the OMGs.  Added pcholinv function to diaghelpers.r which deals with matrices with 0s on diagonals.  This streamlined the filter code.
+
+- Totally revamped the EMDerivations.pdf to allow time-varying models.  
+
+-  Rewrote (again) the section on degenerate models in EMDerivation.pdf to allow B structures that imply both total deterministic X and indirectly stochastic x.  The latter is required to allow one to rewrite a MAR-p model as a MAR-1 model.  Time-varying params meant that the matrix geometric function no longer could be used, but I found a simplier recursion.  Improved the presentation so only 1 x0 and U update equation is given rather than 5 special cases.  Rewrote x0 and U update sections in MARSSkem.  Removed the OMGs from MARSSkem since no longer needed given the new pcholinv() function.
+
+- Rewrote many sections of MARSSkem.r to allow time-varying parameters. see EMDerivations.pdf
+
+- Made changes to MARSSkf.r, MARSSkfas.r and MARSSsimulate.r to allow time-varying parameters.
+
+- Added fun argument to MARSShessian and MARSSparamCIs to allow one to specify the function used to compute the log-likelihood.
+
+- Added row and col names to Hessian in MARSShessian
+
+- Moved diffuse from control element to model element of MLEobj since it is part of the model specification.  Required changes to MARSSsettings, MARSS.marxss, is.marssm, is.marssMLE.
+
+- Changed MARSSkem and MARSShatyt to allow some diag.V0=0 and others not 0, so user can mix stochastic and fixed initial x states.
+
+----Other changes----
+describe_marssm, rewrote
+MARSSmcinit, changed how did draws
+MARSSparamCIs, rewrote, changed how I store se, upCIs, etc.  now as vector like paramvec
+MARSSvectorizeparam, rewrote
+print and summary functions, updated
+MARSSinits, rewrote, returns new form of parlist
+MARSSkem, changes to R, Q, x0 & U update per new degenerate model update eqns, added p, removed fixed and replaced with f, removed free and replaced with d
+is_marssm, added X.names to model
+as_marssm, removed and replaced with MARSS.marxss
+Removed fixed and free from allowable MARSS() input (affected MARSSsettings, PopWrap, popwrapcheck)
+MARSSLLprofile, removed for now, not sure it works
+MARSSoptions, removed, obsolete
+MARSScheckdims, removed, not used
+MARSScheckpar, removed, not used
+popWrap and checkPopWrap, removed, functionality replaced with checkMARSSInputs and CheckModelList
+diaghelpers.r, added parmat, pcholinv, pinv, few other functions
+
+----Bug fixes----
+- Bug in MARSSkem that meant that the maxit-1 kf and logLik were returned when algorithm stopped due to hitting maxit.  Par was correct.
 
 
-CHANGES IN MARSS 2.9 (2012-05-25)
+
+CHANGES IN MARSS 2.9 (2012-03-20)
 ------------------------------------
 
 - updated the DFA example in the manual.
 
-- added code to covariate section to show how to compute the extra LL from the dummy covariate model.
-
-- changed the column headings in the L WA plankton dataset slightly to have uniform capitalization.  Required some small changes to read-in-data in Case Study 4.
+- changed the column headings in the L WA plankton dataset slightly to have uniform capitalization.
 
 - fixed MARSSboot so that MLE objects with method=BFGS can be used; changed the param.gen argument to take "MLE" and "hessian" instead of "KalmanEM" and "hessian".  Updated MARSSboot.R and MARSSboot.Rd.
 
 - fixed MARSSaic and MARSSparamCIs so that MARSSboot call uses param.gen="MLE".  This fixes the bug that stopped MLE objects from BFGS calls to fail.
 
 - temporarily disabled calls to MARSSkfas until MARSS can be made compatible with new version of KFAS package.  Removed importFrom(KFAS, kf) and importFrom(KFAS, ks) from the NAMESPACE.  Removed MARSSkfas from the export list in NAMESPACE.  Removed KFAS in the depends line of DESCRIPTION.
-
 
 
 CHANGES IN MARSS 2.8 (2012-01-23)
@@ -37,9 +95,9 @@ CHANGES IN MARSS 2.8 (2012-01-23)
 
 - fixed bug in MARSSkf when R=0, kf.x0=x10, and V0=0. The algorithm was not setting x(1) via y(1) in this special case.
 
-- In MARSSinits, got rid of the linear regression to get inits for x0; using instead solution of pi from y(1)=Z*(D*pi+f)+A; This stops MARSS from complaining about no inits when Z is not a design matrix.
+- In MARSSinits, got rid of the linear regression to get inits for x0; using instead solution of pi from y(1)=Z*(D*pi+f)+A; This stops MARSS from complaining about no inits when Z is not a design matrix.  NOTE NB: This means the default initial x0 are different for 2.7 and 2.8, which leads to slightly different answers for MARSS(dat) in 2.7 and 2.8. The answers are not really different, just they started with slightly different initial values so have slightly different values when the algorithm reaches its convergence limit.
 
-- added warning in the covariate section. The error-free covariate section in the manual did not clarify that the log-likelihood of the covariates with the dummy state model would be included in the MARSS output.  MARSS version 3.0 will allow error-free covariates in a more standard manner.
+- added warning in the covariate section. The error-free covariate section in the manual did not clarify that the log-likelihood of the covariates with the dummy state model would be included in the MARSS output.  MARSS version 2.9 will allow error-free covariates in a more standard manner.
 
 - removed dependency on time package. The progressBar function was moved into MARSS since the time package is no longer maintained.
 

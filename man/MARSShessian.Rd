@@ -5,11 +5,12 @@
   Calculates approximate parameter variance-covariance matrix and appends it to a \code{\link{marssMLE}} object.  This is a utility function in the \code{\link{MARSS-package}}.
 }
 \usage{
-MARSShessian(MLEobj)
+MARSShessian(MLEobj, fun="MARSSkf")
 }
 \arguments{
   \item{MLEobj}{ An object of class \code{\link{marssMLE}}. 
   This object must have a \code{$par} element containing MLE parameter estimates from e.g. \code{\link{MARSSkem}}. }
+  \item{fun}{ The function to use to compute the log-likelihood. }
 }
 \details{
   Uses \code{\link{fdHess}} from package \code{\link{nlme}} to numerically estimate the Hessian matrix
@@ -28,8 +29,9 @@ MARSShessian(MLEobj)
 \seealso{ \code{\link{MARSSparamCIs}} \code{\link{marssMLE}} }
 \examples{
   dat = t(harborSeal)
-  dat = dat[2:4,]
+  dat = dat[c(2,11),]
   MLEobj = MARSS(dat)
-  MLEobj.w.hessian = MARSShessian(MLEobj)
+  #show the approx Hessian
+  MARSShessian(MLEobj)$Hessian
 }
 

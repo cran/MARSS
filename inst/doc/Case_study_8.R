@@ -72,7 +72,63 @@ lines(okanaganRedds[,1], c(kem1$states - 2*kem1$states.se), lty=1, lwd=1, col="g
 
 
 ###################################################
-### code chunk number 8: legend
+### code chunk number 8: set-up-rockfish-data
+###################################################
+rec.names=paste("Rec..targeting.bottomfish.",1:4,sep="")
+rec.years=apply(!is.na(rockfish[,rec.names]),1,any)
+recdat = rockfish[rec.years,rec.names]
+flatrecdat=apply(recdat,1,sum,na.rm=TRUE)
+
+
+###################################################
+### code chunk number 9: rockfish1
+###################################################
+matplot(rockfish[rec.years,1],recdat,ylab="",xlab="Rec CPUE")
+title("Puget Sound Total Rockfish Recreational CPUE data")
+
+
+###################################################
+### code chunk number 10: fit-rockfish1
+###################################################
+kem.rock1=MARSS(flatrecdat,model=list(Q=matrix(0.01)))
+
+
+###################################################
+### code chunk number 11: set-up-rock-A
+###################################################
+A.model=array(list(0),dim=c(1,1,dim(recdat)[1]))
+manage.A=!is.na(recdat[,"Rec..targeting.bottomfish.2"])
+A.model[1,1,manage.A]="manag.A"
+manage.B=!is.na(recdat[,"Rec..targeting.bottomfish.3"])
+A.model[1,1,manage.B]="manag.B"
+manage.C=!is.na(recdat[,"Rec..targeting.bottomfish.4"])
+A.model[1,1,manage.C]="manag.C"
+
+
+###################################################
+### code chunk number 12: fit-rockfish2
+###################################################
+kem.rock2=MARSS(flatrecdat,model=list(A=A.model,Q=matrix(0.01)))
+
+
+###################################################
+### code chunk number 13: rockfish2
+###################################################
+matplot(rockfish[rec.years,1],recdat,ylab="",xlab="Rec CPUE")
+lines(rockfish[rec.years,1],as.vector(kem.rock1$states),col="red",lty=2,lwd=2)
+lines(rockfish[rec.years,1],as.vector(kem.rock2$states),col="blue",lty=1,lwd=2)
+title("Puget Sound Total Rockfish Recreational CPUE data")
+
+
+###################################################
+### code chunk number 14: test-rock (eval = FALSE)
+###################################################
+##  kem.rock3a=MARSS(flatrecdat,model=list(A=A.model,tinitx=0))
+##  kem.rock3b=MARSS(flatrecdat,model=list(A=A.model,tinitx=1))
+
+
+###################################################
+### code chunk number 15: legend
 ###################################################
 d <- rockfish
 legendnames = (unlist(dimnames(d)[2]))[2:ncol(d)]
@@ -80,7 +136,7 @@ for(i in 1:length(legendnames)) cat(paste(i,legendnames[i],"\n",sep=" "))
 
 
 ###################################################
-### code chunk number 9: fig3
+### code chunk number 16: fig3
 ###################################################
 d <- rockfish
 dat = d[,2:ncol(d)] #first col is years
@@ -102,7 +158,7 @@ title("Puget Sound Total Rockfish Indices")
 
 
 ###################################################
-### code chunk number 10: fishmodel1
+### code chunk number 17: fishmodel1
 ###################################################
 fishdat = t(rockfish[,2:dim(rockfish)[2]])
 Q.model="diagonal and equal"
@@ -114,7 +170,7 @@ kem1 = MARSS(fishdat, model=model1)
 
 
 ###################################################
-### code chunk number 11: fishmodel2
+### code chunk number 18: fishmodel2
 ###################################################
 R.model="diagonal and equal"
 model2 = list(Z = Z.model, Q = Q.model, R = R.model, U = U.model)
@@ -122,16 +178,32 @@ kem2 = MARSS(fishdat, model=model2)
 
 
 ###################################################
-### code chunk number 12: fishmodel3
+### code chunk number 19: fishmodel3
 ###################################################
 R.model=matrix(list(0),9,9)
-diag(R.model)=list("1","2","3","4","4","4","4","5","6")
+diag(R.model)=list("1","2","4","4","4","4","4","5","6")
 model3 = list(Z = Z.model, Q = Q.model, R = R.model, U = U.model)
 kem3 = MARSS(fishdat, model=model3)
 
 
 ###################################################
-### code chunk number 13: getdat4
+### code chunk number 20: testing
+###################################################
+U.model=array(list(),dim=c(1,1,length(rockfish[,"Year"])))
+U.model[1,1,rockfish[,"Year"]<1980]="pre-1980"
+U.model[1,1,rockfish[,"Year"]>=1980]="post-1980"
+model4 = list(Z = Z.model, Q = Q.model, R = R.model, U = U.model)
+kem4 = MARSS(fishdat, model=model4)
+
+Z.model=factor(c("trawl","trawl","rec","rec","rec","rec","rec","scuba","wdfw.trawl"))
+Q.model="diagonal and unequal"
+U.model="equal"
+model5 = list(Z = Z.model, Q = Q.model, R = R.model, U = U.model)
+kem5 = MARSS(fishdat, model=model5)
+
+
+###################################################
+### code chunk number 21: getdat4
 ###################################################
 years = rockfish[,1]
 dat = rockfish[,-1]
@@ -142,7 +214,7 @@ dat4 = dat4[,isdata]
 
 
 ###################################################
-### code chunk number 14: setargs4
+### code chunk number 22: setargs4
 ###################################################
 n4 = ncol(dat4)
 Z4 = as.factor(rep(1,n4))
@@ -151,21 +223,21 @@ diag(R.model4)=list("1","2","2","2","2","3","4")
 
 
 ###################################################
-### code chunk number 15: fitanalysis3
+### code chunk number 23: fitanalysis3
 ###################################################
 model4 =  list(Z = Z4, Q = Q.model, R = R.model4, U = U.model)
 kem4 = MARSS(t(dat4), model=model4)
 
 
 ###################################################
-### code chunk number 16: birddat
+### code chunk number 24: birddat
 ###################################################
 birddat = t(kestrel[,2:4]) 
 head(kestrel)
 
 
 ###################################################
-### code chunk number 17: fig5
+### code chunk number 25: fig5
 ###################################################
 # Make a plot of the three time series
 plot(kestrel[,1], kestrel[,2], xlab = "Year", ylab="Index of kestrel abundance",main="", col="red",ylim=c(0,2), pch=21)
@@ -175,7 +247,7 @@ legend('topright',inset=0.1, legend=c("British Columbia","Alberta","Saskatchewan
 
 
 ###################################################
-### code chunk number 18: bird1
+### code chunk number 26: bird1
 ###################################################
 Q.model="diagonal and equal"
 R.model="diagonal and equal"
@@ -186,13 +258,13 @@ kem1 = MARSS(birddat, model=model1, control=list(minit=100) )
 
 
 ###################################################
-### code chunk number 19: bird1.aic
+### code chunk number 27: bird1.aic
 ###################################################
 kem1$AICc
 
 
 ###################################################
-### code chunk number 20: bird2
+### code chunk number 28: bird2
 ###################################################
 Z.model=factor(c(1,2,3)) 
 model2=list(Z = Z.model, Q = Q.model, R = R.model, U = U.model)
@@ -200,13 +272,13 @@ kem2 = MARSS(birddat, model=model2)
 
 
 ###################################################
-### code chunk number 21: bird2.aic
+### code chunk number 29: bird2.aic
 ###################################################
 kem2$AICc
 
 
 ###################################################
-### code chunk number 22: bird3
+### code chunk number 30: bird3
 ###################################################
 Q.model="diagonal and unequal"
 model3=list(Z = Z.model, Q = Q.model, R = R.model, U = U.model)
@@ -214,13 +286,13 @@ kem3 = MARSS(birddat, model=model3)
 
 
 ###################################################
-### code chunk number 23: bird3.aic
+### code chunk number 31: bird3.aic
 ###################################################
 kem3$AICc
 
 
 ###################################################
-### code chunk number 24: bird4
+### code chunk number 32: bird4
 ###################################################
 Z.model=factor(c(1,2,2)) #1 observation time series for each x time series
 model4=list(Z = Z.model, Q = Q.model, R = R.model, U = U.model)
@@ -228,13 +300,13 @@ kem4 = MARSS(birddat, model=model4)
 
 
 ###################################################
-### code chunk number 25: bird4.aic
+### code chunk number 33: bird4.aic
 ###################################################
 kem4$AICc
 
 
 ###################################################
-### code chunk number 26: fig6
+### code chunk number 34: fig6
 ###################################################
 # Make a plot of the predicted trajectory, confidence intervals, and the raw data in log-space
 plot(kestrel[,1], kestrel[,2], xlab = "Year", ylab="Index of kestrel abundance",main="", col="red", ylim=c(0,2))
@@ -242,7 +314,7 @@ points(kestrel[,1], kestrel[,3], col="blue")
 points(kestrel[,1], kestrel[,4], col="purple")
 lines(kestrel[,1], c(kem4$states[1,]), lty=3, lwd=2, col="red")
 lines(kestrel[,1], c(kem4$states[2,]), lty=3, lwd=2, col="blue")
-lines(kestrel[,1], c(kem4$states[2,]+kem4$par$A[3,1]), lty=3, lwd=2, col="purple")
+lines(kestrel[,1], c(kem4$states[2,]+parmat(kem4)$A[3,1]), lty=3, lwd=2, col="purple")
 legend('topright',inset=0.1, legend=c("British Columbia","Alberta","Saskatchewan"), col=c("red","blue","purple"), pch=21)
 
 
