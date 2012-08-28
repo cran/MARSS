@@ -1,8 +1,8 @@
 Package: MARSS
 Type: Package
 Title: Multivariate Autoregressive State-Space Modeling
-Version: 3.1
-Date: 2012-7-10
+Version: 3.2
+Date: 2012-8-28
 Depends: MASS, mvtnorm, nlme
 Suggests: Hmisc, maps, xtable, KFAS
 Author: Eli Holmes, Eric Ward, and Kellie Wills, NOAA, Seattle, USA
@@ -17,8 +17,8 @@ Description: The MARSS package provides maximum-likelihood parameter
         vector autoregressive model (VAR) model.  Functions are
         provided for parametric and innovations bootstrapping, Kalman
         filtering and smoothing, bootstrap model selection criteria
-        (AICb), confidences intervals via the hessian approximation and
-        via bootstrapping and calculation of auxilliary residuals for
+        (AICb), confidences intervals via the Hessian approximation and
+        via bootstrapping and calculation of auxiliary residuals for
         detecting outliers and shocks.  The user guide shows examples
         of using MARSS for parameter estimation for a variety of
         applications, model selection, dynamic factor analysis, outlier
@@ -29,6 +29,6 @@ Description: The MARSS package provides maximum-likelihood parameter
 License: GPL-2
 LazyData: yes
 BuildVignettes: yes
-Packaged: 2012-07-13 16:05:20 UTC; xholmesel
+Packaged: 2012-08-29 21:47:25 UTC; xholmesel
 Repository: CRAN
-Date/Publication: 2012-07-13 16:24:21
+Date/Publication: 2012-08-30 05:14:23

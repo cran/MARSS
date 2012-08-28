@@ -21,41 +21,41 @@ logRedds = log(t(okanaganRedds)[2:3,])
 ###################################################
 # Code for plotting raw Okanagan redd counts
 plot(okanaganRedds[,1], okanaganRedds[,2],
-    xlab = "Year", ylab="Redd counts",main="", col="red")
-points(okanaganRedds[,1], okanaganRedds[,3], col="blue")
+    xlab = "Year", ylab="Redd counts",main="", col="red", pch=1)
+points(okanaganRedds[,1], okanaganRedds[,3], col="blue", pch=2)
 legend('topleft', inset=0.1, legend=c("Aerial survey","Ground survey"),
- col=c("red","blue"), pch=21)
+ col=c("red","blue"), pch=c(1,2))
 
 
 ###################################################
 ### code chunk number 4: reddmodel1
 ###################################################
-Q.model="diagonal and equal"
-R.model="diagonal and equal"
-U.model="equal"
-Z.model=factor(c(1,1)) #1 observation time series
+model1=list()
+model1$R="diagonal and equal"
+model1$Z=matrix(1,2,1) #matrix of 2 rows and 1 column
+model1$A="scaling" #the default
 # Fit the single state model, where the time series are assumed 
 # to be from thesame population. 
-kem1 = MARSS(logRedds, model=list(Z = Z.model, Q = Q.model, 
-   R = R.model, U = U.model))
+kem1 = MARSS(logRedds, model=model1)
 
 
 ###################################################
 ### code chunk number 5: reddmodel2
 ###################################################
-R.model="diagonal and unequal"
-kem2 = MARSS(logRedds, model=list(Z = Z.model, Q = Q.model, 
-   R = R.model, U = U.model))
+model2=model1 #model2 is based on model1
+model2$R="diagonal and unequal"
+kem2 = MARSS(logRedds, model=model2)
 
 
 ###################################################
 ### code chunk number 6: reddmodel3
 ###################################################
-Q.constraint="diagonal and equal"
-R.constraint="diagonal and equal"
-U.constraint="equal"
-Z.constraint=factor(c(1,2))
-model3=list(Z = Z.model, Q = Q.model, R = R.model, U = U.model)
+model3=list()
+model3$Q="diagonal and equal"
+model3$R="diagonal and equal"
+model3$U="equal"
+model3$Z="identity"
+model3$A="zero"
 kem3 = MARSS(logRedds, model=model3)
 
 
@@ -249,72 +249,80 @@ legend('topright',inset=0.1, legend=c("British Columbia","Alberta","Saskatchewan
 ###################################################
 ### code chunk number 26: bird1
 ###################################################
-Q.model="diagonal and equal"
-R.model="diagonal and equal"
-U.model="equal"
-Z.model=factor(c(1,1,1))
-model1=list(Z = Z.model, Q = Q.model, R = R.model, U = U.model)
-kem1 = MARSS(birddat, model=model1, control=list(minit=100) )
+model.b1=list()
+model.b1$R="diagonal and equal"
+model.b1$Z=matrix(1,3,1)
+kem.b1 = MARSS(birddat, model=model.b1, control=list(minit=100) )
 
 
 ###################################################
 ### code chunk number 27: bird1.aic
 ###################################################
-kem1$AICc
+kem.b1$AICc
 
 
 ###################################################
 ### code chunk number 28: bird2
 ###################################################
-Z.model=factor(c(1,2,3)) 
-model2=list(Z = Z.model, Q = Q.model, R = R.model, U = U.model)
-kem2 = MARSS(birddat, model=model2)
+model.b2=list()
+model.b2$Q="diagonal and equal"
+model.b2$R="diagonal and equal"
+model.b2$Z="identity"
+model.b2$A="zero"
+model.b2$U="equal"
+kem.b2 = MARSS(birddat, model=model.b2)
 
 
 ###################################################
 ### code chunk number 29: bird2.aic
 ###################################################
-kem2$AICc
+kem.b2$AICc
 
 
 ###################################################
 ### code chunk number 30: bird3
 ###################################################
-Q.model="diagonal and unequal"
-model3=list(Z = Z.model, Q = Q.model, R = R.model, U = U.model)
-kem3 = MARSS(birddat, model=model3)
+model.b3=model.b2 #is is based on model.b2
+#all we change is the structure of Q
+model.b3$Q="diagonal and unequal"
+model.b3$U="unequal"
+kem.b3 = MARSS(birddat, model=model.b3)
 
 
 ###################################################
 ### code chunk number 31: bird3.aic
 ###################################################
-kem3$AICc
+kem.b3$AICc
 
 
 ###################################################
 ### code chunk number 32: bird4
 ###################################################
-Z.model=factor(c(1,2,2)) #1 observation time series for each x time series
-model4=list(Z = Z.model, Q = Q.model, R = R.model, U = U.model)
-kem4 = MARSS(birddat, model=model4)
+model.b4=list()
+model.b4$Q="diagonal and unequal"
+model.b4$R="diagonal and equal"
+model.b4$Z=factor(c("BC","AB-SK","AB-SK"))
+model.b4$A="scaling"
+model.b4$U="unequal"
+kem.b4 = MARSS(birddat, model=model.b4)
 
 
 ###################################################
 ### code chunk number 33: bird4.aic
 ###################################################
-kem4$AICc
+kem.b4$AICc
 
 
 ###################################################
 ### code chunk number 34: fig6
 ###################################################
 # Make a plot of the predicted trajectory, confidence intervals, and the raw data in log-space
-plot(kestrel[,1], kestrel[,2], xlab = "Year", ylab="Index of kestrel abundance",main="", col="red", ylim=c(0,2))
-points(kestrel[,1], kestrel[,3], col="blue")
-points(kestrel[,1], kestrel[,4], col="purple")
-lines(kestrel[,1], c(kem4$states[1,]), lty=3, lwd=2, col="red")
-lines(kestrel[,1], c(kem4$states[2,]), lty=3, lwd=2, col="blue")
-lines(kestrel[,1], c(kem4$states[2,]+parmat(kem4)$A[3,1]), lty=3, lwd=2, col="purple")
-legend('topright',inset=0.1, legend=c("British Columbia","Alberta","Saskatchewan"), col=c("red","blue","purple"), pch=21)
+plot(kestrel[,1], kestrel[,2], xlab = "Year", ylab="Index of kestrel abundance",main="", col="red", ylim=c(0,2), pch=21)
+points(kestrel[,1], kestrel[,3], col="blue", pch=22)
+points(kestrel[,1], kestrel[,4], col="purple", pch=25)
+lines(kestrel[,1], c(kem.b4$states[1,]), lty=3, lwd=2, col="red")
+lines(kestrel[,1], c(kem.b4$states[2,]), lty=3, lwd=2, col="blue")
+lines(kestrel[,1], c(kem.b4$states[2,]+parmat(kem.b4)$A[3,1]), lty=3, lwd=2, col="purple")
+legend('topright',inset=0.1, legend=c("British Columbia","Alberta","Saskatchewan"), col=c("red","blue","purple"), pch=c(21,22,25))
 
 

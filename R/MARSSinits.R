@@ -26,7 +26,7 @@ for(elem in names(default)){
   }else{ #not fixed
     #must be either length 1 or same length as the number of estimated values for elem
     if( !((is.null(dim(inits[[elem]])) & length(inits[[elem]])==1) | isTRUE(all.equal(dim(inits[[elem]]),c(dim(modelObj$free[[elem]])[2],1)))) ){
-      stop(paste("MARSSinits: ",elem," inits must be either a scalar (dim=NULL) or the same size as the par$",elem," element"),sep="")
+      stop(paste("MARSSinits: ",elem," inits must be either a scalar (dim=NULL) or the same size as the par$",elem," element",sep=""))
       }
     parlist[[elem]]=matrix(inits[[elem]],dim(modelObj$free[[elem]])[2],1)
   

@@ -14,43 +14,43 @@ tabledir="tables/"
 ###################################################
 # load the data
 data(lakeWAplankton)
-# use only the data from 1977 onward
-dat.spp.1977 = lakeWAplankton[lakeWAplankton[,"Year"]>=1977,]
+# use only the data from 1980 onward
+dat.spp.1980 = lakeWAplankton[lakeWAplankton[,"Year"]>=1980,]
 # create vector of phytoplankton group names
 phytoplankton = c("Cryptomonas", "Diatoms", "Greens",
                    "Bluegreens", "Unicells", "Other.algae")
 # get only the phytoplankton
-dat.spp.1977 = dat.spp.1977[,phytoplankton]
+dat.spp.1980 = dat.spp.1980[,phytoplankton]
 
 
 ###################################################
 ### code chunk number 3: transpose.data
 ###################################################
 # transpose data so time goes across columns
-dat.spp.1977 = t(dat.spp.1977)
+dat.spp.1980 = t(dat.spp.1980)
 # get number of time series
-N.ts = dim(dat.spp.1977)[1]
+N.ts = dim(dat.spp.1980)[1]
 # get length of time series
-TT = dim(dat.spp.1977)[2] 
+TT = dim(dat.spp.1980)[2] 
 
 
 ###################################################
 ### code chunk number 4: z.score
 ###################################################
-Sigma = sqrt(apply(dat.spp.1977, 1, var, na.rm=TRUE))
-y.bar = apply(dat.spp.1977, 1, mean, na.rm=TRUE)
-dat.z = (dat.spp.1977 - y.bar) * (1/Sigma)
-rownames(dat.z) = rownames(dat.spp.1977)
+Sigma = sqrt(apply(dat.spp.1980, 1, var, na.rm=TRUE))
+y.bar = apply(dat.spp.1980, 1, mean, na.rm=TRUE)
+dat.z = (dat.spp.1980 - y.bar) * (1/Sigma)
+rownames(dat.z) = rownames(dat.spp.1980)
 
 
 ###################################################
 ### code chunk number 5: plotdata
 ###################################################
-spp = rownames(dat.spp.1977)
+spp = rownames(dat.spp.1980)
 par(mfcol=c(3,2), mar=c(3,4,1.5,0.5), oma=c(0.4,1,1,1))
 for(i in spp){
   plot(dat.z[i,],xlab="",ylab="Abundance index", bty="L", xaxt="n", pch=16, col="blue", type="b")
-  axis(1,12*(0:dim(dat.spp.1977)[2])+1,1977+0:dim(dat.spp.1977)[2])
+  axis(1,12*(0:dim(dat.spp.1980)[2])+1,1980+0:dim(dat.spp.1980)[2])
   title(i)
   }
 
@@ -130,87 +130,119 @@ V0 = diag(5,3)
 ### code chunk number 15: set.model
 ###################################################
 dfa.model = list(Z=Z, A="zero", R=R, B=B, U=U, Q=Q, x0=x0, V0=V0)
-cntl.list = list(demean.states=TRUE, maxit=50)
+cntl.list = list(maxit=50)
 
 
 ###################################################
-### code chunk number 16: fit.data
+### code chunk number 16: load.results.if.present
 ###################################################
-kemz.3 = MARSS(dat.z, model=dfa.model, control=cntl.list)
+# This is being done to speed up building the user guide
+if("CS4--model.fits.Rdata" %in% dir()) {
+	load("CS4--model.fits.Rdata")
+	saved.res = TRUE
+} else { saved.res = FALSE }
 
 
 ###################################################
-### code chunk number 17: plotfits
+### code chunk number 17: fit.data
+###################################################
+if(!saved.res) {
+	fit.cntl.list = list(minit=200, maxit=1200, allow.degen=FALSE)
+	kemz.3 = MARSS(dat.z, model=dfa.model, control=fit.cntl.list)
+	}
+
+
+###################################################
+### code chunk number 18: fit.data.echo (eval = FALSE)
+###################################################
+## kemz.3 = MARSS(dat.z, model=dfa.model, control=cntl.list)
+
+
+###################################################
+### code chunk number 19: plotfits
 ###################################################
 fit = kemz.3
 spp = rownames(dat.z)
 par(mfcol=c(3,2), mar=c(3,4,1.5,0.5), oma=c(0.4,1,1,1))
 for(i in 1:length(spp)){
 	plot(dat.z[i,],xlab="",ylab="abundance index",bty="L", xaxt="n", ylim=c(-4,3), pch=16, col="blue")
-	axis(1,12*(0:dim(dat.z)[2])+1,1977+0:dim(dat.z)[2])
+	axis(1,12*(0:dim(dat.z)[2])+1,1980+0:dim(dat.z)[2])
 	lines(as.vector(parmat(fit)$Z[i,,drop=FALSE]%*%fit$states+parmat(fit)$A[i,]), lwd=2)
 	title(spp[i])
 	}
 
 
 ###################################################
-### code chunk number 18: set.up.two.trends
+### code chunk number 20: set.up.two.trends
 ###################################################
-model.list=list(m=2,R="diagonal and unequal")
-kemz.2 = MARSS(dat.spp.1977, model=model.list,
-    z.score=TRUE, form="dfa", control=cntl.list)
+if(!saved.res) {
+	model.list = list(m=2, R="diagonal and unequal")
+	kemz.2 = MARSS(dat.spp.1980, model=model.list,
+	    z.score=TRUE, form="dfa", control=fit.cntl.list)
+	}
 
 
 ###################################################
-### code chunk number 19: compare.mods.2n3
+### code chunk number 21: set.up.two.trends.echo (eval = FALSE)
 ###################################################
-print(c(kemz.3$AICc, kemz.2$AICc))
+## model.list = list(m=2, R="diagonal and unequal")
+## kemz.2 = MARSS(dat.spp.1980, model=model.list,
+##     z.score=TRUE, form="dfa", control=cntl.list)
 
 
 ###################################################
-### code chunk number 20: set.up.many.trends.no.echo
+### code chunk number 22: compare.mods.2n3
+###################################################
+print(cbind(model=c("3 trends", "2 trends"),
+      AICc=round(c(kemz.3$AICc, kemz.2$AICc))),
+      quote=FALSE)
+
+
+###################################################
+### code chunk number 23: set.up.many.trends.no.echo
 ###################################################
 #This is being done to speed up building the user guide
-if("CS4--set.up.many.trends.Rdata" %in% dir()){
-load("CS4--set.up.many.trends.Rdata")
-}else{
-# set up forms of R matrices
-levels.R = c("diagonal and equal",
-              "diagonal and unequal",
-              "unconstrained")
-model.data = data.frame()
-# fit lots of models & store results
-for(R in levels.R) {
-    for(m in 1:(N.ts-1)) {
-        dfa.model = list(A="zero", R=R,m=m)
-        kemz = MARSS(dat.spp.1977, model=dfa.model, control=cntl.list, form="dfa", z.score=TRUE)
-        model.data = rbind(model.data,
-                            data.frame(R=R,
-                                       m=m,
-                                       logLik=kemz$logLik,
-                                       K=kemz$num.params,
-                                       AICc=kemz$AICc,
-                                       stringsAsFactors=FALSE))
-        assign(paste("kemz", m, R, sep="."), kemz)
-        } # end m loop
-    } # end R loop
-save(file="CS4--set.up.many.trends.Rdata",list=c("model.data", ls(pattern="^kemz.")))
-}
+if(!saved.res) {
+	# set up forms of R matrices
+	levels.R = c("diagonal and equal",
+	              "diagonal and unequal",
+	              "unconstrained")
+	model.data = data.frame()
+	# fit lots of models & store results
+	# NOTE: this will take a long time to run because minit is big!
+	for(R in levels.R) {
+	    for(m in 1:(N.ts-1)) {
+	        dfa.model = list(A="zero", R=R, m=m)
+	        kemz = MARSS(dat.z, model=dfa.model, control=fit.cntl.list, form="dfa", z.score=TRUE)
+	        model.data = rbind(model.data,
+	                            data.frame(R=R,
+	                                       m=m,
+	                                       logLik=kemz$logLik,
+	                                       K=kemz$num.params,
+	                                       AICc=kemz$AICc,
+	                                       stringsAsFactors=FALSE))
+	        assign(paste("kemz", m, R, sep="."), kemz)
+	        } # end m loop
+	    } # end R loop
+	}
 
 
 ###################################################
-### code chunk number 21: set.up.many.trends.echo (eval = FALSE)
+### code chunk number 24: set.up.many.trends.echo (eval = FALSE)
 ###################################################
+## # set new control params
+## cntl.list = list(minit=200, maxit=1200, allow.degen=FALSE)
 ## # set up forms of R matrices
 ## levels.R = c("diagonal and equal",
 ##               "diagonal and unequal",
 ##               "unconstrained")
 ## model.data = data.frame()
 ## # fit lots of models & store results
+## # NOTE: this will take a long time to run!
 ## for(R in levels.R) {
 ##     for(m in 1:(N.ts-1)) {
 ##         dfa.model = list(A="zero", R=R, m=m)
-##         kemz = MARSS(dat.spp.1977, model=dfa.model, control=cntl.list, 
+##         kemz = MARSS(dat.z, model=dfa.model, control=cntl.list, 
 ##             form="dfa", z.score=TRUE)
 ##         model.data = rbind(model.data,
 ##                             data.frame(R=R,
@@ -225,7 +257,7 @@ save(file="CS4--set.up.many.trends.Rdata",list=c("model.data", ls(pattern="^kemz
 
 
 ###################################################
-### code chunk number 22: makemodeltable
+### code chunk number 25: makemodeltable
 ###################################################
 # calculate delta-AICc
 model.data$delta.AICc = model.data$AICc - min(model.data$AICc)
@@ -234,17 +266,19 @@ wt = exp(-0.5*model.data$delta.AICc)
 model.data$Ak.wt = wt/sum(wt)
 # sort results
 model.tbl = model.data[order(model.data$AICc),-4]
+# drop AICc from table
 # calculate cumulative wts
 model.tbl$Ak.wt.cum = cumsum(model.tbl$Ak.wt)
+model.tbl = model.tbl[,-4]
 tmpaln = "c" #figure out the number of cols automatically
 for(i in 1:ncol(model.tbl)) {tmpaln = paste(tmpaln,"c",sep="")}
-thetable = xtable(model.tbl,caption='Model selection results.', label='tab:tablefits', align=tmpaln, digits=c(1,1,1,1,0,1,2,2))
-align(thetable) = "cp{3.5cm}p{0.5cm}p{1.5cm}p{0.9cm}ccc"
+thetable = xtable(model.tbl,caption='Model selection results.', label='tab:tablefits', align=tmpaln, digits=c(1,1,1,1,1,2,2))
+align(thetable) = "cp{3.5cm}p{0.7cm}p{1.5cm}p{1.75cm}cc"
 print(thetable, type = "latex", file = paste(tabledir,"tablefit.tex",sep=""), include.rownames=FALSE,include.colnames=TRUE, caption.placement="top",table.placement="htp", sanitize.text.function = function(x){x},hline.after = c(-1,0,nrow(model.data)))
 
 
 ###################################################
-### code chunk number 23: getbestmodel
+### code chunk number 26: getbestmodel
 ###################################################
 # get the "best" model
 best.model = model.tbl[1,]
@@ -253,14 +287,14 @@ best.fit = get(fitname)
 
 
 ###################################################
-### code chunk number 24: varimax
+### code chunk number 27: varimax
 ###################################################
 # get the inverse of the rotation matrix
 H.inv = varimax(parmat(best.fit)$Z)$rotmat
 
 
 ###################################################
-### code chunk number 25: rotations
+### code chunk number 28: rotations
 ###################################################
 # rotate factor loadings
 Z.rot = parmat(best.fit)$Z %*% H.inv   
@@ -269,7 +303,7 @@ trends.rot = solve(H.inv) %*% best.fit$states
 
 
 ###################################################
-### code chunk number 26: plotfacloadings
+### code chunk number 29: plotfacloadings
 ###################################################
 spp = rownames(dat.z)
 minZ = 0.05
@@ -288,7 +322,7 @@ for(i in 1:best.model$m) {
 
 
 ###################################################
-### code chunk number 27: plottrends
+### code chunk number 30: plottrends
 ###################################################
 # get ts of trends
 ts.trends = t(trends.rot)
@@ -310,54 +344,76 @@ for(i in 1:dim(ts.trends)[2]) {
 		xlab="", ylab="", xaxt="n")
 	# add panel labels
 	mtext(paste("Trend",i,sep=" "), side=3, line=0.5)
-	axis(1,12*(0:dim(dat.spp.1977)[2])+1,1977+0:dim(dat.spp.1977)[2])
+	axis(1,12*(0:dim(dat.spp.1980)[2])+1,1980+0:dim(dat.spp.1980)[2])
 	} # end i loop (trends)
 
 
 ###################################################
-### code chunk number 28: plotbestfits
+### code chunk number 31: plotbestfits
 ###################################################
 fit.b = parmat(best.fit)$Z %*% best.fit$states + matrix(parmat(best.fit)$A, nrow=N.ts, ncol=TT)
 spp = rownames(dat.z)
 par(mfcol=c(3,2), mar=c(3,4,1.5,0.5), oma=c(0.4,1,1,1))
 for(i in 1:length(spp)){
   plot(dat.z[i,],xlab="",ylab="abundance index",bty="L", xaxt="n", ylim=c(-4,3), pch=16, col="blue")
-  axis(1,12*(0:dim(dat.z)[2])+1,1977+0:dim(dat.z)[2])
+  axis(1,12*(0:dim(dat.z)[2])+1,1980+0:dim(dat.z)[2])
   lines(fit.b[i,], lwd=2)
   title(spp[i])
   }
 
 
 ###################################################
-### code chunk number 29: set-up-covar
+### code chunk number 32: set-up-covar
 ###################################################
-temp = t(lakeWAplankton[lakeWAplankton[,"Year"]>=1977,"Temp"])
-TP = t(lakeWAplankton[lakeWAplankton[,"Year"]>=1977,"TP"])
+temp = t(lakeWAplankton[lakeWAplankton[,"Year"]>=1980,"Temp"])
+TP = t(lakeWAplankton[lakeWAplankton[,"Year"]>=1980,"TP"])
 
 
 ###################################################
-### code chunk number 30: fit-covar
+### code chunk number 33: fit.covar
 ###################################################
-model.list=list(m=3,R="unconstrained")
-kemz.temp = MARSS(dat.spp.1977, model=model.list,z.score=TRUE,form="dfa",
-   control=cntl.list, covariates=temp)
-kemz.TP = MARSS(dat.spp.1977, model=model.list,z.score=TRUE,form="dfa",
-   control=cntl.list, covariates=TP)
-kemz.both = MARSS(dat.spp.1977, model=model.list,z.score=TRUE,form="dfa",
-   control=cntl.list, covariates=rbind(temp,TP))
+if(!saved.res) {
+	model.list=list(m=4, R="unconstrained")
+	kemz.temp = MARSS(dat.spp.1980, model=model.list, z.score=TRUE, form="dfa",
+	   control=fit.cntl.list, covariates=temp)
+	kemz.TP = MARSS(dat.spp.1980, model=model.list, z.score=TRUE, form="dfa",
+	   control=fit.cntl.list, covariates=TP)
+	kemz.both = MARSS(dat.spp.1980, model=model.list, z.score=TRUE, form="dfa",
+	   control=fit.cntl.list, covariates=rbind(temp,TP))
+   }
 
 
 ###################################################
-### code chunk number 31: covar-AICs
+### code chunk number 34: fit.covar.echo (eval = FALSE)
 ###################################################
-print(c(kemz.temp$AICc,kemz.TP$AICc,kemz.both$AICc))
+## model.list=list(m=4, R="unconstrained")
+## kemz.temp = MARSS(dat.spp.1980, model=model.list, z.score=TRUE,
+## 	form="dfa", control=cntl.list, covariates=temp)
+## kemz.TP = MARSS(dat.spp.1980, model=model.list, z.score=TRUE,
+## 	form="dfa", control=cntl.list, covariates=TP)
+## kemz.both = MARSS(dat.spp.1980, model=model.list, z.score=TRUE,
+## 	form="dfa", control=cntl.list, covariates=rbind(temp,TP))
 
 
 ###################################################
-### code chunk number 32: D-par (eval = FALSE)
+### code chunk number 35: save.results
 ###################################################
-## D=matrix(c("D(Crypto,Temp)","D(Diatoms,Temp)",
-##   "D(Grn,Temp)","D(BG,Temp)","D(Uni,Temp)",
-##   "D(Other,Temp)"), 6,1)
+save(file="CS4--model.fits.Rdata",list=c("model.data", ls(pattern="^kemz.")))
+
+
+###################################################
+### code chunk number 36: covar-AICs
+###################################################
+print(cbind(model=c("no covars", "Temp", "TP", "Temp & TP"),
+      AICc=round(c(best.fit$AICc, kemz.temp$AICc, kemz.TP$AICc,
+      kemz.both$AICc))), quote=FALSE)
+
+
+###################################################
+### code chunk number 37: D-par (eval = FALSE)
+###################################################
+## D = matrix(c("D(Crypto,Temp)", "D(Diatoms,Temp)",
+## 	"D(Grn,Temp)", "D(BG,Temp)", "D(Uni,Temp)",
+## 	"D(Other,Temp)"), nrow=6, ncol=1)
 
 

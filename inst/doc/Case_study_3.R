@@ -1,5 +1,5 @@
 ###################################################
-### code chunk number 8: Cs3_code
+### code chunk number 9: Cs3_code
 ###################################################
 # Read in the data
 # The data are logged already
@@ -23,7 +23,8 @@ for(i in 1:9) {
    Q.model="unconstrained" #could be left out since Q scalar
    R.model="diagonal and equal"
    U.model="unconstrained" #could be left out since U scalar
-   Z.model=factor(rep(1,9)) #repeat 1 nine times
+   Z.model=matrix(1,9,1)
+   Z.model=factor(rep(1,9)) #or you can use factor
 
 kem = MARSS(sealData, model=list(Z=Z.model, Q=Q.model, R=R.model, U=U.model))
 

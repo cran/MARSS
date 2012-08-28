@@ -55,7 +55,7 @@ MARSSmcinit = function(MLEobj) {
            par.random =  par.random/(tmp.max/runif(1,.01,.99))
           }
           if(el %in% c("x0")){
-           x0init = MLEobj$start$x0
+           x0init = init$x0 #where the original start is
            x.lo = ifelse(x0init > 0, exp(bounds.param[1])*x0init, exp(bounds.param[2])*x0init)
            x.hi = ifelse(x0init > 0, exp(bounds.param[2])*x0init, exp(bounds.param[1])*x0init)
            par.random = matrix(runif(dim(tmp$D)[2], x.lo, x.hi), dim(tmp$D)[2],1)

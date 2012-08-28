@@ -55,7 +55,7 @@ kem.1=MARSS(z.royale.dat, model=royale.model.1, control=cntl.list)
 ###################################################
 royale.model.2=list(Z="identity", B="unconstrained",
     Q="diagonal and unequal", R="zero", U="zero")
-kem.2=MARSS(z.royale.dat, model=royale.model.2, control=cntl.list)
+kem.2=MARSS(z.royale.dat, model=royale.model.2)
 
 
 ###################################################
@@ -67,14 +67,45 @@ print(wolf.B, digits=2)
 
 
 ###################################################
-### code chunk number 9: bad.data.2 (eval = FALSE)
+### code chunk number 9: prep.cov.wolf.moose
+###################################################
+clim.dat= t(isleRoyal[1:52,c(4,10,6)])
+z.score.clim.dat=(clim.dat-apply(clim.dat,1,mean,na.rm=TRUE))/
+     sqrt(apply(clim.dat,1,var,na.rm=TRUE))
+
+
+###################################################
+### code chunk number 10: cov.wolf.moose.model
+###################################################
+royale.model.3=list(Z="identity", B="unconstrained",
+    Q="diagonal and unequal", R="zero", U="zero",
+    C=matrix(list(0,"Moose win temp",0,"Moose win precip",
+         0,"Moose sum temp"),2,3),
+    c=z.score.clim.dat)
+
+
+###################################################
+### code chunk number 11: cov.wolf.moose.model
+###################################################
+kem.3=MARSS(z.royale.dat[,2:53], model=royale.model.3)
+
+
+###################################################
+### code chunk number 12: figwolfcov
+###################################################
+cor.fun=function(x, y){text(0.5,0.5,format(cor(x,y),digits=2),cex=2)}
+pairs(t(z.score.clim.dat),lower.panel=cor.fun)
+
+
+###################################################
+### code chunk number 13: bad.data.2 (eval = FALSE)
 ###################################################
 ## bad.data=z.royale.dat+matrix(rnorm(100,0,sqrt(.2)),2,50)
-## kem.bad=MARSS(bad.data, model=model, control=cntl.list)
+## kem.bad=MARSS(bad.data, model=model)
 
 
 ###################################################
-### code chunk number 10: load.plankton.data
+### code chunk number 14: load.plankton.data
 ###################################################
 # only use the plankton, daphnia, & non-daphnia
 plank.spp = c("Large Phyto","Small Phyto","Daphnia","Non-daphnia")
@@ -88,7 +119,7 @@ d.plank.dat = (plank.dat-apply(plank.dat,1,mean,na.rm=TRUE))
 
 
 ###################################################
-### code chunk number 11: figplank
+### code chunk number 15: figplank
 ###################################################
 matplot((1:(52*6))[27:295],t(d.plank.dat),type="l",lty=c(1,1,1,1),lwd=c(1,1,3,3),xlab="week of study",ylab="log biomass",xaxt="n",xlim=c(11,52*6-11),bty="L")
 #axis(1,at=(1:(52*6))[seq(27,295,2)])
@@ -98,7 +129,7 @@ abline(h=0)
 
 
 ###################################################
-### code chunk number 12: plankton.model
+### code chunk number 16: plankton.model
 ###################################################
 Z="identity"
 U="zero"
@@ -109,14 +140,14 @@ plank.model.0=list(Z=Z, U=U, Q=Q, R=R, B=B)
 
 
 ###################################################
-### code chunk number 13: fit.plank.model.0
+### code chunk number 17: fit.plank.model.0
 ###################################################
 plank.model.0$tinitx=1
 kem.plank.0 = MARSS(d.plank.dat, model=plank.model.0 )
 
 
 ###################################################
-### code chunk number 14: print.B.0
+### code chunk number 18: print.B.0
 ###################################################
 #Cleaning up the B matrix for printing
 B.0 = parmat(kem.plank.0)$B[1:4,1:4]
@@ -125,7 +156,7 @@ print(B.0,digits=2)
 
 
 ###################################################
-### code chunk number 15: print.B.Ives
+### code chunk number 19: print.B.Ives
 ###################################################
 #Cleaning up the B matrix for printing
 B.Ives.ML = matrix(c(.5,NA,NA,NA,-.39,.076,NA,.1,NA,-.02,.77,NA,NA,-.1,NA,.55),4,4)
@@ -136,14 +167,14 @@ print(B.Ives,digits=2,na.print="--")
 
 
 ###################################################
-### code chunk number 16: test.rm.NAs (eval = FALSE)
+### code chunk number 20: test.rm.NAs (eval = FALSE)
 ###################################################
 ## test.dat=d.plank.dat[,!is.na(d.plank.dat[1,])]
 ## test = MARSS(test.dat, model=plank.model.0 )
 
 
 ###################################################
-### code chunk number 17: fit.plank.model.1
+### code chunk number 21: fit.plank.model.1
 ###################################################
 plank.model.1=plank.model.0
 plank.model.1$Q="unconstrained"
@@ -151,7 +182,7 @@ kem.plank.1 = MARSS(d.plank.dat, model=plank.model.1)
 
 
 ###################################################
-### code chunk number 18: print.B.1
+### code chunk number 22: print.B.1
 ###################################################
 #Cleaning up the B matrix for printing
 B = parmat(kem.plank.1)$B[1:4,1:4]
@@ -162,7 +193,7 @@ print(B,digits=2,na.print="--")
 
 
 ###################################################
-### code chunk number 19: B.2
+### code chunk number 23: B.2
 ###################################################
 B.2=matrix(list(0),4,4) #set up the list matrix
 diag(B.2)=c("B11","B22","B33","B44") #give names to diagonals
@@ -172,7 +203,7 @@ print(B.2)
 
 
 ###################################################
-### code chunk number 20: fit.plank.model.2
+### code chunk number 24: fit.plank.model.2
 ###################################################
 #model 2
 plank.model.2=plank.model.1
@@ -181,7 +212,7 @@ kem.plank.2= MARSS(d.plank.dat, model=plank.model.2)
 
 
 ###################################################
-### code chunk number 21: print.B.2
+### code chunk number 25: print.B.2
 ###################################################
 #Cleaning up the B matrix for printing
 B = parmat(kem.plank.2)$B[1:4,1:4]
@@ -192,7 +223,7 @@ print(B,digits=2,na.print="--")
 
 
 ###################################################
-### code chunk number 22: fit.plank.model.3
+### code chunk number 26: fit.plank.model.3
 ###################################################
 #model 3
 plank.model.3=plank.model.2
@@ -201,7 +232,7 @@ kem.plank.3= MARSS(d.plank.dat, model=plank.model.3)
 
 
 ###################################################
-### code chunk number 23: prep.covariates
+### code chunk number 27: prep.covariates
 ###################################################
 #transpose to make time go across columns
 #drop=FALSE so that R doesn't change our matrix to a vector
@@ -210,7 +241,7 @@ d.phos = (phos-apply(phos,1,mean,na.rm=TRUE))
 
 
 ###################################################
-### code chunk number 24: add.covar.model.3
+### code chunk number 28: add.covar.model.3
 ###################################################
 plank.model.4=plank.model.3
 plank.model.4$C=matrix(list("C11","C21",0,0),4,1)
@@ -218,13 +249,13 @@ plank.model.4$c=d.phos
 
 
 ###################################################
-### code chunk number 25: plank.model.4
+### code chunk number 29: plank.model.4
 ###################################################
 kem.plank.4= MARSS(d.plank.dat, model=plank.model.4)
 
 
 ###################################################
-### code chunk number 26: add.fish.to.data
+### code chunk number 30: add.fish.to.data
 ###################################################
 #transpose to make time go across columns
 #drop=FALSE so that R doesn't change our matrix to a vector
@@ -235,7 +266,7 @@ d.plank.dat.w.fish = rbind(d.plank.dat,d.fish)
 
 
 ###################################################
-### code chunk number 27: B.covar
+### code chunk number 31: B.covar
 ###################################################
 B=matrix(list(0),5,5)
 diag(B)=list("B11","B22","B33","B44","Bfish")
@@ -246,20 +277,20 @@ print(B)
 
 
 ###################################################
-### code chunk number 28: C.covar
+### code chunk number 32: C.covar
 ###################################################
 C=matrix(list("C11","C21",0,0,0),5,1)
 
 
 ###################################################
-### code chunk number 29: R.covar
+### code chunk number 33: R.covar
 ###################################################
 R=matrix(list(0),5,5)
 diag(R)=list(0.04,0.04,0.16,0.16,0.36)
 
 
 ###################################################
-### code chunk number 30: Q.covar
+### code chunk number 34: Q.covar
 ###################################################
 Q=matrix(list(0),5,5); 
 Q[1:4,1:4]=paste(rep(1:4,times=4),rep(1:4,each=4),sep="")
@@ -269,7 +300,7 @@ print(Q)
 
 
 ###################################################
-### code chunk number 31: fit.covar.model
+### code chunk number 35: fit.covar.model
 ###################################################
 plank.model.5=plank.model.4
 plank.model.5$B=B
@@ -280,7 +311,7 @@ kem.plank.5=MARSS(d.plank.dat.w.fish, model=plank.model.5)
 
 
 ###################################################
-### code chunk number 32: print.B
+### code chunk number 36: print.B
 ###################################################
 #Cleaning up the B matrix for printing
 B.5 = parmat(kem.plank.5)$B[1:4,1:4]
@@ -290,7 +321,7 @@ print(B.5,digits=2,na.print="--")
 
 
 ###################################################
-### code chunk number 33: makemodeltable
+### code chunk number 37: makemodeltable
 ###################################################
 B.names=c("B11","B22","B33", "B44", "B12", "B23", "B24", "B42")
 #rename kem.plank.0 and kem.plank.1 B to make keeping track of params easier
@@ -317,7 +348,7 @@ print(thetable,type = "latex", file = paste(tabledir,"tableplank.tex",sep=""), i
 
 
 ###################################################
-### code chunk number 34: logLik.variates
+### code chunk number 38: logLik.variates
 ###################################################
 tmp=kem.plank.5
 tmp$model$data[5,]=NA
@@ -325,7 +356,7 @@ LL.variates=MARSSkf(tmp)$logLik
 
 
 ###################################################
-### code chunk number 35: Reset
+### code chunk number 39: Reset
 ###################################################
 options(prompt="> ", continue="+ ")
 options(width=120)

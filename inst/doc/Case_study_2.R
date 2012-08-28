@@ -11,8 +11,7 @@ legendnames = (unlist(dimnames(dat)[1]))
 #estimate parameters
 Z.model = factor(c(1,1,1,1,1))
 R.model = "diagonal and unequal" 
-kem1 = MARSS(dat, model=
-  list(Z=Z.model, R=R.model))
+kem1 = MARSS(dat, model=list(Z=Z.model, R=R.model))
 
 #make figure
 matplot(years, t(dat),xlab="",ylab="index of log abundance",
@@ -24,15 +23,12 @@ lines(years,kem1$states+1.96*kem1$states.se,type="l",
 lines(years,kem1$states,type="l",lwd=2)
 title("Observations and total population estimate",cex.main=.9)
 
-#show just the estimated parameter elements
-kem1$par
+kem1$par  #show the estimated parameter elements
 
-#show the parameters matrices with fixed and estimated elements
-parmat(kem1)
+parmat(kem1) #show the entire parameters matrices
 
-#show the log-likelihood and AIC
-kem1$logLik
-kem1$AIC
+kem1$logLik   #show the log-likelihood
+kem1$AIC  #show the AIC
 
 
 ###################################################
@@ -41,15 +37,14 @@ kem1$AIC
 #fit model
 Z.model = factor(c(1,1,1,1,1))
 R.model = "diagonal and equal" 
-kem2 = MARSS(dat, model=
-  list(Z=Z.model, R=R.model))
+kem2 = MARSS(dat, model=list(Z=Z.model, R=R.model))
 
 #show the estimated parameter elements
-kem2$par$U       #population growth rate
-kem2$par$Q       #process variance
+kem2$par$U  #population growth rate
+kem2$par$Q  #process variance
 kem2$par$R  #observation variance
 kem2$logLik #log likelihood
-c(kem1$AIC,kem2$AIC)
+c(kem1$AIC,kem2$AIC)  #AICs
 
 #plot residuals
 plotdat = t(dat)

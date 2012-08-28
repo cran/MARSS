@@ -2,51 +2,39 @@ MARSS Development site
 ------------------------------------
 New work on MARSS before posting to CRAN is at ``http://fishbox.iugo-cafe.org/user/e2holmes/MARSS Dev Site''.  Notes on known issues are also posted there.
 
+CHANGES IN MARSS 3.2  (08-28-2012)
+------------------------------------
+- some edits to the case studies and the User Guide to fix typos and stuff noted in the August workshop
+- added data to the Isle Royale dataset including covariates (temperature and precipitation)
+- added isleRoyal.Rd man file for Isle Royale data and covariates.
+- fixed bug that prevented MCInit from working.
+- moved .Rinstignore to the top-level
+- fixed misspelling in DESCRIPTION
 
 CHANGES IN MARSS 3.0  (07-10-2012)
 ------------------------------------
+
 Note, the changes are extensive but are internal and should be largely invisible to users of MARSS 2.X.  The MARSS() 3.0 call is backwards compatible to 2.9 except that kf.x0 changed to tinitx and moved from control list to model list.   Use of KFAS remains disabled until I can update to the new version of KFAS.  This slows down method="BFGS", but does not affect method="kem".
-
 - meaning of fixed and free changed. fixed is the f matrix in the EM derivation and free is the D matrix.  Originally, I used a fixed/free pair with NAs.  The new form closely follows the derivation and leads to more unified code.  This required changes in most files to deal with new meaning of fixed and free.
-
 - added element X.names to marssm model object
-
 - added model list to model object so that what the user passed in with the MARSS() call is retained (for reference).
-
 - allow user to spec linear constraints. The main point of 3.0 is so that users can spec intercept + beta_1 p_1 + beta_2 p_2 ... constraints.  Users do this with the usual list matrices using something like "theta+phi" or "2+2*theta+phi".  I added a function to interpret basic math like that with + and *.
-
 - changed args for MARSSkf and MARSShatyt functions. Takes MLEobj now.
-
 - added parmat function. This returns a parameter matrix when given a MLEobj.
-
 - changed par element of MLEobj. It is a vector of only the estimated elements now.  This required changes to user manual where I show specific parameters. If par is fixed, par element is matrix(0,0,1).
-
 - changed kf.x0 and t.x0 to tinitx. This standardized the naming a bit and the name now stands for "t at initial x" which will hopefully be easier to remember.  Removed "x00" and "x10" at least where user will see it.  They are still in the internal code. tinitx is passed in in the model list.
-
 - changed the way the marssm objects are created. Before the code locked one into a MAR-1 state-space form.  However many different types of time series models can be rewritten in MAR1SS form.  This rewriting is onerous for users and I don't want them to have to do that.  Also I wanted to make it easier to write functions to write different time series models in MAR-1 SS form.  Now MARSS() looks for a function called MARSS."form", where form is something like "mar1ss" or "dlm".  This function takes the MARSS inputs (all of them) and transforms the input into a marssm object ready for the fitting functions as the function writer wishes.  All that the function has to do is to return a valid marssm object from the model element of the MARSS() call.  This allows me (or anyone else) to use whatever parameter names they want in the model element.  This way the user can use familiar names for parameters can set some parameters to specific values (like 0).  Or the user could do something totally different with the model element and just have it be a text string like model="my.ts.model.1" or model="my.ts.model.2".   The only constraint is that the function output a proper marssm object and that the control, inits, and MCbounds arguments for MARSS are properly specified.
-
 - removed popWrap.r, checkPopWrap.r, MARSSoptions.r.  Became obsolete with above changes
-
 - added checkMARSSInputs.r and checkModelList.r. These replaced the functionality of popWrap.r and checkPopWrap.r
-
 - added MARSS.marxss.r  This is the first MARSS.form() function.  This is a standardized format for so that I can add other forms easily.
-
 - changed MARSSkf.r so that K (Kalman gain) is 0 when tinitx=1 and V0=0. Changed MARSSkf.r to allow some of diagonals of V0 to be 0 and others non zero.  Got rid of many of the OMGs.  Added pcholinv function to diaghelpers.r which deals with matrices with 0s on diagonals.  This streamlined the filter code.
-
 - Totally revamped the EMDerivations.pdf to allow time-varying models.  
-
 -  Rewrote (again) the section on degenerate models in EMDerivation.pdf to allow B structures that imply both total deterministic X and indirectly stochastic x.  The latter is required to allow one to rewrite a MAR-p model as a MAR-1 model.  Time-varying params meant that the matrix geometric function no longer could be used, but I found a simplier recursion.  Improved the presentation so only 1 x0 and U update equation is given rather than 5 special cases.  Rewrote x0 and U update sections in MARSSkem.  Removed the OMGs from MARSSkem since no longer needed given the new pcholinv() function.
-
 - Rewrote many sections of MARSSkem.r to allow time-varying parameters. see EMDerivations.pdf
-
 - Made changes to MARSSkf.r, MARSSkfas.r and MARSSsimulate.r to allow time-varying parameters.
-
 - Added fun argument to MARSShessian and MARSSparamCIs to allow one to specify the function used to compute the log-likelihood.
-
 - Added row and col names to Hessian in MARSShessian
-
 - Moved diffuse from control element to model element of MLEobj since it is part of the model specification.  Required changes to MARSSsettings, MARSS.marxss, is.marssm, is.marssMLE.
-
 - Changed MARSSkem and MARSShatyt to allow some diag.V0=0 and others not 0, so user can mix stochastic and fixed initial x states.
 
 ----Other changes----
@@ -71,18 +59,13 @@ diaghelpers.r, added parmat, pcholinv, pinv, few other functions
 - Bug in MARSSkem that meant that the maxit-1 kf and logLik were returned when algorithm stopped due to hitting maxit.  Par was correct.
 
 
-
 CHANGES IN MARSS 2.9 (2012-03-20)
 ------------------------------------
 
 - updated the DFA example in the manual.
-
 - changed the column headings in the L WA plankton dataset slightly to have uniform capitalization.
-
 - fixed MARSSboot so that MLE objects with method=BFGS can be used; changed the param.gen argument to take "MLE" and "hessian" instead of "KalmanEM" and "hessian".  Updated MARSSboot.R and MARSSboot.Rd.
-
 - fixed MARSSaic and MARSSparamCIs so that MARSSboot call uses param.gen="MLE".  This fixes the bug that stopped MLE objects from BFGS calls to fail.
-
 - temporarily disabled calls to MARSSkfas until MARSS can be made compatible with new version of KFAS package.  Removed importFrom(KFAS, kf) and importFrom(KFAS, ks) from the NAMESPACE.  Removed MARSSkfas from the export list in NAMESPACE.  Removed KFAS in the depends line of DESCRIPTION.
 
 
@@ -90,45 +73,28 @@ CHANGES IN MARSS 2.8 (2012-01-23)
 ------------------------------------
 
 - added NEWS file, .Rinstignore in inst\doc
-
 - added example of lag-p model to the manual.
-
 - fixed bug in MARSSkf when R=0, kf.x0=x10, and V0=0. The algorithm was not setting x(1) via y(1) in this special case.
-
 - In MARSSinits, got rid of the linear regression to get inits for x0; using instead solution of pi from y(1)=Z*(D*pi+f)+A; This stops MARSS from complaining about no inits when Z is not a design matrix.  NOTE NB: This means the default initial x0 are different for 2.7 and 2.8, which leads to slightly different answers for MARSS(dat) in 2.7 and 2.8. The answers are not really different, just they started with slightly different initial values so have slightly different values when the algorithm reaches its convergence limit.
-
 - added warning in the covariate section. The error-free covariate section in the manual did not clarify that the log-likelihood of the covariates with the dummy state model would be included in the MARSS output.  MARSS version 2.9 will allow error-free covariates in a more standard manner.
-
 - removed dependency on time package. The progressBar function was moved into MARSS since the time package is no longer maintained.
-
 - changed MARSSkemcheck to allow lag-p models. I worked on the derivation of the degenerate models (with 0 on diag of Q) to better define the needed constraints on B.0 and B.plus sub matrices.  This led to changes in MARSSkemcheck.r so that lag-p models written as MARSS model are now allowed.  There are still problems though in x0 estimation in the EM algorithm when there are zeros on R and B diagonals, so best to method=``BFGS'' until I redo the degenerate EM algorithm.
-
 - bug in MARSSoptim did not allow unconstrained Q or R. The problem had to do with temporarily resetting the upper triangle of tmp fixed matrices to 0 when using tmp.par as chol matrix.
-
 - error in MARSSkf when there were 0s on diagonal of Q. The algorithm only worked if B was diagonal.  Fix required changes to Kalman smoother bit of MARSSkf. I rewrote the pertinent section in EMDerivation.pdf.
-
 - cleaned up degenerate derivation in EMDerivation.pdf
-
 - added option to force use of MARSSkf function instead of MARSSkfas. If kf.x0="x10", default was to use MARSSkfas function which is much faster, but it doesn't like 0s on B diagonal if V0 is 0.  So I added the option to force use of slower MARSSkf function using method="BFGSkf". Reguired adding stuff to MARSSsettings.r and MARSSoptim.r.  This is mainly for debugging since MARSSoptim will now check if optim failed and try using MARSSkf if MARSSkfas was used.  Added line to output that says which function used for likelihood calculation; again for debugging.
-
 - edited MARSSmcinit to improve random B generation. There is nothing to guarantee that random Bs in mcinit routine will be within the unit circle, however it is probably a good idea if they are.   Default bounds for B changed to -1,1 and random B matrix rescaled by dividing by max(abs(eigen(B))/runif(1) to get the max abs eigenvalue between 0 and 1.  This works unless the user has fixed some B values to non-zero values.  This required change to is\_marssMLE.r also to remove constraint that B bounds be greater than 0.
-
-- edited MARSSmcinit to allow fixed and shared values in random Qs and Rs. The random wishart draw is rescaled based on the fixed and shared structure in R or Q.  As part of this, I cleaned up how fixed and shared values are specified in the random draws of other parameters.  This change doesn't change the end effect, but the code is cleaner.
+- edited MARSSmcinit to allow fixed and shared values in random Qs and Rs. The random Wishart draw is rescaled based on the fixed and shared structure in R or Q.  As part of this, I cleaned up how fixed and shared values are specified in the random draws of other parameters.  This change doesn't change the end effect, but the code is cleaner.
 
 
 CHANGES IN MARSS 2.7 and 2.6 (2011-10-21)
 ------------------------------------
 
 -added sections on covariates and lag-p model to the user guide.
-
-- MCInit was not working for non-diagonal R and Q. I replaced the function for randomly drawing matrices with a random draw from a wishart distribution.
-
+- MCInit was not working for non-diagonal R and Q. I replaced the function for randomly drawing matrices with a random draw from a Wishart distribution.
 - m not getting assigned in MARSSPopWrap.  Some of the allowable cases for Z and m were missing.
-
 - added more info re R or Q not positive-definite in error messages. If the user specifies an illegal variance covariance structure from a general estimation perspective (nothing to do with MARSS), they can get the "not positive-definite" error.  Added some text in Troubleshooting section to help if they get this error.
-
 - fixed MARSSsimulate bug. MARSSsimulate was broken for multivariate simulation since I forgot that rmvnorm returns a 1 x p matrix even if the mean is p x 1.  Wrapped the rmvnorm call in a array() to fix the dim setting.
-
 - error in x0 update when R=0 and x0 fixed. If x_1 has fixed elements, estimates should not used for those elements.  Code was missing some d$x0 bits.  This means that the user can fix x_1 when R=0 to a value not equal to the corresponding y_1 value.  This would mean an illogical model so a check was added to stop and give warning if that happens.
 
 
@@ -136,13 +102,9 @@ CHANGES between MARSS 2.2 and 2.5
 ------------------------------------
 
 - factor option for all but Z removed. Same functionality is now provided via list matrices
-
 - removed fixed/free args from MARSS(). Same functionality is provided via list matrices
-
 - constraint arg changed to model in MARSS(). Just the name of the argument was changed to be more intuitive
-
 - rewrote user guide to reflect above changes
-
 - added case studies to user guide on dynamic factor analysis and species interactions with covariates
 
 
@@ -150,17 +112,11 @@ CHANGES between MARSS 2.0 and 2.2
 ------------------------------------
 
 - added diffuse priors for method="BFGS" and kf.x0="x10"
-
 - incorporated KFAS package. Their Kalman filter is faster but only for x10.  Added MARSSkfas function.
-
 - changed Q/R estimation in optim to allow off-diagonal terms.
-
 - added V0 estimation option.  This works like other parameters now
-
 - LL calc when R=0 fixed. LL calc in MARSSkfas to deal with 0s on diag of Ft[,,1] so can do R=0
-
 - replaced show.doc() with RShowDoc()
-
 - default miss.value changed NA where NA is as.numeric(NA) rather than logical.
 
 
@@ -168,27 +124,16 @@ CHANGES between MARSS 1.1 and 2.0
 ------------------------------------
 
 - MARSSkem algorithm changed to allow B and Z estimation. This was the main objective of MARSS 2.0
-
 - MARSSkem algorithm changed to allow constrained B and Z estimation.  This was the second main objective of MARSS 2.0.  This allows you to have fixed values or shared values in your B or Z matrices.
-
 - allow more types of element sharing in the Q and R estimation. In MARSS 1.1, you were limited to diagonal, equal var-cov, and unconstrained.  Now various types of block-diagonal matrices are allowed.
-
 - allow some Q or R variances to be set to 0. This allows partially deterministic systems (Q=0) and systems with no observation error (R=0)
-
 - fixed the V0=0 case. I was using a work-around to do the fixed x at t=0 case (V0=0).  I derived the solution and added this to MARSSkem.  There is no iter.V0 control element anymore.
-
 - changed logLik conv test. I was doing the log-log test against logLik instead of log(logLik).  I think the test works better using the log of the log-likelihood.
-
 -detect degeneracy and set Q or R element to zero] Now instead of the variance walking to log(negative infinity) in an infinite number of iterations, the algorithm detects that a variance is going to zero and tries setting it to zero.
-
 - MARSSkem changed to a more general way to deal with missing values. This is described in the EMDerivation.pdf.  It doesn't affect the user, but allows the code to be expanded to more types of models much more easily.
-
 - changed to using list matrices to describe models. Now you can essentially write the way your model looks on paper (in matrix form) as a list matrix in R and it will run.  No more fixed and free matrices---at least from the user's perspective.
-
 - added some code optimization. I cleaned up some of the things that really slowed down 1.1.  2.0 is now about as fast as 1.0 was.
-
 - big revamp of EMDerivations.pdf. I cleaned up my derivation a lot.  I'm especially happy with the sections on dealing missing values part of the derivation.  It's much more elegant and logical now.  The sections on degenerate matrices are cluttered and the notation is painful, but I will leave them be for awhile.
-
 - bug in miss.value=NA. When miss.value=NA, class for NA was logical.  Needed to be numeric.
 
 
@@ -196,25 +141,14 @@ CHANGES between MARSS 1.0 and 1.1
 ------------------------------------
 
 - fixed formatting issues with error messages. 
-
 - allow NA and NaN to be used for miss.value
-
 - fixed bug in MARSSmcinit. MCMC init function would crash for anything except the default model.
-
 - fixed ungraceful exiting when minit > maxit
-
 - fixed ungraceful exiting when method=BFGS threw error
-
 - added more info to ?MARSS and help(``MARSS-package''). Changed MARSS.Rd and MARSS-package to have reference to user guide, index, and MARSS-package help page.
-
 - changed convergence test. In the convergence diagnostics test, we check that the slope of logLik vs (log iteration num) is close to zero.  This is a standard convergence test.  But Shumway and Stoffers code uses a delta logLik test which checks that the logLik.new-logLik.old is less than some absolute (user specified) tolerance.  This turns out to be a bad convergence test because the log-log plot (described above) can still have a fairly clear slope.  I switched over to using the log-log test as the default test, but I allow the user to specify a abstol (delta logLik) if they want that instead.  This change slows down model fitting considerably but model fits that are actually converged.\
-
 - fixed is.design() function. A design matrix must have more or equal rows than columns.
-
 - R was changing dims on some matrices in MARSSkf. R has a flaw in terms of how it behaves when you subscript a matrix and the new matrix has a dimension length of 1 for one (or more dimensions).  For example, if a=array(0,dim=c(1,2,4)), then a[,,1] is no longer a matrix but instead is a vector and dim(a[,,1]) is NULL.  This can cause all sorts of mysterious bugs.  Sometimes adding drop=FALSE will prevent this unpleasant behavior.  If b=matrix(0,2,2), dim(b[,1,drop=FALSE]) is c(2,1) while dim(b[,1]) is NULL.  drop=FALSE works great with 2-dimensional matrices, but with 3-dimensional matrices it doesn't work.  If a=array(0,dim=c(1,2,4)), dim(a[,,1,drop=FALSE]) is c(1,2,1) instead of c(1,2) which is what you want if a[,,1] is what is going to appear in some matrix operation. This problem came up in the Kt[, , t] \%*\% innov[, t] line in MARSSkf.  Normally Kt[,,t] is square and a square matrix or a scalar is returned, but if Kt[,,t] happened to be something like dim=c(1,3,20) then Kt[,,t] returned a VECTOR of length 3.  In this case, Kt[, , t] \%*\% innov[, t] crashed the code.  I had to use a kluge to force R to keep the dimensions after subscripting. This bug only occurred in models where Z is not a design matrix.
-
 - fixed formatting issues in summary(marssm object). The naming of elements in the model matrices did not match summary(marssMLE object).
-
 - added function MARSSoptions(). This allows you to change the defaults for the MARSS() function.  See ?MARSSoptions.
-
 - added function MARSSLLprofile(). This allows you to plot some basic log-likelihood profiles.  See ?MARSSLLprofile.
