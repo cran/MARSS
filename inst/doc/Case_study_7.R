@@ -61,7 +61,7 @@ kem.2=MARSS(z.royale.dat, model=royale.model.2)
 ###################################################
 ### code chunk number 8: print.wolf.B
 ###################################################
-wolf.B=parmat(kem.2)$B
+wolf.B=coef(kem.2,type="matrix")$B
 rownames(wolf.B)=colnames(wolf.B)=rownames(royale.dat)
 print(wolf.B, digits=2)
 
@@ -150,7 +150,7 @@ kem.plank.0 = MARSS(d.plank.dat, model=plank.model.0 )
 ### code chunk number 18: print.B.0
 ###################################################
 #Cleaning up the B matrix for printing
-B.0 = parmat(kem.plank.0)$B[1:4,1:4]
+B.0 = coef(kem.plank.0, type="matrix")$B[1:4,1:4]
 rownames(B.0) = colnames(B.0) = c("LP","SP","D","ND")
 print(B.0,digits=2)
 
@@ -185,7 +185,7 @@ kem.plank.1 = MARSS(d.plank.dat, model=plank.model.1)
 ### code chunk number 22: print.B.1
 ###################################################
 #Cleaning up the B matrix for printing
-B = parmat(kem.plank.1)$B[1:4,1:4]
+B = coef(kem.plank.1,type="matrix")$B[1:4,1:4]
 rownames(B) = colnames(B) = c("LP","SP","D","ND")
 B[B==0]=NA
 B.1=B
@@ -215,7 +215,7 @@ kem.plank.2= MARSS(d.plank.dat, model=plank.model.2)
 ### code chunk number 25: print.B.2
 ###################################################
 #Cleaning up the B matrix for printing
-B = parmat(kem.plank.2)$B[1:4,1:4]
+B = coef(kem.plank.2,type="matrix")$B[1:4,1:4]
 rownames(B) = colnames(B) = c("LP","SP","D","ND")
 B[B==0]=NA
 B.2=B
@@ -314,7 +314,7 @@ kem.plank.5=MARSS(d.plank.dat.w.fish, model=plank.model.5)
 ### code chunk number 36: print.B
 ###################################################
 #Cleaning up the B matrix for printing
-B.5 = parmat(kem.plank.5)$B[1:4,1:4]
+B.5 = coef(kem.plank.5,type="matrix")$B[1:4,1:4]
 rownames(B.5) = colnames(B.5) = c("LP","SP","D","ND")
 B.5[B.5==0]=NA
 print(B.5,digits=2,na.print="--")
@@ -332,12 +332,12 @@ Ives.ests.Obs = c(.48,.25,.74,.6,-.39,-.17,-.11,.1, .25,.25,-.14,-.045)
 Ives.ests.ML=c(0.5,.076,.77,.55,-.39,-.02,-.1, .1,.2,.32,-.13,-.048)
 model.data = cbind(
 Ives.ests.Obs,
-c(kem.plank.0$par$B[B.names,],NA,NA,NA,NA),
-c(kem.plank.1$par$B[B.names,],NA,NA,NA,NA),
-c(kem.plank.2$par$B[B.names,],NA,NA,NA,NA),
-c(kem.plank.3$par$B[B.names,],NA,NA,NA,NA),
-c(kem.plank.4$par$B[B.names,],kem.plank.4$par$U[c("C11","C21"),],NA,NA ),
-c(kem.plank.5$par$B[B.names,],kem.plank.5$par$U[c("C11","C21"),],kem.plank.5$par$B[c("C32","C42"),] )
+c(coef(kem.plank.0)$B[B.names,],NA,NA,NA,NA),
+c(coef(kem.plank.1)$B[B.names,],NA,NA,NA,NA),
+c(coef(kem.plank.2)$B[B.names,],NA,NA,NA,NA),
+c(coef(kem.plank.3)$B[B.names,],NA,NA,NA,NA),
+c(coef(kem.plank.4)$B[B.names,],coef(kem.plank.4)$C[c("C11","C21"),],NA,NA ),
+c(coef(kem.plank.5)$B[B.names,],coef(kem.plank.5)$C[c("C11","C21"),],coef(kem.plank.5)$B[c("C32","C42"),] )
 )
 rownames(model.data)=names.ests
 colnames(model.data)=c("Ives et al.","Model 0","Model 1","Model 2","Model 3","Model 4", "Model 5")

@@ -34,7 +34,7 @@ Important MARSS functions:
       \item{\code{\link{MARSS}}}{ Top-level function for specifying and fitting MARSS models. } 
       \item{\code{\link{MARSSsimulate}}}{ Produces simulated data from a MARSS model. } 
       \item{\code{\link{MARSSkem}}}{ Estimates MARSS parameters using an EM algorithm. } 
-      \item{\code{\link{MARSSkf}} and \code{\link{MARSSkfas}}}{ Kalman filter and smoother. } 
+      \item{\code{\link{MARSSkf}} }{ Kalman filter and smoother. } 
       \item{\code{\link{MARSSoptim}}}{ Estimates MARSS parameters using a quasi-Newton algorithm via \code{\link{optim}}. } 
       \item{\code{\link{MARSSaic}}}{ Calculates AICc, AICc, and various bootstrap AICs. } 
       \item{\code{\link{MARSSboot}}}{ Creates bootstrap MARSS parameter estimates. }

@@ -230,9 +230,10 @@ if(dim[1]*dim[2]!=length(x)) stop("unvec: num elements in arg greater than dim[1
 return(matrix(x,dim[1],dim[2]))
 }
 
-parmat = function( MLEobj, elem=c("B","U","Q","Z","A","R","x0","V0"), t=1 ){
+parmat = function( MLEobj, elem=c("B","U","Q","Z","A","R","x0","V0"), t=1, dims=NULL ){
 #returns a list where each el in elem is an element.  Returns a 2D matrix.
 #needs MLEobj$model and MLEobj$par
+#dims is an optional argument to pass in to tell parmat the dimension of elem (if it is not a MARSS model)
 #f=MLEobj$model$fixed
 model=MLEobj[["model"]]
 pars=MLEobj[["par"]]
@@ -242,12 +243,14 @@ if(!all(elem %in% names(f))) stop("parmat: one of the elem not one of the model 
 n=dim(f[["A"]])[1]
 m=dim(f[["x0"]])[1]
 par.mat=list()
-dims = list(Z=c(n,m),A=c(n,1),R=c(n,n),B=c(m,m),U=c(m,1),Q=c(m,m),x0=c(m,1),V0=c(m,m))
+if(is.null(dims)) dims = list(Z=c(n,m),A=c(n,1),R=c(n,n),B=c(m,m),U=c(m,1),Q=c(m,m),x0=c(m,1),V0=c(m,m))
+if(!is.list(dims) & length(elem)!=1) stop("parmat: dims needs to be a list if more than one elem passed in")
+if(!is.list(dims) & length(elem)==1){ tmp=dims; dims=list(); dims[[elem]]=tmp }
 for(el in elem){
 if(length(t)>1){ par.mat[[el]] = array(as.numeric(NA), c(dims[[el]],length(t))) }
 for(i in t){
-delem=d[[el]][,,min(dim(d[[el]])[3],t)]
-felem=f[[el]][,,min(dim(f[[el]])[3],t)]
+delem=d[[el]][,,min(dim(d[[el]])[3],i)]
+felem=f[[el]][,,min(dim(f[[el]])[3],i)]
 if(length(t)==1){
 par.mat[[el]] = matrix(felem + delem%*%pars[[el]],dims[[el]][1],dims[[el]][2])
 }else{ par.mat[[el]][,,i] = matrix(felem + delem%*%pars[[el]],dims[[el]][1],dims[[el]][2]) }

@@ -2,7 +2,7 @@
 #   MARSSparamCIs function
 #   This returns CIs for ML parameter estimates
 #######################################################################################################
-MARSSparamCIs = function(MLEobj, method="hessian", alpha=0.05, nboot=1000, fun="MARSSkf") {
+MARSSparamCIs = function(MLEobj, method="hessian", alpha=0.05, nboot=1000) {
 #this function expects a marssMLE object
 #it will add some vectors of standard errors, biases, low/up CIs to MLEobj
 if(!(method %in% c("hessian","parametric","innovations"))) stop("Stopped in MARSSparamCIs(). Current methods are hessian, parametric, and innovations.\n", call.=FALSE)
@@ -12,7 +12,7 @@ if(length(paramvec)==0) stop("Stopped in MARSSparamCIs(). No estimated parameter
 paramnames=names(paramvec)
 if(method=="hessian")  {
     #if the model has no Hessian specified, then run emHessian to get it
-    if(is.null(MLEobj$Hessian)) MLEobj = MARSShessian(MLEobj, fun=fun)
+    if(is.null(MLEobj[["Hessian"]])) MLEobj = MARSShessian(MLEobj)
     #standard errors
     hessInv = try(solve(MLEobj$Hessian))
     vector.par.se =rep(NA,length(paramvec))
@@ -44,11 +44,16 @@ names(vector.par.se)=paramnames
 if(!is.null(vector.par.bias)) names(vector.par.bias)=paramnames
 names(vector.par.upCI)=paramnames
 names(vector.par.lowCI)=paramnames
-
-MLEobj$par.se = vector.par.se
-MLEobj$par.bias = vector.par.bias
-MLEobj$par.upCI = vector.par.upCI
-MLEobj$par.lowCI = vector.par.lowCI
+for(val in c("par.se","par.bias","par.upCI","par.lowCI")){
+  tmp.vec=get(paste("vector.",val,sep=""))
+  if(!is.null(tmp.vec)) MLEobj[[val]] = MARSSvectorizeparam(MLEobj,tmp.vec)[[val]]
+  else MLEobj[[val]] = NULL
+}
+MLEobj$par.se = MARSSvectorizeparam(MLEobj,vector.par.se)[["par"]]
+if(!is.null(vector.par.bias)) MLEobj$par.bias = MARSSvectorizeparam(MLEobj,vector.par.bias)[["par"]]
+  else MLEobj$par.bias = NULL
+MLEobj$par.upCI = MARSSvectorizeparam(MLEobj,vector.par.upCI)[["par"]]
+MLEobj$par.lowCI = MARSSvectorizeparam(MLEobj,vector.par.lowCI)[["par"]]
 MLEobj$par.CI.alpha = alpha
 MLEobj$par.CI.method = method
 MLEobj$par.CI.nboot = par.CI.nboot

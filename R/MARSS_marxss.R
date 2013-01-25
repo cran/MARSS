@@ -10,7 +10,7 @@
 # Part 1 Set up the defaults and allowed structures
 # Part 2 Do the conversion of model list to a marssm object
 ###################################################################################
-MARSS.marxss=function(MARSS.inputs){
+MARSS.marxss=function(MARSS.call){
 #Part 1 Set up defaults and check that what the user passed in is allowed
 # This part is not required.  All that is required is that a proper marssm object is returned
 
@@ -36,38 +36,37 @@ model.allowed = list(
         c=c("zero"),
         d=c("zero"),
         tinitx=c(0,1),
-        diffuse=c(FALSE),
+        diffuse=c(TRUE,FALSE),
         factors = c("Z"),
         matrices = c("A","B","Q","R","U","x0","Z","V0","D","C","d","c")
       )
-#Change diffuse to c(TRUE, FALSE) when KFAS hooked back up
 
 #model.defaults is form dependent so you must specify it
 model.defaults =list(Z="identity", A="scaling", R="diagonal and equal", B="identity", U="unconstrained", Q="diagonal and unequal", x0="unconstrained", V0="zero", D="zero", d=matrix(0,1,1), C="zero", c=matrix(0,1,1), tinitx=0, diffuse=FALSE)
 
-if(!is.null(MARSS.inputs$model$c))
-  if(!identical(MARSS.inputs$model$c, "zero") & !all(MARSS.inputs$model$c==0)) model.defaults$C="unconstrained"
-if(!is.null(MARSS.inputs$model$d))
-  if(!identical(MARSS.inputs$model$d, "zero") & !all(MARSS.inputs$model$d==0)) model.defaults$D="unconstrained"
+if(!is.null(MARSS.call[["model"]][["c"]]))
+  if(!identical(MARSS.call$model$c, "zero") & !all(MARSS.call$model$c==0)) model.defaults$C="unconstrained"
+if(!is.null(MARSS.call[["model"]][["d"]]))
+  if(!identical(MARSS.call$model$d, "zero") & !all(MARSS.call$model$d==0)) model.defaults$D="unconstrained"
 
 #This checks that what user passed in model list can be interpreted and converted to a marssm object
 #if no errors, it updates the model list by filling in missing elements with the defaults
-MARSS.inputs$model=checkModelList( MARSS.inputs$model, model.defaults, model.allowed )
+MARSS.call$model=checkModelList( MARSS.call$model, model.defaults, model.allowed )
 
 # Part 2 Convert the model list to a marssm object  
   ## set up fixed and free elements
   fixed = free = list()
 
-  model = MARSS.inputs$model
+  model = MARSS.call$model
   model.elem = c("Z","A","R","B","U","Q","x0","V0","D","d","C","c") 
-  dat = MARSS.inputs$data 
+  dat = MARSS.call$data 
   if(is.vector(dat)) dat=matrix(dat,1,length(dat))
-  if(is.null(model$X.names) & identical(model$Z,"identity"))
+  if(is.null(model[["X.names"]]) & identical(model$Z,"identity"))
     model$X.names=rownames(dat)
-  if(is.null(model$X.names) & is.matrix(model$Z))
+  if(is.null(model[["X.names"]]) & is.matrix(model$Z))
     if(is.identity(model$Z)) model$X.names=rownames(dat)
   n = dim(dat)[1]; TT = dim(dat)[2]
-  ## Set m based on Z specification
+  ## Set m based on Z specification IF Z was specified; errors will be reported later if m conflicts with other parameters
   m = NA
   if (identical(model$Z, "unconstrained")) m = n
   if (identical(model$Z, "equalvarcov")) m = n
@@ -77,14 +76,21 @@ MARSS.inputs$model=checkModelList( MARSS.inputs$model, model.defaults, model.all
   if (identical(model$Z, "identity")) m = n
   if (is.factor(model$Z)) m = length(levels(model$Z)) 
   if (is.array(model$Z)) m = dim(model$Z)[2] 
-  
+
+  ## Set c1 based on C specification if C specified with a particular shape
+  ## error checking later will complain if C and c (or D and d) conflict
+  if (is.array(model$C)) c1 = dim(model$C)[2] else c1 = 1
+  if (is.array(model$D)) d1 = dim(model$D)[2] else d1 = 1
+
   for(el in c("c","d")){
-    if(identical(model[[el]], "zero")){ model[[el]]=matrix(0,1,1) }
-    if(!any(is.na(model[[el]])) & all(model[[el]]==0)) model[[toupper(el)]]="zero"
+    thedim=get(paste(el,"1",sep=""))
+    if(identical(model[[el]], "zero")){ model[[el]]=matrix(0,thedim,1) }
+    #if(!any(is.na(model[[el]])) & all(model[[el]]==0)) model[[toupper(el)]]="zero"
     if(is.vector(model[[el]])) model[[el]]=matrix(model[[el]],1,length(model[[el]]))
   }
+  #Now set c1 and d1 based on c and d, which should now be a matrix of some sort.  This ensures that c1 and d1 are set
   c1=dim(model$c)[1]; d1=dim(model$d)[1]
-  model.dims = list(Z=c(n,m),U=c(m,1),A=c(n,1),B=c(m,m),Q=c(m,m),R=c(n,n),x0=c(m,1),V0=c(m,m),D=c(n,d1), d=c(d1,1), C=c(m,c1), c=c(c1,1))
+  model.dims = list(data=c(n,TT),Z=c(n,m),U=c(m,1),A=c(n,1),B=c(m,m),Q=c(m,m),R=c(n,n),x0=c(m,1),V0=c(m,m),D=c(n,d1), d=c(d1,1), C=c(m,c1), c=c(c1,1))
 
   ## Error-checking section that is specific to marxss form
   # Note most error checking happens in checkMARSSInputs, checkModelList, and is.marssMLE
@@ -201,13 +207,13 @@ MARSS.inputs$model=checkModelList( MARSS.inputs$model, model.defaults, model.all
     }
    if(identical(model[[el]],"diagonal and equal")) {
     tmp[[el]] = array(list(0),dim=model.dims[[el]])
-    diag(tmp[[el]])=paste(el,"(diag)",sep="")
+    diag(tmp[[el]])="diag" #paste(el,"(diag)",sep="")
     if(length(tmp[[el]])==1) tmp[[el]][1,1]=el
    }
    if(identical(model[[el]],"diagonal and unequal")) {
     tmp[[el]] = array(list(0),dim=model.dims[[el]])
     dim.mat = model.dims[[el]][1]
-    diag(tmp[[el]])=paste(el,"(",as.character(1:dim.mat),",",as.character(1:dim.mat),")",sep="")
+    diag(tmp[[el]])=paste("(",as.character(1:dim.mat),",",as.character(1:dim.mat),")",sep="") #paste(el,"(",as.character(1:dim.mat),",",as.character(1:dim.mat),")",sep="")
     if(length(tmp[[el]])==1) tmp[[el]][1,1]=el
   }
   if(identical(model[[el]],"unconstrained") | identical(model[[el]],"unequal")){
@@ -215,32 +221,32 @@ MARSS.inputs$model=checkModelList( MARSS.inputs$model, model.defaults, model.all
     if(el %in% c("Q","R","V0")){  #variance-covariance matrices
       dim.mat = model.dims[[el]][1]
       for(i in 1:dim.mat){
-        for(j in 1:dim.mat) tmp[[el]][i,j]=tmp[[el]][j,i]=paste(el,"(",i,",",j,")",sep="")
+        for(j in 1:dim.mat) tmp[[el]][i,j]=tmp[[el]][j,i]=paste("(",i,",",j,")",sep="") #paste(el,"(",i,",",j,")",sep="")
       }
     }else{ #not var-cov matrix
       row.name=1:model.dims[[el]][1]
       col.name=1:model.dims[[el]][2]
       if(el %in% c("C","D")){
-        if(el=="C" & !is.null(model$X.names)) row.name=model$X.names
+        if(el=="C" & !is.null(model[["X.names"]])) row.name=model$X.names
         if(el=="D" & !is.null(rownames(dat))) row.name=rownames(dat)
         if(!is.null(rownames(model[[tolower(el)]]))) col.name=rownames(model[[tolower(el)]])
       }
       for(i in 1:model.dims[[el]][1]){
         for(j in 1:model.dims[[el]][2]){
-         if(model.dims[[el]][2]>1) tmp[[el]][i,j]=paste(el,"(",row.name[i],",",col.name[j],")",sep="")
-         else tmp[[el]][i,j]=paste(el,row.name[i],sep=",")
+         if(model.dims[[el]][2]>1) tmp[[el]][i,j]=paste("(",row.name[i],",",col.name[j],")",sep="") #paste(el,"(",row.name[i],",",col.name[j],")",sep="")
+         else tmp[[el]][i,j]=paste(row.name[i],sep=",") #paste(el,row.name[i],sep=",")
          }
       }
     }
     if(length(tmp[[el]])==1) tmp[[el]][1,1]=el 
   } #unconstrained
   if(identical(model[[el]],"equalvarcov")) {
-    tmp[[el]]=array(paste(el,"(offdiag)",sep=""),dim=model.dims[[el]])
-    diag(tmp[[el]])=paste(el,"(diag)",sep="")
+    tmp[[el]]=array("offdiag",dim=model.dims[[el]]) #array(paste(el,"(offdiag)",sep=""),dim=model.dims[[el]])
+    diag(tmp[[el]])="diag" #paste(el,"(diag)",sep="")
     if(length(tmp[[el]])==1) tmp[[el]][1,1]=el
   }
   if(identical(model[[el]],"equal")) { 
-    tmp[[el]]=array(el,dim=model.dims[[el]])
+    tmp[[el]]=array("1",dim=model.dims[[el]]) #array(el,dim=model.dims[[el]])
   }
   if(identical(model[[el]],"zero")) { 
     tmp[[el]]=array(0,dim=model.dims[[el]])
@@ -260,8 +266,16 @@ MARSS.inputs$model=checkModelList( MARSS.inputs$model, model.defaults, model.all
   free[[el]] = convert.model.mat(tmp[[el]])$free
   fixed[[el]] = convert.model.mat(tmp[[el]])$fixed    
 }
+marxss_object = list(fixed=fixed, free=free, data=dat, miss.value=MARSS.call$miss.value, X.names=model$X.names, tinitx=model$tinitx, diffuse=model$diffuse, model.dims=model.dims, form="marxss" )
+
+#This is the f+Dp form for the MARXSS model used for user displays, printing and such
+#Below this gets converted to the base MARSS form used in the algorithms
+MARSS.call$form.info$marxss = list(free=free, fixed=fixed)
+MARSS.call$form.info$model.dims = model.dims #because printing will need to know the dims of the D, C, d, and c matrices
+MARSS.call$form.info$form = "marxss" #This is not what MARSS() was called with but rather what form.info is based on
 
 #This step converts U+Cc into equivalent Uu and A+Dd into Aa
+#So U --> [C U] and u --> [c \\ 1]; A --> [D A] and a --> [d \\ 1]
   for(el in c("C","D")){
     if(dim(tmp[[el]])[1]!=model.dims[[el]][1] | dim(tmp[[el]])[2]!=model.dims[[el]][2])
       stop("Stopped in MARSS.marxss(): ",el," should have ",model.dims[[el]][1], " x ", model.dims[[el]][2]," dims and it doesn't.\n", call.=FALSE)
@@ -289,7 +303,7 @@ MARSS.inputs$model=checkModelList( MARSS.inputs$model, model.defaults, model.all
     }else{ model[[tolower(el2)]]=matrix(1,1,1) }
   }
 
-#this part converts U(t)u(t) to U(t) and A(t)a(t) to A(t)   
+#this part converts U(t)u(t) to U(t) and A(t)a(t) to A(t); the small case are inputs and the large case are estimated parameters  
   for(el in c("U","A")){
   if(!identical(unname(model[[tolower(el)]]), matrix(1,1,1))){
     if(dim(free[[el]])[1]!=model.dims[[el]][1]*model.dims[[el]][2])
@@ -313,21 +327,79 @@ MARSS.inputs$model=checkModelList( MARSS.inputs$model, model.defaults, model.all
   }
   }
   marssm.elem = c("Z","A","R","B","U","Q","x0","V0")
-  free=free[marssm.elem]
+  marssm.dims = list(data=c(n,TT),Z=c(n,m),U=c(m,1),A=c(n,1),B=c(m,m),Q=c(m,m),R=c(n,n),x0=c(m,1),V0=c(m,m))
+free=free[marssm.elem]
   fixed=fixed[marssm.elem]
   
   #Save the X names coming in from model$Z otherwise this information is lost
-  if( is.null(model$X.names) ){
+  if( is.null(model[["X.names"]]) ){
     model$X.names=paste("X",1:m,sep="")
     if(is.array(model$Z) & !is.null(colnames(model$Z))) model$X.names=colnames(model$Z)
     if(is.factor(model$Z)) model$X.names=unique(model$Z)
   } 
   
   ## Create marssm object
-  modelObj = list(fixed=fixed, free=free, data=dat, miss.value=MARSS.inputs$miss.value, X.names=model$X.names, tinitx=model$tinitx, diffuse=model$diffuse, form=MARSS.inputs$form)
+  modelObj = list(fixed=fixed, free=free, data=dat, miss.value=MARSS.call$miss.value, X.names=model$X.names, tinitx=model$tinitx, diffuse=model$diffuse, model.dims=marssm.dims, form="marssm" )
   class(modelObj) = "marssm"
-  MARSS.inputs$marssm=modelObj
-  ## Return marssm obj
-  MARSS.inputs
+  MARSS.call$marssm=modelObj
+  ## Return MARSS call list with marssm obj added
+  MARSS.call
 }
- 
+
+marssm_to_marxss=function(x){
+  #This changes the model part of the MLE object for printing purposes.  It will act as if the user specified a 
+  #MARXSS instead of MARSS
+  x$model$fixed = x$form.info$marxss$fixed
+  x$model$free = x$form.info$marxss$free
+  for(val in c("par","start","par.se","par.bias","par.upCI","par.lowCI")){
+  if(!is.null(x[[val]])){
+  tmp.dim=dim(x$form.info$marxss$free$C)[2]
+  if(tmp.dim==0){
+   x[[val]][["C"]] = matrix(0,0,1)
+  }else{
+   #because marssm.U is [marxss.C marxss.U]
+   x[[val]][["C"]] = x[[val]][["U"]][1:tmp.dim,, drop=FALSE]
+   x[[val]][["U"]] = x[[val]][["U"]][-(1:tmp.dim),, drop=FALSE]
+  }
+  tmp.dim=dim(x$form.info$marxss$free$D)[2]
+  if(tmp.dim==0){
+   x[[val]][["D"]] = matrix(0,0,1)
+  }else{
+   #because marssm.A is [marxss.D marxss.A]
+   x[[val]][["D"]] = x[[val]][["A"]][1:tmp.dim,, drop=FALSE]
+   x[[val]][["A"]] = x[[val]][["A"]][-(1:tmp.dim),, drop=FALSE]
+  }
+  }
+  } #for val in par, start
+  x$model$d = x$call$model$d
+  x$model$c = x$call$model$c
+  x$model$model.dims = x$form.info$model.dims
+  x$model$form = "marxss"
+  return(x)
+}
+
+print_marxss = function(x){ return(marssm_to_marxss(x)) }
+
+coef_marxss = function(x){ return(marssm_to_marxss(x)) }
+
+MARSSinits_marxss = function(MLEobj, inits){
+  #B, Z, R, Q, x0 and V0 stay the same
+  #U and A change
+  #this function will return a U and A element for inits
+  if(is.null(inits)) inits=list()
+  inits.defaults=list(
+    U=alldefaults[[MLEobj$method]][["inits"]][["U"]], C=0,
+    A=alldefaults[[MLEobj$method]][["inits"]][["A"]], D=0 )
+  elems=c("U","A","C","D")
+  for(elem in elems){
+    tmp.dim=dim(MLEobj$form.info$marxss$free[[elem]])[2]
+    if(!is.null(inits[[elem]])){
+      if(!(length(inits[[elem]]) %in% c(tmp.dim,1))) 
+         stop(paste("MARSSinits: ", elem," inits must be either a scalar (dim=NULL) or a matrix with 1 col and rows equal to the num of est values in ",elem,".",sep=""), call.=FALSE )
+      if(tmp.dim!=0) inits[[elem]] = matrix(inits[[elem]],tmp.dim,1) else inits[[elem]]=matrix(0,0,1)
+    }else{  inits[[elem]] = matrix(inits.defaults[[elem]],tmp.dim,1) }
+  }
+  inits$U = rbind(inits$C,inits$U) #yes, C on top
+  inits$A = rbind(inits$D,inits$A) #yes, D on top
+return(inits)
+}

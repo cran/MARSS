@@ -2,13 +2,14 @@
 #   MARSShessian functions
 #   Adds Hessian, parameter var-cov matrix, and parameter mean to a marssMLE object
 #######################################################################################################
-MARSShessian = function(MLEobj, fun="MARSSkf") {
+MARSShessian = function(MLEobj) {
 
   paramvector = MARSSvectorizeparam(MLEobj)
-
+  fun="MARSSkf"
+  
   kfNLL=function(paramvec, MLEobj, fun){
     new.MLEobj = MARSSvectorizeparam( MLEobj, parvec=paramvec )
-    kf=eval(call(fun, new.MLEobj))
+    kf=eval(call(fun, new.MLEobj, only.logLik=TRUE))
     return(-kf$logLik)
   }
 

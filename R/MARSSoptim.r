@@ -10,13 +10,13 @@ MARSSoptim = function(MLEobj) {
       cat(tmp)
       stop("Stopped in MARSSoptim() because marssMLE object is incomplete or inconsistent.\n", call.=FALSE)
     }
-  for(elem in c("Q","R")){
-    if(dim(MLEobj$model$free[[elem]])[3]>1)
-      stop(paste("Stopped in MARSSoptim() because function does not allow free$",elem," to be time-varying.\n",sep=""), call.=FALSE)      
-  }
+#  for(elem in c("Q","R")){
+#    if(dim(MLEobj$model$free[[elem]])[3]>1)
+#      stop(paste("Stopped in MARSSoptim() because function does not allow free$",elem," to be time-varying.\n",sep=""), call.=FALSE)      
+#  }
 
-  if(MLEobj$model$diffuse)
-      stop(paste("Stopped in MARSSoptim() because version 3.0 does not allow diffuse=TRUE.\n",sep=""), call.=FALSE)      
+#  if(MLEobj$model$diffuse)
+#      stop(paste("Stopped in MARSSoptim() because version 3.0 does not allow diffuse=TRUE.\n",sep=""), call.=FALSE)      
 
   
   ## attach would be risky here since user might have one of these variables in their workspace    
@@ -35,9 +35,9 @@ MARSSoptim = function(MLEobj) {
   for(elem in control.names){
   if(!is.null(control[[elem]])) optim.control[[elem]]=control[[elem]]
   }
-  if(is.null(control$lower)){ lower = -Inf
-  }else lower=control$lower
-  if(is.null(control$upper)){ upper = Inf
+  if(is.null(control[["lower"]])){ lower = -Inf
+  }else lower=control[["lower"]]
+  if(is.null(control[["upper"]])){ upper = Inf
   }else upper=control$upper
   if(control$trace==-1)control$trace=0
     
@@ -53,7 +53,7 @@ MARSSoptim = function(MLEobj) {
         the.par=t(chol(the.par))  #transpose of chol
         if(any(is.zero)) diag(the.par)[is.zero]=0  #set back to 0
         if(!is.fixed(free[[elem]])){
-          tmp.MLEobj$par[[elem]] = solve(t(d)%*%d)%*%t(d)%*%(vec(the.par)-f) #from f+Dm=M and if f!=0, D==0
+          tmp.MLEobj$par[[elem]] = solve(crossprod(d))%*%t(d)%*%(vec(the.par)-f) #from f+Dm=M and if f!=0, D==0
         }else{ tmp.MLEobj$par[[elem]] = matrix(0,0,1) }
         #when being passed to optim, pars for var-cov mat is the chol, so need to reset free and fixed
         #step 1, compute the D matrix corresponding to upper.tri=0 at in t(chol)
@@ -72,34 +72,26 @@ MARSSoptim = function(MLEobj) {
   pars = MARSSvectorizeparam(tmp.MLEobj)
     
   if(substr(tmp.MLEobj$method,1,4)=="BFGS"){ optim.method="BFGS" }else{ optim.method="something wrong" }
-    optim.output = try(optim(pars, neglogLik, MLEobj=tmp.MLEobj, method = optim.method, lower = lower, upper = upper, control = optim.control, hessian = FALSE), silent=TRUE  )
 
-  if(class(optim.output)=="try-error"){ #try MARSSkf if the user did not use it
-    if( MLEobj$model$tinitx == 1 & !(substr(MLEobj$method, nchar(MLEobj$method)-1, nchar(MLEobj$method))=="kf") ){  #if user did not request MARSSkf
-    tmp.MLEobj$method="BFGSkf"
+  kf.function=MLEobj$fun.kf #used for printing
+  optim.output = try(optim(pars, neglogLik, MLEobj=tmp.MLEobj, method = optim.method, lower = lower, upper = upper, control = optim.control, hessian = FALSE), silent=TRUE  )
+
+  if(class(optim.output)=="try-error"){ #try MARSSkfss if the user did not use it
+    if( MLEobj$fun.kf!="MARSSkfss" ){  #if user did not request MARSSkf
+    cat("MARSSkfas returned error.  Trying MARSSkfss.\n")
+    tmp.MLEobj$fun.kf="MARSSkfss"
+    kf.function="MARSSkfss" #used for printing
     optim.output = try(optim(pars, neglogLik, MLEobj=tmp.MLEobj, method = optim.method, lower = lower, upper = upper, control = optim.control, hessian = FALSE), silent=TRUE  )
     }
   }
   
   #error returned
   if(class(optim.output)=="try-error"){
-  # figure out which kf routine to use
-    kf.function = "MARSSkf"
-    kf.comment = ""
-#Block use of KFAS
-#  if( MLEobj$model$tinitx == 1 & !(substr(MLEobj$method, nchar(MLEobj$method)-1, nchar(MLEobj$method))=="kf") ){  #if user did not request MARSSkf
-#       kf.function = "MARSSkfas"
-#       kf.comment="Try using method=BFGSkf to force MARSSkf to be used."
-#    } 
-    optim.output = list(convergence=53, message=c(kf.function, " call used to compute log likelihood encountered numerical problems\n and could not return logLik. ", kf.comment, "\n", sep=""))
+    optim.output = list(convergence=53, message=c("MARSSkfas and MARSSkfss tried to compute log likelihood and encountered numerical problems.\n", sep=""))
    }
 
-    kf.function = "MARSSkf"  
-#  if(MLEobj$model$tinitx == 1) kf.function="MARSSkfas"
-#  if(MLEobj$model$tinitx == 0) kf.function="MARSSkf"
-  if( substr(tmp.MLEobj$method, nchar(tmp.MLEobj$method)-1, nchar(tmp.MLEobj$method))=="kf" ) kf.function="MARSSkf"
        
-  MLEobj.return=list(); class(MLEobj.return) = "marssMLE"
+  MLEobj.return=MLEobj
   MLEobj.return$iter.record=optim.output$message
   MLEobj.return$control=MLEobj$control
   MLEobj.return$model=MLEobj$model
@@ -118,8 +110,8 @@ MARSSoptim = function(MLEobj) {
         d=sub3D(tmp.MLEobj$model$free[[elem]],t=1) #this will be the one with the upper tri zero-ed out but ok since symmetric
         if(elem %in% c("Q","V0")){ par.dim=c(m,m) }else{ par.dim=c(n,n) }
         L=unvec(tmp.MLEobj$model$free[[elem]][,,1]%*%tmp.MLEobj$par[[elem]],dim=par.dim) #this by def will have 0 row/col at the fixed values
-        the.par = L%*%t(L)
-        tmp.MLEobj$par[[elem]]=solve(t(d)%*%d)%*%t(d)%*%vec(the.par)
+        the.par = tcrossprod(L)#L%*%t(L)
+        tmp.MLEobj$par[[elem]]=solve(crossprod(d))%*%t(d)%*%vec(the.par)
         }
     } #end for
     
@@ -166,27 +158,25 @@ MARSSoptim = function(MLEobj) {
 neglogLik = function(x, MLEobj=NULL){  #NULL assignment needed for optim call syntax
 #MLEobj is tmp.MLEobj so has altered free and fixed
     MLEobj = MARSSvectorizeparam(MLEobj, x)
+    free=MLEobj$model$free
+    fixed=MLEobj$model$fixed
+    pars=MLEobj$par
+    m=dim(fixed$x0)[1]; n=dim(MLEobj$model$data)[1]
   for(elem in c("Q","R","V0")){
-     if(!is.fixed(MLEobj$model$free[[elem]])) #get a new par if needed
-        {
-        m=dim(MLEobj$model$fixed$x0)[1]; n=dim(MLEobj$model$data)[1]
-        d=sub3D(MLEobj$model$free[[elem]],t=1) #this will be the one with the upper tri zero-ed out but ok since symmetric
+     if(!is.fixed(free[[elem]])) #recompute par if needed since par in parlist is transformed
+        {        
+        d=sub3D(free[[elem]],t=1) #this will be the one with the upper tri zero-ed out but ok since symmetric
         if(elem %in% c("Q","V0")){ par.dim=c(m,m) }else{ par.dim=c(n,n) }
-        L=unvec(MLEobj$model$free[[elem]][,,1]%*%MLEobj$par[[elem]],dim=par.dim) #this by def will have 0 row/col at the fixed values
-        the.par = L%*%t(L)
-        MLEobj$par[[elem]]=solve(t(d)%*%d)%*%t(d)%*%vec(the.par)
+        #t=1 since D not allowed to be time-varying?
+        L=unvec(free[[elem]][,,1]%*%pars[[elem]],dim=par.dim) #this by def will have 0 row/col at the fixed values
+        the.par = tcrossprod(L)#L%*%t(L)
+        #from f+Dm=M and if f!=0, D==0 so can leave off f
+        MLEobj$par[[elem]]=solve(crossprod(d))%*%t(d)%*%vec(the.par)
+        #solve(t(d)%*%d)%*%t(d)%*%vec(the.par)
         }
     } #end for over elem
-    if( MLEobj$model$tinitx == 0){
-    negLL = MARSSkf( MLEobj )$logLik    
-    }else{ #must be x10
-    if( substr(MLEobj$method, nchar(MLEobj$method)-1, nchar(MLEobj$method))=="kf" ){  #if user requests MARSSkf
-        negLL = MARSSkf( MLEobj )$logLik    
-    }else{ #use kfas
-        negLL = MARSSkf( MLEobj )$logLik    
-#       negLL = MARSSkfas( MLEobj )$logLik
-    }
+    #kfsel selects the Kalman filter / smoother function based on MLEobj$fun.kf
+    negLL = MARSSkf( MLEobj, only.logLik=TRUE, return.lag.one=FALSE )$logLik
     
-    }
     -1*negLL
      }

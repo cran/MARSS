@@ -15,10 +15,11 @@ where beta, upsilon, zeta, and alpha are column vectors of estimated values, the
 
 The default MARSS form is "marxss" which is the state-space model:
 \describe{
-\item{x(t+1) = B(t) x(t) + u(t) + C(t)c(t) + w(t), where w(t) ~ MVN(0,Q(t))}{}
+\item{x(t) = B(t) x(t-1) + u(t) + C(t)c(t) + w(t), where w(t) ~ MVN(0,Q(t))}{}
 \item{y(t) = Z(t) x(t) + a(t) + D(t)d(t) + v(t), where v(t) ~ MVN(0,R(t))}{}
 \item{x(1) ~ MVN(x0, V0) or x(0) ~ MVN(x0, V0)}{} 
 }
+If you are working with models with time-varying parameters, it is important to notice the time-index for the parameters in the process equation (the x equation).  In some formulations (e.g. in the \code{\link[KFAS]{KFAS}}), the process equation is x(t)=B(t-1)x(t-1)+w(t-1) so B(t-1) goes with x(t) not B(t). Thus one needs to be careful to line up the time indices when passing in time-varying parameters to MARSS.
 }
 \usage{
 MARSS(y, 
@@ -31,13 +32,14 @@ MARSS(y,
     silent = FALSE,
     control = NULL,
     MCbounds = NULL,
+    fun.kf = "MARSSkfas",
     ...) 
 }
 
 \arguments{
 The default settings for the optional arguments are set in \code{MARSSsettings.R} and are given below in the details section.  
   \item{y}{ A n x T matrix of n time series over T time steps. }
-  \item{inits}{ List with up to 7 matrices A, R, B, U, Q, x0, V0, specifying initial values for beta, upsilon, zeta and alpha. All matrices have 1 column.  Each row is one estimtated value. 
+  \item{inits}{ List with up to 8 matrices Z, A, R, B, U, Q, x0, V0, specifying initial values for beta, upsilon, zeta and alpha. All matrices have 1 column.  Each row is one estimtated value.  This is the \code{$par} element of a \code{\link{marssMLE}} object and is in \code{\link{marssm}} form (\code{form="marss"}).  Note the output of \code{coef(marssMLE,type="list")} is similar but is the parameter list in the form specified by \code{marssMLE$form}, which is probably not \code{marss}.
     \itemize{
     \item \code{B }  beta: Initial value(s) for estimates values in the B matrix.  vec(B(1))=f_b(1)+D_b(1)beta_init
     \item \code{U }  upsilon: Initial value(s) for U matrix. U(1)=f_u(1)+D_u(1)upsilon_init 
@@ -71,6 +73,7 @@ The default settings for the optional arguments are set in \code{MARSSsettings.R
       \item{\code{silent}}{   1 or TRUE, Suppresses all printing including progress bars, error messages and convergence information. 0, Turns on all printing of progress bars, fitting information and error messages.  2, Prints a brief success/failure message.    }
   } }
     \item{MCbounds}{   Bounds on the uniform distributions from which initial values will be drawn if MCInit=TRUE (ignored otherwise). The Q (and analogously R) random matrices are created by a random draw from a wishart distribution where df=bounds[1] and S=diag(bounds[2],m). }
+    \item{fun.kf}{   What Kalman filter function to use.  MARSS has two: MARSSkfas which is based on the Kalman filter in the KFAS package based on Koopman and Durbin and MARSSkfss which is a native R implimentation of the Kalman filter and smoother in Shumway and Stoffer. The KFAS filter is much faster.  MARSSkfas modifies the input and output in order to output the lag-one covariance smoother needed for the EM algorithm (per page 321 in Shumway and Stoffer (2000).}
     \item{...}{ Optional arguments passed to function specified by form. }
 }
 \details{

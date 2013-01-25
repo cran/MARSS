@@ -74,11 +74,11 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
     ################# E STEP Estimate states given U,Q,A,R,B,X0 via Kalman filter
     #####################################################################################
     kf.last = kf
-    kf = MARSSkf( MLEobj.iter )
+    kf = MARSSkf( MLEobj.iter )  #kf selects the function based on MLEobj$fun.kf
     if(!kf$ok) { 
       if(control$trace>0){ msg.kf=c(msg.kf,paste("iter=",iter," ",kf$errors) )
       }else msg.kf=kf$errors
-      stop.msg = paste("Stopped at iter=",iter," in MARSSkem() because numerical errors were generated in MARSSkf\n",sep="")
+      stop.msg = paste("Stopped at iter=",iter," in MARSSkem() because numerical errors were generated in the Kalman filter.\n",sep="")
       stopped.with.errors=TRUE; break
       }
     MLEobj.iter$kf=kf
@@ -111,7 +111,7 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
     if(control$trace>0){ # if trace is on, keep the full record over all iterations
       iter.record$par=rbind(iter.record$par,MARSSvectorizeparam(MLEobj.iter))
       iter.record$logLik=c(iter.record$logLik,MLEobj.iter$logLik)
-      if(!is.null(MLEobj.iter$kf$errors)) {
+      if(!is.null(MLEobj.iter[["kf"]][["errors"]])) {
         msg.kf=c(msg.kf, paste("iter=",iter," ", kf$errors, sep=""))
         }
       MLEobj.iter$iter.record=iter.record
@@ -285,6 +285,7 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
       MLEobj.iter$par$Q = matrix(0,dim(d$Q)[2],1)
       #0 will appear in par where there all 0 cols in d since inv.dQ will be 0 row/col there      
       MLEobj.iter$par$Q=inv.dQ%*%sum1
+
       par1$Q=parmat(MLEobj.iter,"Q",t=1)$Q
       
     #Start~~~~~~~~~~~~Error checking
@@ -767,13 +768,12 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
   }  # end inner iter loop
 
   #prepare the MLEobj to return which has the elements set here
-  MLEobj.return = list();    class(MLEobj.return) = "marssMLE"
+  MLEobj.return = MLEobj
   MLEobj.return$control=MLEobj$control
   MLEobj.return$start=MLEobj$start
   MLEobj.return$model=MLEobj$model
   MLEobj.return$iter.record = iter.record
   MLEobj.return$numIter = iter
-  MLEobj.return$method = "kem"
   
   if(stopped.with.errors){
     if( control$silent==2 ) cat("Stopped due to numerical instability or errors. Print $errors from output for info or set silent=FALSE.\n")      
@@ -871,16 +871,18 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
   
   ## Other misc output
   MLEobj.return$par=MLEobj.iter$par
-  if(control$trace>0) MLEobj.return$kf = MLEobj.iter$kf
-  MLEobj.return$states = MLEobj.iter$kf$xtT
+  if(control$trace>0) MLEobj.return$kf = MLEobj.iter$kf else MLEobj.return$kf = NULL
+  if(control$trace>0) MLEobj.return$Ey = MLEobj.iter$Ey else MLEobj.return$Ey = NULL
+    MLEobj.return$states = MLEobj.iter$kf$xtT
   MLEobj.return$logLik = MLEobj.iter$logLik
 
-  ## Calculate confidence intervals based on state std errors, see caption of Fig 6.3 (p337) Shumway & Stoffer
-  if(!is.null(kf$VtT)){
+  ## To calculate confidence intervals based on state std errors, see caption of Fig 6.3 (p337) Shumway & Stoffer 206
+  if(!is.null(kf[["VtT"]])){
     if(m == 1) states.se = sqrt(matrix(kf$VtT[,,1:TT], nrow=1))
     if(m > 1) {
       states.se = matrix(0, nrow=m, ncol=TT)
-      for(i in 1:TT) states.se[,i] = t(sqrt(takediag(kf$VtT[,,i])))
+      for(i in 1:TT) 
+        states.se[,i] = t(sqrt(takediag(kf$VtT[,,i])))
     }
     }else  states.se=NULL
   MLEobj.return$states.se = states.se
@@ -954,7 +956,7 @@ rerun.kf = function(elem, MLEobj, iter){    #Start~~~~~~~~Error checking
       }
       if(!kf$ok){ 
           msg.kf=paste("iter=",iter," ", elem," update ",kf$errors,sep=""); 
-          stop.msg = paste("Stopped at iter=",iter," in MARSSkem after ", elem," update: numerical errors in MARSSkf\n",sep="")
+          stop.msg = paste("Stopped at iter=",iter," in MARSSkem after ", elem," update: numerical errors in ",MLEobj$fun.kf,".\n",sep="")
           return(list(ok=FALSE, msg.kf=msg.kf, stop.msg=stop.msg)) }
       loglike.new = kf$logLik
       if(iter>1 && is.finite(loglike.old) == TRUE && is.finite(loglike.new) == TRUE ) cvg2 = loglike.new - loglike.old  

@@ -84,7 +84,7 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
     stop("Stopped in MARSSboot() due to MLE object incomplete or inconsistent.\n", call.=FALSE)
   }
   # Check that it has par added on
-  if(is.null(MLEobj$par)){
+  if(is.null(MLEobj[["par"]])){
       msg=" MLE object is missing parameter estimates.\n"
       cat("\n","Errors were caught in MARSSboot \n", msg, sep="") 
       stop("Stopped in MARSSboot() due to problem(s) with MLE object.\n", call.=FALSE)
@@ -124,10 +124,10 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
   n = dim(MLEobj$model$data)[1]   
 
   ##### If using hessian to generate boot parameters, check if parSigma is already set
-  if(param.gen=="hessian" & (is.null(MLEobj$parSigma) | is.null(MLEobj$parMean))){
+  if(param.gen=="hessian" & (is.null(MLEobj[["parSigma"]]) | is.null(MLEobj[["parMean"]]))){
     if(!silent) cat("MARSSboot: Computing the Hessian.  This might take awhile.\n")
     MLEobj = MARSShessian(MLEobj)  #adds the hessian; parSigma; and parMean matrix onto the mle.model object
-    if(is.null(MLEobj$parSigma))  #if solve(hessian) didn't work in emHessian() then it sets parSigma to NULL
+    if(is.null(MLEobj[["parSigma"]]))  #if solve(hessian) didn't work in emHessian() then it sets parSigma to NULL
       stop("Stopped in MARSSboot() because Hessian could not be inverted to estimate the parameter var-cov matrix", call.=FALSE)
   }
 		 
@@ -147,12 +147,14 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
 
   #####This part generates the bootstrap parameter
   if("parameters" %in% output){
+    boot.control = MLEobj$control; boot.control$silent = TRUE #turn off output from MARSSkem()
+    mle.object = MLEobj
+    mle.object$control = boot.control
     for(i in 1:nboot) {
       if( param.gen == "MLE" ) {
-	        newmod = MLEobj$model
-	        boot.control = MLEobj$control; boot.control$silent = TRUE #turn off output from MARSSkem()
+	        newmod = MLEobj$model	        
 	        newmod$data = array(boot.data[,,i], dim=dim(boot.data)[1:2])  
-          mle.object = list(model=newmod, start=MLEobj$start, control=boot.control, method=MLEobj$method )
+          mle.object$model=newmod
 	        if(mle.object$method %in% kem.methods) boot.model = MARSSkem(mle.object) 
 	        if(mle.object$method %in% optim.methods) boot.model = MARSSoptim(mle.object) 
 	        boot.params[,i] = MARSSvectorizeparam(boot.model)
@@ -172,5 +174,5 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
       }    #end nboot loop
     } # end if parameters in output
       
-  return(list(boot.params=boot.params, boot.data=boot.data, model=MLEobj, nboot=nboot, output=output, sim=sim, param.gen=param.gen))
+  return(list(boot.params=boot.params, boot.data=boot.data, model=MLEobj$model, nboot=nboot, output=output, sim=sim, param.gen=param.gen))
 }

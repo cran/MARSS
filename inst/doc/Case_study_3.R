@@ -29,19 +29,18 @@ for(i in 1:9) {
 kem = MARSS(sealData, model=list(Z=Z.model, Q=Q.model, R=R.model, U=U.model))
 
 # the parameter estimates; just the estimated elements
-kem$par$U
-kem$par$Q
-kem$par$R
+coef(kem, type="vector")
 #num parameters, loglike, AIC (or use kem$AICc if you wish)
 c(kem$num.params, kem$logLik, kem$AIC)
 
 # plot the data versus predicted population states
 Xpred = t(kem$states)
 Xobs = sealData
+A.model = coef(kem,type="matrix")$A
 par(mfrow=c(3,3))
 for(i in 1:9) {
     plot(years, Xobs[i,], ylab="", main=rownames(sealData)[i] )
-    lines(years, Xpred[,Z.model[i]]+kem$par$A[i], ylab="", lwd=2, col=2 )
+    lines(years, Xpred[,Z.model[i]]+A.model[i], ylab="", lwd=2, col=2 )
 }                                                            
 mtext("Predicted (line) and Observed (points)", side=2, outer=T, line=-2)
 

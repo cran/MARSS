@@ -2,20 +2,19 @@
 #   MARSSvectorizeparam  function
 #   Returns a vector of the ESTIMATED parameters or if vector passed in, that is put into list form for MLEobj$model
 #######################################################################################################
-MARSSvectorizeparam = function(MLEobj, parvec=NA) {
-#This helper function
+MARSSvectorizeparam = function(MLEobj, parvec=NA, what="par") {
+#This helper function  ONLY FOR MARSSM!!
   #if parvec=NA) returns a vector version of all the estimated parameters (for use in say optim) from a mssm  model
   #if parvec is passed in) returns a marssMLE object with par fixed by parvec
+  #what says what are we replacing; needs to be like par list: par, par.se, par.lowCI, etc
   
-  free = MLEobj$model$free
-  fixed = MLEobj$model$fixed
-  en = c("Z","A","R","B","U","Q","x0","V0") #sets order for paramvec
-  param = MLEobj$par  #might be NULL if not set yet
-
-  ## If parvec = NA
+  #en = c("Z","A","R","B","U","Q","x0","V0") #sets order for paramvec
+  en = names(MLEobj[["model"]][["fixed"]])
+  free = MLEobj[["model"]][["free"]]
+  fixed = MLEobj[["model"]][["fixed"]]
+  param = MLEobj[[what]]  #might be NULL if not set yet
+  paramvector = NULL
   if(length(parvec)==1 && is.na(parvec[1])) {
-    paramvector = NULL
-
     for(elem in en) {
       if(dim(param[[elem]])[1]>0){ #there are estimates
       mat.names = colnames(free[[elem]])
@@ -28,8 +27,6 @@ MARSSvectorizeparam = function(MLEobj, parvec=NA) {
     return(paramvector)
   } # end if parvec==NA
 
-
-  ## If parvec passed in, use it to set MLEobj$par	
   else { 
     parlen = 0; maxvec = NULL; par = list()
 
@@ -78,7 +75,7 @@ MARSSvectorizeparam = function(MLEobj, parvec=NA) {
 
     } #end elem loop
     
-    MLEobj$par = par
+    MLEobj[[what]] = par
     return(MLEobj)
   } #end if parvec arg is passed in
 }

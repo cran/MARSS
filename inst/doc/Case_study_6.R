@@ -137,9 +137,9 @@ legend("topright", paste("model 2, AICc=",format(kem$AICc,digits=1)),bty="n")
 ###################################################
 ### code chunk number 13: compute.resids
 ###################################################
-resids.0=MARSSresids(kem.0)$std.et
-resids.1=MARSSresids(kem.1)$std.et
-resids.2=MARSSresids(kem.2)$std.et
+resids.0=residuals(kem.0)$std.residuals
+resids.1=residuals(kem.1)$std.residuals
+resids.2=residuals(kem.2)$std.residuals
 
 
 ###################################################

@@ -8,16 +8,25 @@
 checkMARSSInputs = function(MARSS.inputs, silent=FALSE)
 {
 #Check that wrapper passed in and all wrapper elements are present
-  el = c("data", "inits", "MCbounds", "marssm", "miss.value", "control", "method", "form", "fit", "silent")
+  el = c("data", "inits", "MCbounds", "marssm", "miss.value", "control", "method", "form", "fit", "silent", "fun.kf")
   if( !all(el %in% names(MARSS.inputs)) ){ 
      msg=paste(" Element", el[!(el %in% names(MARSS.inputs))], "is missing in MARSS call.\n")
      cat("\n","Errors were caught in checkMARSSInputs \n", msg, sep="")
      stop("Stopped in checkMARSSInputs() due to specification problem(s).\n", call.=FALSE)
     }
 
-#Second make sure specified method is allowed
+#Second make sure specified fun.kf is allowed
 # The user might further restrict this in their MARSS.form() function
 # allowed.methods is speced in MARSSsettings
+  if(!(MARSS.inputs$fun.kf %in% allowed.fun.kf)){
+    msg=paste(" ", MARSS.inputs$fun.kf, "is not among the allowed fun.kf values. See ?MARSS.\n")
+    cat("\n","Errors were caught in MARSS \n", msg, sep="") 
+    stop("Stopped in MARSS() due to problem(s) with required arguments.\n", call.=FALSE)
+  }
+
+#Make sure specified method is allowed
+  # The user might further restrict this in their MARSS.form() function
+  # allowed.fun.kf is speced in MARSSsettings
   if(!(MARSS.inputs$method %in% allowed.methods)){
     msg=paste(" ", MARSS.inputs$method, "is not among the allowed methods. See ?MARSS.\n")
     cat("\n","Errors were caught in MARSS \n", msg, sep="") 
@@ -47,10 +56,12 @@ for(el in req.args)
 for(el in req.args) {
   tmp = MARSS.inputs[[el]]
   if( is.list(defaults[[el]]) && !is.list(tmp) )  #then that el must be list
-     stop(paste("Stopped in checkMARSSInputs: arg ",el," must be passed in as a list (or left off to use defaults).\n"),call.=FALSE)
+     stop(paste("Stopped in checkMARSSInputs: arg ",el," must be passed in as a list (or left off to use defaults).\n",sep=""),call.=FALSE)
   if(!all(names(tmp) %in% names(defaults[[el]]))){
      bad.name = names(tmp)[!(names(tmp) %in% names(defaults[[el]]))]
-     stop(paste("\nStopped in checkMARSSInputs: elements ", bad.name," is not allowed in arg ",el," (misspelled?).\n"),call.=FALSE) 
+     if(el=="inits") extra.msg="For inits, you need to use the marss form, which is in $par or use coef(fit,form=\"marss\").\n"
+     else extra.msg=""
+     stop(paste("\nStopped in checkMARSSInputs: elements ", bad.name," is not allowed in arg ",el," (misspelled?).\n",extra.msg,sep=""),call.=FALSE) 
      }
   #set defaults for any req elements that were not passed in 
   passed.in = (names(defaults[[el]]) %in% names(tmp))

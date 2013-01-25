@@ -13,9 +13,9 @@ summary.marssm <- function (object, ...)
       dim.tmp = list(Z=c(n,m), A=c(n,1), R=c(n,n), B=c(m,m), U=c(m,1), Q=c(m,m), x0=c(m,1), V0=c(m,m))
 
 	xnames = paste("X",1:m,sep="")
-	if( !is.null(object$X.names) ) xnames = object$X.names
+	if( !is.null(object[["X.names"]]) ) xnames = object$X.names
 	ynames = paste("Y",1:n,sep="")
-	if( !is.null(rownames(object$data)) ) ynames = rownames(object$data)
+	if( !is.null(rownames(object[["data"]])) ) ynames = rownames(object$data)
       
   for (elem in en) {
     #list matrix version of the model    

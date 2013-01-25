@@ -23,9 +23,10 @@ lines(years,kem1$states+1.96*kem1$states.se,type="l",
 lines(years,kem1$states,type="l",lwd=2)
 title("Observations and total population estimate",cex.main=.9)
 
-kem1$par  #show the estimated parameter elements
+coef(kem1, type="vector")  #show the estimated parameter elements as a vector
 
-parmat(kem1) #show the entire parameters matrices
+#show estimated elements for each parameter matrix as a list
+coef(kem1) 
 
 kem1$logLik   #show the log-likelihood
 kem1$AIC  #show the AIC
@@ -39,16 +40,13 @@ Z.model = factor(c(1,1,1,1,1))
 R.model = "diagonal and equal" 
 kem2 = MARSS(dat, model=list(Z=Z.model, R=R.model))
 
-#show the estimated parameter elements
-kem2$par$U  #population growth rate
-kem2$par$Q  #process variance
-kem2$par$R  #observation variance
+coef(kem2) #the estimated parameter elements
 kem2$logLik #log likelihood
 c(kem1$AIC,kem2$AIC)  #AICs
 
 #plot residuals
 plotdat = t(dat)
-matrix.of.biases = matrix(parmat(kem2)$A,
+matrix.of.biases = matrix(coef(kem2, type="matrix")$A,
   nrow=nrow(plotdat),ncol=ncol(plotdat),byrow=T)
 xs = matrix(kem2$states,
   nrow=dim(plotdat)[1],ncol=dim(plotdat)[2],byrow=F)
@@ -73,7 +71,7 @@ kem3 = MARSS(dat, model=list(Z=Z.model,
   R=R.model, U=U.model, Q=Q.model))
 #plot residuals
 plotdat = t(dat)
-matrix.of.biases = matrix(parmat(kem3)$A,
+matrix.of.biases = matrix(coef(kem3,type="matrix")$A,
   nrow=nrow(plotdat),ncol=ncol(plotdat),byrow=T)
 par(mfrow=c(2,3))
 for(i in 1:n){

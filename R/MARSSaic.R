@@ -18,16 +18,16 @@ MARSSaic = function(MLEobj, output=c("AIC","AICc"), Options=list(nboot=1000, ret
     stop("Stopped in MARSSaic() due to problem(s) with arguments.\n", call.=FALSE)
   } 
   ## Set options if some not passed in
-  if(is.null(Options$nboot)) Options$nboot = 1000
-  if(is.null(Options$return.logL.star)) Options$return.logL.star = FALSE
-  if(is.null(Options$silent)) Options$silent = FALSE
+  if(is.null(Options[["nboot"]])) Options$nboot = 1000
+  if(is.null(Options[["return.logL.star"]])) Options$return.logL.star = FALSE
+  if(is.null(Options[["silent"]])) Options$silent = FALSE
   tmp = is.marssMLE(MLEobj)
   if(!isTRUE(tmp)) {
     if(!Options$silent) cat(tmp)
     stop("Stopped in MARSSaic() due to problem(s) with the MLE object passed in.\n", call.=FALSE)
     }
     
-  if(is.null(MLEobj$logLik)){
+  if(is.null(MLEobj[["logLik"]])){
     msg = " No log likelihood.  This function expects a model fitted via maximum-likelihood.\n"
     cat("\n","Errors were caught in MARSSaic \n", msg, sep="") 
     stop("Stopped in MARSSaic() due to problem(s) with the MLE object passed in.\n", call.=FALSE)
@@ -76,7 +76,7 @@ MARSSaic = function(MLEobj, output=c("AIC","AICc"), Options=list(nboot=1000, ret
 
     for(i in 1:Options$nboot) {
       boot.model = MARSSvectorizeparam( MLEobj, parvec=boot.params[,i] )  #boot.model is a MLEobj
-      logL.star[i] = MARSSkf(boot.model)$logLik	
+      logL.star[i] = MARSSkf(boot.model, only.logLik=TRUE)$logLik	
       if(drawProgressBar) prev = progressBar(i/Options$nboot,prev)
     }
     MLEobj[[m]] = -4*(sum(logL.star))/Options$nboot + 2*loglike   # -2*model$loglik + 2*(1/N)*(-2)*sum(boot$Yloglike-model$logLik)

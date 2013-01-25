@@ -2,12 +2,32 @@
 ## Set up inits
 ## These will be checked by the MLE object checker.
 ## Will return a par list that looks just like MLEobj par list
-## Wants either a scalar (dim=NULL) or a matrix the same size as $par[[elem]]
+## Wants either a scalar (dim=NULL) or a matrix the same size as $par[[elem]] or a marssMLE object with the par element
 
-MARSSinits <- function(modelObj, inits=list(B=1, U=0, Q=0.05, Z=1, A=0, R=0.05, x0=-99, V0=5), method)
+MARSSinits <- function(MLEobj, inits=list(B=1, U=0, Q=0.05, Z=1, A=0, R=0.05, x0=-99, V0=5))
 {
+modelObj=MLEobj$model
+method=MLEobj$method
+if(is.null(inits)) inits=list()
+if(class(inits)=="marssMLE"){
+  if(is.null(inits[["par"]])){ stop("Stopped in MARSSinits() because inits must have the par element if class marssMLE.\n", call.=FALSE)
+  }else{
+    inits=inits$par
+    if(!is.list(inits)) stop("Stopped in MARSSinits() because par element of inits$par must be a list if inits is marssMLE object.\n", call.=FALSE)
+  }
+}else{
 if(!is.list(inits)) stop("Stopped in MARSSinits() because inits must be a list.\n", call.=FALSE)
-default = alldefaults[[method]]
+#MARSSinits needs a valid $par element and presumably the inits was passed in in form of MLEobj$form not marssm
+#so call form specific inits function to change those inits to marssm inits
+  inits.fun = paste("MARSSinits_",MLEobj$form,sep="")
+  tmp=try(exists(inits.fun,mode="function"),silent=TRUE)
+  if(isTRUE(tmp)){
+      #the print function can print or return an updated x to use for printing
+      inits=eval(call(inits.fun, MLEobj, inits))
+  }else{ stop("Stopped in MARSSinits.  You need a MARSSinits_form function to tell MARSS how to interpret the inits list", call.=FALSE) }
+}
+
+default = alldefaults[[method]][["inits"]]
 for(elem in names(default)){
   if(is.null(inits[[elem]])) inits[[elem]]=default[[elem]]
 }
@@ -26,7 +46,7 @@ for(elem in names(default)){
   }else{ #not fixed
     #must be either length 1 or same length as the number of estimated values for elem
     if( !((is.null(dim(inits[[elem]])) & length(inits[[elem]])==1) | isTRUE(all.equal(dim(inits[[elem]]),c(dim(modelObj$free[[elem]])[2],1)))) ){
-      stop(paste("MARSSinits: ",elem," inits must be either a scalar (dim=NULL) or the same size as the par$",elem," element",sep=""))
+      stop(paste("MARSSinits: ",elem," inits must be either a scalar (dim=NULL) or the same size as the par$",elem," element",sep=""),call.=FALSE)
       }
     parlist[[elem]]=matrix(inits[[elem]],dim(modelObj$free[[elem]])[2],1)
   

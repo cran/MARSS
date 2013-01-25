@@ -38,7 +38,7 @@ Objects of class \code{\link{marssMLE}} may be built from scratch but are easier
       \item{convergence=1}{ Maximum number of iterations \code{MLEobj$control$maxit} was reached before \code{MLEobj$control$abstol} condition was satisfied. } 
       \item{convergence=10}{ Some of the variance elements appear to be degenerate.  T} 
       \item{convergence=52}{ The algorithm was abandoned due to errors from the "L-BFGS-B" method.  } 
-      \item{convergence=53}{ The algorithm was abandoned due to numerical errors in the likelihood calculation from \code{\link{MARSSkf}}.  This happens frequently with "BFGS" and can sometimes be helped with a better initial condition.  Try using the EM algorithm first (\code{method="kem"}), and then using the parameter estimates from that to as initial conditions for \code{method="BFGS"}.  } 
+      \item{convergence=53}{ The algorithm was abandoned due to numerical errors in the likelihood calculation from \code{\link{MARSSkf}}.  If this happens with "BFGS", it can sometimes be helped with a better initial condition.  Try using the EM algorithm first (\code{method="kem"}), and then using the parameter estimates from that to as initial conditions for \code{method="BFGS"}.  } 
       }
   }
   \item{logLik}{Log-likelihood.}
@@ -71,6 +71,7 @@ dat = dat[2:4,] #remove the year row
 #R="diagonal and equal" is the default so not specified
 #Q is fixed
 kemfit = MARSS(dat, model=list(Z=factor(c(1,1,1)),Q=matrix(.01)))
+#start with the $par list from the EM algorithm
 bfgsfit = MARSS(dat, model=list(Z=factor(c(1,1,1)),Q=matrix(.01)), 
    inits=kemfit$par, method="BFGS")
 }

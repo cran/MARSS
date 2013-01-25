@@ -10,11 +10,11 @@ The MARXSS (MAR-1 with eXogenous variables) model is
 }
 }
 \usage{
-MARSS.marxss(MARSS.inputs)
+MARSS.marxss(MARSS.call)
 }
 
 \arguments{
-  \item{MARSS.inputs}{ A list of the inputs to a MARSS() call. \code{MARSS.marxss()} uses the model argument.}
+  \item{MARSS.call}{ A list of the arguments in the call to MARSS().}
 }
 \details{
 See the Quick Start guide (\code{RShowDoc("Quick_Start",package="MARSS")}) or the User Guide (\code{RShowDoc("UserGuide",package="MARSS")}) for examples.

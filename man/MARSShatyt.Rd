@@ -13,11 +13,6 @@ MARSShatyt( MLEobj )
 \details{
 For state space models, \code{MARSShatyt()} computes the expectations involving Y.  If Y is completely observed, this entails simply replacing Y with the observed y.  When Y is only partially observed, the expectation involves the conditional expectation of a multivariate normal. 
  
-Missing values in the data may be handled in one of two ways:
-1. Missing values may be replaced with zeroes prior to passing to \code{MARSSkf()}. Argument \code{missing.matrix} must then be a matrix of the same dimensions as the data, with 0 in the positions of observed values and 1 in the positions of missing values. 
-2. Data containing missing values may be passed in. Argument \code{miss.value} must then be the code used to represent missing values. 
-The function requires that you specify either a missing matrix or a miss.value.  If there are no missing values, just set \code{miss.value} to a value that is not in your data (like NA or -99).
-
 }
 \value{ 
 A list with the following components (n is the number of state processes). Names ending in "T" are estimates from the Kalman smoother; J is also smoother output. Other components are output from the Kalman filter.   

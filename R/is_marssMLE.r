@@ -88,11 +88,11 @@ is.marssMLE <- function(MLEobj)
   }
 
   ## Check params consistency if present
-  if(!is.null(MLEobj$par)) {
+  if(!is.null(MLEobj[["par"]])) {
     dim.par = NULL
     for (el in en) {
       dim.flag=FALSE
-      if(!is.null(MLEobj$par[[el]])) {
+      if(!is.null(MLEobj[["par"]][[el]])) {
          dim.flag = isTRUE(dim(MLEobj$par[[el]])[2]!=1)
          dim.flag = dim.flag || isTRUE(dim(MLEobj$par[[el]])[1]!=dim(MLEobj$model$free[[el]])[2])
          dim.par=c(dim.par,dim.flag)
@@ -104,7 +104,7 @@ is.marssMLE <- function(MLEobj)
   }
   
   ## Check controls
-  if(!is.null(MLEobj$control)){
+  if(!is.null(MLEobj[["control"]])){
     if(!is.list(MLEobj$control)) stop("Stopped in is.marssMLE() because control must be passed in as a list.\n", call.=FALSE)
   control = MLEobj$control
   en = names(alldefaults[[MLEobj$method]]$control)
@@ -131,8 +131,8 @@ is.marssMLE <- function(MLEobj)
         null.flag <- ( !is.wholenumber(control[[el]]) )
         if(null.flag) msg = c(msg, paste("control list element", el,"is not a whole number\n"))
       }
-      if (el %in% c("minit") && !is.null(control$maxit) ) {
-        if(!is.null(control$minit) && !is.null(control$maxit) && is.numeric(control$minit) && is.numeric(control$maxit) && is.wholenumber(control$minit) &&  is.wholenumber(control$maxit)) null.flag <- (control$minit > control$maxit)  
+      if (el %in% c("minit") && !is.null(control[["maxit"]]) ) {
+        if(!is.null(control[["minit"]]) && !is.null(control[["maxit"]]) && is.numeric(control$minit) && is.numeric(control$maxit) && is.wholenumber(control$minit) &&  is.wholenumber(control$maxit)) null.flag <- (control$minit > control$maxit)  
         if(null.flag) msg = c(msg, paste("control list element minit is greater than maxit\n"))
       }
       if (el %in% c("conv.test.deltaT") && is.numeric(control[[el]]) ) {
@@ -149,8 +149,8 @@ is.marssMLE <- function(MLEobj)
   } #not null control
   
   ## Check control$MCbounds
-    if(is.null(control$MCbounds)) msg = c(msg, "control$MCbounds is missing from the control list\n")
-    if(!is.null(control$MCbounds)){
+    if(is.null(control[["MCbounds"]])) msg = c(msg, "control$MCbounds is missing from the control list\n")
+    if(!is.null(control[["MCbounds"]])){
     en = c("B", "U", "Q", "R", "A", "Z")
 
     for (el in en) {

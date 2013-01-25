@@ -1,4 +1,5 @@
-MARSSresids = function(MLEobj){
+residuals.marssMLE = function(object,...){
+MLEobj=object
 #Reference page 9 in Messy Time Series
 #By definition there are no residuals for t=1
 TT = dim(MLEobj$model$data)[2]
@@ -11,7 +12,8 @@ var.et = array(0,dim=c(n+m,n+m,TT))
 Nt = array(0,dim=c(m,m,TT))
 Mt = array(0,dim=c(n,n,TT))
 Jt = matrix(0,m,TT)
-if(is.null(MLEobj$kf)) MLEobj$kf=MARSSkf(MLEobj)
+#MARSSkfas doesn't output Innov, Sigma or Kt so might need to run MARSSkfss to get those
+if(is.null(MLEobj[["kf"]]) | is.null(MLEobj$kf$Innov) | is.null(MLEobj$kf$Sigma) | is.null(MLEobj$kf$Kt)) MLEobj$kf=MARSSkfss(MLEobj)
 vt = MLEobj$kf$Innov
 Ft = MLEobj$kf$Sigma
 for(t in seq(TT,2,-1)){
@@ -38,5 +40,5 @@ if(!any(takediag(var.et[1:n,1:n,t])==0)) st.er.et[1:n,1:n] = solve(chol(var.et[1
 if(!any(takediag(var.et[(n+1):(n+m),(n+1):(n+m),t])==0)) st.er.et[(n+1):(n+m),(n+1):(n+m)] = solve(chol(var.et[(n+1):(n+m),(n+1):(n+m),t]))
 st.et[,t] = st.er.et%*%et[,t,drop=FALSE]
 }
-return(list(et=et, std.et=st.et, var.et=var.et))
+return(list(model.residuals=et[1:n,,drop=FALSE], state.residuals=et[(n+1):(n+m),,drop=FALSE], residuals=et, std.residuals=st.et, var.residuals=var.et))
 }

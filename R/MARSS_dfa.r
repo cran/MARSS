@@ -23,14 +23,14 @@ MARSS.dfa=function(MARSS.inputs){
 #   so you need to make sure each name in model.defaults has a model.allowed value here 
 
 #Set up some defaults
-if(is.null(MARSS.inputs$z.score)) MARSS.inputs$z.score=TRUE
-if(is.null(MARSS.inputs$demean)) MARSS.inputs$demean=TRUE
+if(is.null(MARSS.inputs[["z.score"]])) MARSS.inputs$z.score=TRUE
+if(is.null(MARSS.inputs[["demean"]])) MARSS.inputs$demean=TRUE
 
 #Start error checking
 problem=FALSE
 msg=c()
 #check that data and covariates elements are matrix or vector, no dataframes, and is numeric
-for(el in c("data","covariates"[!is.null(MARSS.inputs$covariates)])){
+for(el in c("data","covariates"[!is.null(MARSS.inputs[["covariates"]])])){
   if( !(is.matrix(MARSS.inputs[[el]]) || is.vector(MARSS.inputs[[el]])) ) {
     problem=TRUE
     msg = c(msg, paste(el," must be a matrix or vector (not a data frame or 3D array).\n"))
@@ -46,16 +46,16 @@ if(!is.null(MARSS.inputs$covariates)){
 }
 if(!is.na(MARSS.inputs$miss.value)){
   MARSS.inputs$data[MARSS.inputs$data==MARSS.inputs$miss.value]=NA
-  if(!is.null(MARSS.inputs$covariates)) MARSS.inputs$covariates[MARSS.inputs$covariates==MARSS.inputs$miss.value]=NA
+  if(!is.null(MARSS.inputs[["covariates"]])) MARSS.inputs$covariates[MARSS.inputs$covariates==MARSS.inputs$miss.value]=NA
   MARSS.inputs$miss.value=as.numeric(NA)  
 }
-if(!is.null(MARSS.inputs$covariates)){
+if(!is.null(MARSS.inputs[["covariates"]])){
   if(any(is.na(MARSS.inputs$covariates))){
     problem=TRUE
     msg = c(msg, "covariates cannot have any missing values in a standard DFA.\n See User Guide section on DFA for alternate approaches when covariates have missing values.\n")
   }
 }
-if(!is.null(MARSS.inputs$model$m)){
+if(!is.null(MARSS.inputs[["model"]][["m"]])){
   if(length(MARSS.inputs$model$m)!=1){
     problem=TRUE
     msg = c(msg, "model$m must be an integer between 1 and n.\n")
@@ -91,8 +91,8 @@ model.allowed = list(
         matrices = c("Z","A","R","D","x0","V0")
       )
 
-if(is.null(MARSS.inputs$model$m)) m=1 else m=MARSS.inputs$model$m
-if(!is.null(MARSS.inputs$covariates)) D="unconstrained" else D="zero"
+if(is.null(MARSS.inputs[["model"]][["m"]])) m=1 else m=MARSS.inputs$model$m
+if(!is.null(MARSS.inputs[["covariates"]])) D="unconstrained" else D="zero"
 
 #defaults for any missing model list elements
 model.defaults =list(A="zero", R="diagonal and equal", D=D, x0="zero", V0=diag(5,m), tinitx=0, diffuse=FALSE, m=1)
@@ -118,7 +118,7 @@ if(m>1) for(i in 1:(m-1)){Z[i,(i+1):m] = 0}
 U=matrix(0,m,1)
 
 #Set up D and d
-if(is.null(MARSS.inputs$covariates)) d=matrix(0,1,1) else d=MARSS.inputs$covariates
+if(is.null(MARSS.inputs[["covariates"]])) d=matrix(0,1,1) else d=MARSS.inputs$covariates
 
 #Set up Q  & B
 Q=diag(1,m); B=diag(1,m)
@@ -136,13 +136,19 @@ if(MARSS.inputs$z.score){
   dat = dat * (1/Sigma)
 }
 
-modelObj=MARSS.marxss(list(data=dat,model=dfa.model))$marssm
-modelObj$miss.value=as.numeric(NA)
-modelObj$form="dfa"
+MARSS.inputs = list(data=dat, inits=MARSS.inputs$inits, MCbounds=MARSS.inputs$MCbounds, miss.value=as.numeric(NA), control=MARSS.inputs$control, method=MARSS.inputs$method, form="dlm", silent=MARSS.inputs$silent, fit=MARSS.inputs$fit)
 
-MARSS.inputs = list(data=dat, inits=MARSS.inputs$inits, MCbounds=MARSS.inputs$MCbounds, marssm=modelObj, miss.value=as.numeric(NA), control=MARSS.inputs$control, method=MARSS.inputs$method, form="dlm", silent=MARSS.inputs$silent, fit=MARSS.inputs$fit)
+tmp = MARSS.marxss(list(data=dat,model=dfa.model))
+modelObj=tmp$marssm
+modelObj$miss.value=as.numeric(NA)
+MARSS.inputs$marssm = modelObj 
+MARSS.inputs$form.info = tmp$form.info 
 
   ## Return MARSS inputs as list
 MARSS.inputs
 }
+
+print_dfa = function(x){ return(print_marxss(x)) }
+coef_dfa = function(x){ return(coef_marxss(x)) }
+MARSSinits_dfa = function(MLEobj, inits){ return(MARSSinits_marxss(MLEobj, inits)) }
  

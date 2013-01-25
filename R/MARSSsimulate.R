@@ -1,9 +1,10 @@
 #######################################################################################################
 #   MARSSsimulate function
 #   Parametrically simulates from a MARSS parameter list
+#   Only works for marss form.  marxss form needs to be converted to marss before this will work.
 #######################################################################################################
 MARSSsimulate = function(MLEobj, tSteps=100, nsim=1, silent=TRUE, miss.loc=NULL) {
-  #parList is a list of the parameters as would come out of passing in MLEmodel$par
+  #parList is a list of the parameters as would come out of passing in marssMLE$par
   # tSteps is the number of time steps to do in each bootstrap of the data
   # miss.loc is an optional (n x tSteps x nsim) matrix specifying where to put missing values
   # if miss.loc is the same for all nsim, can pass in dim=c(n, tSteps)

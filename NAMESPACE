@@ -1,12 +1,8 @@
 
 ## export functions
 export(
-  MARSS.marxss,
-  MARSS.dfa,
   CSEGriskfigure,
   CSEGtmufigure,
-  is.marssm,
-  is.marssMLE,
   MARSS,
   MARSSaic,
   MARSSapplynames,
@@ -17,13 +13,13 @@ export(
   MARSSkem,
   MARSSkemcheck,
   MARSSkf,
+  MARSSkfss,
+  MARSSkfas,
   MARSSmcinit,
   MARSSoptim,
   MARSSparamCIs,
-  MARSSresids,
   MARSSsimulate,
-  MARSSvectorizeparam,
-  parmat
+  MARSSvectorizeparam
 )
 
 ## register S3 methods
@@ -31,8 +27,12 @@ S3method(print, marssm)
 S3method(summary, marssm)
 S3method(print, marssMLE)
 S3method(summary, marssMLE)
+S3method(coef, marssMLE)
+S3method(residuals, marssMLE)
 
 ## Imports
 importFrom(MASS, mvrnorm)
 importFrom(mvtnorm, rmvnorm)
-
+importFrom(KFAS, KFS)
+importFrom(KFAS, SSModel)
+importFrom(nlme, fdHess)

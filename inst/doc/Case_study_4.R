@@ -167,7 +167,8 @@ par(mfcol=c(3,2), mar=c(3,4,1.5,0.5), oma=c(0.4,1,1,1))
 for(i in 1:length(spp)){
 	plot(dat.z[i,],xlab="",ylab="abundance index",bty="L", xaxt="n", ylim=c(-4,3), pch=16, col="blue")
 	axis(1,12*(0:dim(dat.z)[2])+1,1980+0:dim(dat.z)[2])
-	lines(as.vector(parmat(fit)$Z[i,,drop=FALSE]%*%fit$states+parmat(fit)$A[i,]), lwd=2)
+	par.mat=coef(fit,type="matrix")
+	lines(as.vector(par.mat$Z[i,,drop=FALSE]%*%fit$states+par.mat$A[i,]), lwd=2)
 	title(spp[i])
 	}
 
@@ -290,14 +291,14 @@ best.fit = get(fitname)
 ### code chunk number 27: varimax
 ###################################################
 # get the inverse of the rotation matrix
-H.inv = varimax(parmat(best.fit)$Z)$rotmat
+H.inv = varimax(coef(best.fit, type="matrix")$Z)$rotmat
 
 
 ###################################################
 ### code chunk number 28: rotations
 ###################################################
 # rotate factor loadings
-Z.rot = parmat(best.fit)$Z %*% H.inv   
+Z.rot = coef(best.fit, type="matrix")$Z %*% H.inv   
 # rotate trends
 trends.rot = solve(H.inv) %*% best.fit$states
 
@@ -351,7 +352,8 @@ for(i in 1:dim(ts.trends)[2]) {
 ###################################################
 ### code chunk number 31: plotbestfits
 ###################################################
-fit.b = parmat(best.fit)$Z %*% best.fit$states + matrix(parmat(best.fit)$A, nrow=N.ts, ncol=TT)
+par.mat=coef(best.fit, type="matrix")
+fit.b = par.mat$Z %*% best.fit$states + matrix(par.mat$A, nrow=N.ts, ncol=TT)
 spp = rownames(dat.z)
 par(mfcol=c(3,2), mar=c(3,4,1.5,0.5), oma=c(0.4,1,1,1))
 for(i in 1:length(spp)){

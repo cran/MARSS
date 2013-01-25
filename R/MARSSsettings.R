@@ -1,6 +1,7 @@
 kem.methods=c("kem")
 optim.methods=c("BFGS","BFGS-kf")       
 allowed.methods = c(kem.methods, optim.methods)
+allowed.fun.kf = c("MARSSkfas","MARSSkfss")
 
 #Set up the generic defaults for methods and forms
 #model is required but is not here since it is form dependent so must be specified in marssm conversion function

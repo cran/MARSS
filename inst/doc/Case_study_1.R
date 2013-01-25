@@ -57,7 +57,8 @@ for(i in 1:nsim){
 
   #MARSS estimates 
   kem = MARSS(y.ts[i,], silent=TRUE)
-  params[i,c(1,3,4)] = c(kem$par$U,kem$par$Q,kem$par$R)
+  #type=vector outputs the estimates as a vector instead of a list
+  params[i,c(1,3,4)] = coef(kem,type="vector")[c(2,3,1)]
 	
   #Dennis et al 1991 estimates
   den.years = years[!is.na(y.ts[i,])]  # the non missing years

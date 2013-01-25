@@ -13,7 +13,7 @@ MARSSapplynames=function(obj, Y.names=NA, X.names=NA){
     else Y.names = rownames(y) 
   }
   if(identical(X.names,NA)) {
-    if(is.null(obj$model$X.names)) X.names = paste("X",seq(1, m),sep="")
+    if(is.null(obj[["model"]][["X.names"]])) X.names = paste("X",seq(1, m),sep="")
     else X.names = obj$model$X.names 
   }
   if(length(Y.names)!=n) stop("Stopped in MARSSapplynames() because length of Y.names is not n.\n", call.=FALSE)
@@ -22,17 +22,18 @@ MARSSapplynames=function(obj, Y.names=NA, X.names=NA){
   matnames=list()
   model.elem=names(obj$model$fixed)
   for(elem in model.elem){
-    if(is.null(colnames(obj$model$free[[elem]])) && dim(obj$model$free[[elem]])[2]>0){ 
-      colnames(obj$model$free[[elem]]) = paste(elem,seq(1, dim(obj$model$free[[elem]])[2]),sep="") }    
+    if(is.null(colnames(obj[["model"]][["free"]][[elem]])) && dim(obj$model$free[[elem]])[2]>0){ 
+      colnames(obj$model$free[[elem]]) = paste(seq(1, dim(obj$model$free[[elem]])[2]),sep="") #paste(elem,seq(1, dim(obj$model$free[[elem]])[2]),sep="")
+    }    
     matnames[[elem]] = colnames(obj$model$free[[elem]])
   }       
     
   for(elem in model.elem){
-    if(!is.null(obj$par[[elem]]) & is.null(rownames(obj$par[[elem]]))) rownames(obj$par[[elem]]) = colnames(obj$model$free[[elem]])
+    if(!is.null(obj[["par"]][[elem]]) & is.null(rownames(obj$par[[elem]]))) rownames(obj$par[[elem]]) = colnames(obj$model$free[[elem]])
   }
-  if(!is.null(obj$kf$xtT)) rownames(obj$kf$xtT) =  X.names
-  if(!is.null(obj$states.se)) rownames(obj$states.se) =  X.names
-  if(!is.null(obj$model$data) && is.null(rownames(obj$model$data))) rownames(obj$model$data) =  Y.names
+  if(!is.null(obj[["kf"]][["xtT"]])) rownames(obj$kf$xtT) =  X.names
+  if(!is.null(obj[["states.se"]])) rownames(obj$states.se) =  X.names
+  if(!is.null(obj[["model"]][["data"]]) && is.null(rownames(obj$model$data))) rownames(obj$model$data) =  Y.names
 
   if(theclass=="marssm") return(obj$model)
   else return(obj)

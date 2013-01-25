@@ -5,7 +5,7 @@
 print.marssm <- function (x, ...) 
     {
     
-      if (is.null(dim(x$data))) n = 1
+      if (is.null(dim(x[["data"]]))) n = 1
       else n = dim(x$data)[1]
       m=dim(x$fixed$x0)[1]
       

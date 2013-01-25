@@ -4,7 +4,7 @@
 #######################################################################################################
 MARSShatyt = function( MLEobj ) {
     modelObj = MLEobj$model
-    if(!is.null(MLEobj$kf)){ kfList = MLEobj$kf
+    if(!is.null(MLEobj[["kf"]])){ kfList = MLEobj$kf
     }else{ kfList=MARSSkf(MLEobj) }
     n=dim(modelObj$data)[1]; TT=dim(modelObj$data)[2]; m=dim(modelObj$fixed$x0)[1]
 

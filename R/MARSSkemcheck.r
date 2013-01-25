@@ -41,8 +41,9 @@ msg=NULL
      Tmax = max(Tmax, dim(fixed[[par.test]])[3],dim(free[[par.test]])[3])
    }
 
-   if(is.null(MLEobj$par)) MLEobj$par=MLEobj$start
-   MLEobj$kf=MARSSkf(MLEobj)
+   if(is.null(MLEobj[["par"]])) MLEobj$par=MLEobj$start
+   #Run with MARSSkfss because it has more internal checks and error messages
+   MLEobj$kf=MARSSkfss(MLEobj)
    if(!MLEobj$kf$ok){ return(list(ok=FALSE, msg=c(MLEobj$kf$errors, msg))) }
    MLEobj$Ey=MARSShatyt(MLEobj)
    msg.tmp=NULL

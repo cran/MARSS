@@ -8,12 +8,13 @@ MARSS = function(y,
     silent = FALSE,
     control = NULL,
     MCbounds = NULL,
+    fun.kf = "MARSSkfas",
     ... 
     ) 
 {
 if(is.na(miss.value)) miss.value=as.numeric(miss.value)
 
-MARSS.call = list(data=y, inits=inits, MCbounds=MCbounds, model=model, miss.value=miss.value, control=control, method=method, form=form, silent=silent, fit=fit, ...)
+MARSS.call = list(data=y, inits=inits, MCbounds=MCbounds, model=model, miss.value=miss.value, control=control, method=method, form=form, silent=silent, fit=fit, fun.kf=fun.kf, ...)
 
 #First make sure specified equation form has a corresponding function to do the conversion to marssm object
   as.marssm.fun = paste("MARSS.",form,sep="")
@@ -31,6 +32,7 @@ MARSS.call = list(data=y, inits=inits, MCbounds=MCbounds, model=model, miss.valu
   ## is is a list(data, fixed, free, miss.value, X.names, tinitx, diffuse)
   ## error checking within the function is a good idea though not required
   ## if changes to the control values are wanted these can be set by changing MARSS.inputs$control
+  ## Add list element form.info if there in information about the form (say for printing) that you want access to later
   as.marssm.fun = paste("MARSS.",form,sep="")
   MARSS.inputs = eval(call(as.marssm.fun, MARSS.call))
   modelObj=MARSS.inputs$marssm
@@ -62,10 +64,12 @@ MARSS.call = list(data=y, inits=inits, MCbounds=MCbounds, model=model, miss.valu
   if(method %in% c(kem.methods, optim.methods)) {
     
     ## Create the marssMLE object
-    # This is a helper function to set simple inits for a marss MLE model object
-    MARSS.inputs$inits = MARSSinits(modelObj, MARSS.inputs$inits, method)
 
-    MLEobj = list(model=modelObj, start=MARSS.inputs$inits, control=c(MARSS.inputs$control, list(MCbounds=MARSS.inputs$MCbounds), silent=silent), method=method, call=MARSS.call)
+    MLEobj = list(model=modelObj, control=c(MARSS.inputs$control, list(MCbounds=MARSS.inputs$MCbounds), silent=silent), method=method, fun.kf=fun.kf, form=form)
+    MLEobj$form.info=MARSS.inputs$form.info
+    # This is a helper function to set simple inits for a marss MLE model object
+    MLEobj$start = MARSSinits(MLEobj, MARSS.inputs$inits)
+
     class(MLEobj) = "marssMLE"
 
     ## Check the marssMLE object
@@ -86,35 +90,38 @@ MARSS.call = list(data=y, inits=inits, MCbounds=MCbounds, model=model, miss.valu
     if(MLEobj$control$trace != -1){
       MLEobj.test=MLEobj
       MLEobj.test$par=MLEobj$start
-      kftest=try(MARSSkf( MLEobj.test ), silent=TRUE)
+      #Do this test with MARSSkfss since it has internal tests for problems
+      kftest=try(MARSSkfss( MLEobj.test ), silent=TRUE)
       if(inherits(kftest, "try-error")){ 
-        cat("Error: Stopped in MARSS() before fitting because MARSSkf stopped.  Something is wrong with \n the model structure that prevents Kalman filter running.\n Try using control$trace=-1 and fit=FALSE and then look at the model that MARSS is trying to fit.\n")      
+        cat("Error: Stopped in MARSS() before fitting because MARSSkfss stopped.  Something is wrong with \n the model structure that prevents Kalman filter running.\n Try using control$trace=-1 and fit=FALSE and then look at the model that MARSS is trying to fit.\n")      
         MLEobj$convergence=2
         return(MLEobj.test)
       }
       if(!kftest$ok){
         cat(kftest$msg) 
-        cat("Error: Stopped in MARSS() before fitting because MARSSkf returned errors.  Something is wrong with \n the model structure.\n\n")      
-        cat(paste("Error: Stopped in MARSS() before fitting because MARSSkf returned errors.  Something is wrong with \n the model structure. Try using control$trace=-1 and fit=FALSE and then \n look at the model that MARSS is trying to fit.\n",kftest$errors,"\n",sep=""))
+        cat(paste("Error: Stopped in MARSS() before fitting because the MARSSkfss (Kalman filter) function returned errors.  Something is wrong with \n the model structure. Try using control$trace=-1 and fit=FALSE and then \n look at the model that MARSS is trying to fit.\n",kftest$errors,"\n",sep=""))
         MLEobj$convergence=2
         return(MLEobj.test)
       }
       MLEobj.test$kf=kftest
     }
-    if(MLEobj$control$trace != -1){
+    #Ey is needed for method=kem
+    if(MLEobj$control$trace != -1 & MLEobj$method=="kem"){
       Eytest=try(MARSShatyt( MLEobj.test ), silent=TRUE)
       if(inherits(Eytest, "try-error")){ 
         cat("Error: Stopped in MARSS() before fitting because MARSShatyt stopped.  Something is wrong with \n model structure that prevents MARSShatyt running.\n\n")
-        MLEobj$convergence=2
+        MLEobj.test$convergence=2
+        MLEobj.test$Ey=Eytest
         return(MLEobj.test)
       }
       if(!Eytest$ok){
         cat(Eytest$msg) 
         cat("Error: Stopped in MARSS() before fitting because MARSShatyt returned errors.  Something is wrong with \n model structure that prevents function running.\n\n")      
-        MLEobj$convergence=2
-        return(MLEobj)
+        MLEobj.test$convergence=2
+        MLEobj.test$Ey=Eytest
+        return(MLEobj.test)
       }
-      MLEobj$Ey=Eytest
+      #MLEobj$Ey=Eytest
     }
     
     ## If a MCinit on the EM algorithm was requested
@@ -122,32 +129,58 @@ MARSS.call = list(data=y, inits=inits, MCbounds=MCbounds, model=model, miss.valu
       MLEobj$start = MARSSmcinit(MLEobj)
     }
     
-    if(!silent & !fit) print(modelObj)
-
-    if(fit) {
-      ## Fit via EM and add param estimates to the object 
-      if(method %in% kem.methods) MLEobj = MARSSkem(MLEobj)
-      if(method %in% optim.methods) MLEobj = MARSSoptim(MLEobj)
+    if(!fit) MLEobj$convergence=3
     
-      ## Add AIC and AICc to the object
-      ## Return as long as there are no errors, but might not be converged
-      if(MLEobj$convergence%in%c(0,1)) {
-        MLEobj = MARSSaic(MLEobj)
-        if(!silent){ print(MLEobj) }
-        }else if(MLEobj$convergence%in%c(3,10,11) && method %in% kem.methods){
-          MLEobj = MARSSaic(MLEobj)
-          if(!silent ){ print(MLEobj) }
-        }else if(!silent) cat(MLEobj$errors)  #stopped with errors
+    if(fit) {
+      ## If not parameters are estimated, then get the states
+      if(all(unlist(lapply(MLEobj$model$free,is.fixed)))){
+        MLEobj$convergence=3
+        MLEobj$par=list(); for(el in names(MLEobj$model$free)) MLEobj$par[[el]]=matrix(0,0,1)
+        kf=MARSSkf(MLEobj) 
+        MLEobj$states=kf$xtT
+        MLEobj$logLik=kf$logLik
+        if(!is.null(kf[["VtT"]])){
+          m = dim(MLEobj$model$fixed$x0)[1]
+          TT = dim(MLEobj$model$data)[2]
+          if(m == 1) states.se = sqrt(matrix(kf$VtT[,,1:TT], nrow=1))
+          if(m > 1) {
+          states.se = matrix(0, nrow=m, ncol=TT)
+          for(i in 1:TT) 
+            states.se[,i] = t(sqrt(takediag(kf$VtT[,,i])))
+          }
+        }else  states.se=NULL
+        MLEobj$states.se = states.se
+        MLEobj$ytT=MARSShatyt(MLEobj)$ytT
+        if(MLEobj$control$trace>0){ 
+          MLEobj$kf=MARSSkf(MLEobj)
+          MLEobj$Ey=MARSShatyt(MLEobj)
+        }
+      }else{ #there is something to estimate
+      ## Fit and add param estimates to the object
+        if(method %in% kem.methods) MLEobj = MARSSkem(MLEobj)
+        if(method %in% optim.methods) MLEobj = MARSSoptim(MLEobj)
       }
-      #apply names to the start and par elements
-      MLEobj = MARSSapplynames(MLEobj)
       
-      if(MLEobj$control$trace != -1){
-        MLEobj = c(MLEobj,call=MARSS.inputs[!(names(MARSS.inputs)=="marssm")])
-        class(MLEobj)="marssMLE"
-      }else{ MLEobj$convergence=3 }
-      return(MLEobj)
+      #apply X and Y names various X and Y related elements
+      MLEobj = MARSSapplynames(MLEobj)
 
+      ## Add AIC and AICc and coef to the object
+      ## Return as long as there are no errors, but might not be converged
+      if((MLEobj$convergence%in%c(0,1)) | (MLEobj$convergence%in%c(10,11) && method %in% kem.methods) ){
+        MLEobj = MARSSaic(MLEobj)
+        MLEobj$coef = coef(MLEobj,type="vector")
+      }
+      } # fit the model
+  
+   if(MLEobj$control$trace == -1){ # just save the form information from $call
+     MLEobj$call$form = MARSS.call$form
+   }else{ MLEobj$call=MARSS.call } 
+      
+   if(!silent & MLEobj$convergence %in% c(0,1,3,10,11)){ print(MLEobj) }
+   if(!silent & !(MLEobj$convergence %in% c(0,1,3,10,11))){ cat(MLEobj$errors) } # 3 added since don't print if fit=FALSE
+   if(!silent & !fit) print(modelObj)
+
+   return(MLEobj)
   } # end MLE methods
 
   return("method allowed but it's not in kem.methods or optim.methods so marssMLE object was not created")
