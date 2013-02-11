@@ -2,7 +2,15 @@ MARSS Development site
 ------------------------------------
 New work on MARSS before posting to CRAN is at ``http://fishbox.iugo-cafe.org/user/e2holmes/MARSS Dev Site''.  Notes on known issues are also posted there.
 
-CHANGES IN MARSS 3.3  (09-28-2012)
+CHANGES IN MARSS 3.4  (02-11-2012)
+------------------------------------
+Added documentation for form="dfa" to MARSS_dfa.Rd and MARSS.Rd help files.
+
+bugs
+- fixed bug that prevented form="dfa" from working (was missing setting of fun.kf)
+
+
+CHANGES IN MARSS 3.3  (01-28-2012)
 ------------------------------------
 - linked the KFAS package to MARSS
 - MARSSkfas() was changed to work with the new KFAS version released July 2012.  This led to a 10-20 fold decrease in computation time for method="BFGS" and 2 fold for method="kem".

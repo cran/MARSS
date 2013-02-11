@@ -136,7 +136,8 @@ if(MARSS.inputs$z.score){
   dat = dat * (1/Sigma)
 }
 
-MARSS.inputs = list(data=dat, inits=MARSS.inputs$inits, MCbounds=MARSS.inputs$MCbounds, miss.value=as.numeric(NA), control=MARSS.inputs$control, method=MARSS.inputs$method, form="dlm", silent=MARSS.inputs$silent, fit=MARSS.inputs$fit)
+MARSS.inputs=MARSS.inputs[c("inits","MCbounds","miss.value","control","method","form","fit","silent","fun.kf")]
+MARSS.inputs$data = dat
 
 tmp = MARSS.marxss(list(data=dat,model=dfa.model))
 modelObj=tmp$marssm

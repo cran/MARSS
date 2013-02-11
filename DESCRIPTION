@@ -1,12 +1,12 @@
 Package: MARSS
 Type: Package
 Title: Multivariate Autoregressive State-Space Modeling
-Version: 3.3
-Date: 2013-1-25
-Depends: MASS, mvtnorm, nlme, KFAS
+Version: 3.4
+Date: 2013-2-11
+Depends: R (>= 2.15.0), MASS, mvtnorm, nlme, KFAS (>= 0.9.11)
 Suggests: Hmisc, maps, xtable
 Author: Eli Holmes, Eric Ward, and Kellie Wills, NOAA, Seattle, USA
-Maintainer: Eli Holmes <eli.holmes@noaa.gov>
+Maintainer: Elizabeth Holmes - NOAA Federal <eli.holmes@noaa.gov>
 Description: The MARSS package provides maximum-likelihood parameter
         estimation for constrained and unconstrained linear
         multivariate autoregressive state-space (MARSS) models fit to
@@ -24,11 +24,13 @@ Description: The MARSS package provides maximum-likelihood parameter
         applications, model selection, dynamic factor analysis, outlier
         and shock detection, and addition of covariates.  Type
         RShowDoc("UserGuide", package="MARSS") at the R command line to
-        open the MARSS user guide.  Online workshops (lecture material)
-        at http://faculty.washington.edu/eeholmes/workshops.shtml
+        open the MARSS user guide.  Online workshops (lecture material
+        and labs) at
+        http://faculty.washington.edu/eeholmes/workshops.shtml
 License: GPL-2
 LazyData: yes
 BuildVignettes: yes
-Packaged: 2013-01-25 20:55:53 UTC; eli.holmes
+Packaged: 2013-02-16 19:40:05 UTC; eli.holmes
+NeedsCompilation: no
 Repository: CRAN
-Date/Publication: 2013-01-26 08:19:38
+Date/Publication: 2013-02-18 17:01:48
