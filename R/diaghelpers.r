@@ -1,6 +1,9 @@
 ###########################################################################################################################
 #   diag helper functions
 ###########################################################################################################################
+#fast diagonal calc
+isDiag = function(x){ all(x[!diag(nrow(x))] == 0) }
+
 takediag = function(x)
   ############# Function to take the diagonal; deals with R trying to think too much with diag()
 {
@@ -51,7 +54,7 @@ is.equaltri = function(x) {
 is.diagonal = function(x, na.rm=FALSE) {
   #works on numeric matrices or list matrices
   #na.rm=TRUE means that NAs on the DIAGONAL are ignored
-  #non zero on diagonal; zero on off-diagonals
+  #ok if there are 0s on diagonal
   if(!is.matrix(x)) return(FALSE) #x must be 2D matrix; is.matrix returns false for 3D array
   x=as.matrix(unname(x))
   if(na.rm==FALSE && any(is.na(x))) return(FALSE)
@@ -83,6 +86,85 @@ is.identity = function(x, dim=NULL) {
   return(TRUE)
 }
 
+is.validvarcov = function(x, method="kem"){
+  #works on numeric and list matrices
+  #x must be 2D matrix; is.matrix returns false for 3D array
+  if(!is.matrix(x)) return(list(ok=FALSE, error="not a matrix "))
+  x=as.matrix(unname(x))
+  #no NAs
+  if(any(is.na(x))) return(list(ok=FALSE, error="NAs are not allowed in varcov matrix "))
+  nr = dim(x)[1]; nc = dim(x)[2];
+  #square
+  if(nr != nc) return(list(ok=FALSE, error="matrix is not square and all varcov matrices are "))
+  #symmetric
+  if(!isTRUE(all.equal(x,t(x)))) return(list(ok=FALSE, error="matrix is not symmetric and all varcov matrices are "))
+  #all valid varcov are some kind of blockdiag
+  if(!is.blockdiag(x)) return(list(ok=FALSE, error="matrix is not block diagonal and all varcov matrices are "))
+  #any diagonal elements that are 0, must have all 0 row and col
+  zero.diag=unlist( lapply(takediag(x),function(x){identical(x,0)} ))
+  if(any(zero.diag)){
+    #only need to check row, since matrix is symmetric
+    if(!all(unlist(lapply(x[zero.diag, ],function(x){identical(x,0)}))))
+      return(list(ok=FALSE, error="zero diagonal elements must have zero rows and columns "))
+    #get rid of the zero row/cols
+    x=x[!zero.diag,!zero.diag,drop=FALSE]
+    nr = dim(x)[1]; nc = dim(x)[2];
+    if(nr == 0) return(list(ok=TRUE, error=NULL))
+  }
+  #this tests the blocks to see if there is mixing of fixed and estimated elements
+  #makes a lists of the block estimates to test that blocks with shared values are identical
+  tmpx = x
+  blocks=list()
+  blockvals=list()
+  isdiag = c()
+  for(i in 1:nr){
+    block = which(!sapply(tmpx[1,,drop=FALSE],identical,0))
+    blocks=c(blocks,list(block))
+    this.block=tmpx[block,block,drop=FALSE]
+    vals = this.block[upper.tri(this.block, diag=TRUE)]
+    #within a block, you cannot have fixed and estimated values.  They have to be one or the other
+    if(!(all(unlist(lapply(vals, is.numeric))) | all(unlist(lapply(vals, is.character)))))
+      return(list(ok=FALSE, error="numeric (fixed) and estimated values cannot mixed in a varcov matrix "))
+    #if method="BFGS", then blocks must be diagonal or unconstrained, if estimated
+    if(method=="BFGS" & is.character(vals[[1]])){ #only test first since all the same class
+      if(any(duplicated(unlist(vals)))) return(list(ok=FALSE, error="when method=BFGS, no constraints can be put on varcov blocks except being diagonal "))
+    }
+    if(is.numeric(vals[[1]])){ #then the block is numeric and must be positive definite
+      pos.flag=FALSE
+      test.block = matrix(as.numeric(this.block),dim(this.block)[1],dim(this.block)[2])
+      tmp = try( eigen(test.block, only.values=TRUE), silent=TRUE )
+      if(class(tmp)=="try-error") pos.flag=TRUE
+      else if(!all(tmp$values >= 0)) pos.flag=TRUE
+      #if there is a problem
+      if(pos.flag){
+        return(list(ok=FALSE, error="One of the fixed blocks within the varcov matrix is not positive-definite "))
+      }
+      }
+    isdiag= c(isdiag, length(block)==1)
+    blockvals=c(blockvals, list( unlist(vals[unlist(lapply(vals,is.character))] )))
+    notblock = which(sapply(tmpx[1,,drop=FALSE],identical,0))
+    if(length(notblock)==0) break
+    tmpx=tmpx[notblock,notblock,drop=FALSE]
+    dim(tmpx) = c(length(notblock),length(notblock))
+  }
+  for(i in 1:length(blocks)){
+    #find blocks where there are shared values
+    shared = unlist(lapply(blockvals, function(x){any(x %in% blockvals[[i]])}))
+    #shared are any blocks with shared values; exclude itself
+    shared[i]=FALSE
+    if(any(shared)){ #then must be identical
+      if(all(isdiag[shared])) next #its ok since sharing only across diagonal 1x1 blocks
+    }
+    #go through list of blocks with which there are shared elements and check they are identical
+    tmp=lapply(blockvals[shared],function(x){ identical(x, blockvals[[i]])})
+    #it'll be a list, so unlist
+    if(!all(unlist(tmp))) return(list(ok=FALSE, error="there are shared elements across non-identical blocks "))
+  }
+
+  return(list(ok=TRUE, error=NULL)) #got through the check without returning FALSE, so OK
+  
+}
+
 is.blockdiag = function(x) {
   #works on numeric and list matrices
   if(!is.matrix(x)) return(FALSE) #x must be 2D matrix; is.matrix returns false for 3D array
@@ -90,7 +172,8 @@ is.blockdiag = function(x) {
   if(any(is.na(x))) return(FALSE)
   nr = dim(x)[1]; nc = dim(x)[2];
   if(nr != nc) return(FALSE)
-  if(any(sapply(takediag(x),identical,0))) return(FALSE)  #no zeros allowed on diagonal
+  #0s on diag are ok
+  #if(any(sapply(takediag(x),identical,0))) return(FALSE)  #no zeros allowed on diagonal
   
   #special cases. 1. diagonal
   if(is.diagonal(x)) return(TRUE)
@@ -111,56 +194,6 @@ is.blockdiag = function(x) {
   return(TRUE)
 }
 
-is.blockequaltri = function(x, uniqueblocks=FALSE) { #2D matrices only
-  #this looks for a block diagonal matrix with same number on diag and same (but different) number on off-diagonal 
-  #warning this returns true for a 1x1 matrix, diagonal matrix, and equaltri matrix
-  if(!is.matrix(x)) return(FALSE) #x must be 2D matrix; is.matrix returns false for 3D array
-  x=as.matrix(unname(x))
-  if(is.equaltri(x)) return(TRUE) #equaltri is a special case of block equaltri
-  if(!is.blockdiag(x)) return(FALSE) #blockequaltri is a special case of block diag
-  nr = dim(x)[1]
-  tmpx = x
-  trivals = c() #holder for the values
-  for(i in 1:nr){
-    block = which(!sapply(tmpx[1,,drop=FALSE],identical,0)) #1 since I keep shrinking the matrix
-    if(!is.equaltri(tmpx[block,block,drop=FALSE]) ) return(FALSE)
-    notblock = which(sapply(tmpx[1,,drop=FALSE],identical,0))
-    trivals=c(trivals,tmpx[block[1],block[1],drop=FALSE])
-    if(length(block)>1) trivals=c(trivals,tmpx[block[1],block[2],drop=FALSE])
-    if(length(notblock)==0) break
-    tmpx=tmpx[notblock,notblock,drop=FALSE]
-    dim(tmpx) = c(length(notblock),length(notblock))
-  }
-  if(uniqueblocks==TRUE)
-    if(length(trivals)!=length(unique(trivals))) return(FALSE) #not unique blocks
-  
-  return(TRUE) #got through the check without returning FALSE, so OK
-}
-
-is.blockunconst = function(x, uniqueblocks=FALSE) { #2D matrices only
-  #unconst means estimated, so if any numeric values in a block, it returns fall
-  #this looks for a block diagonal matrix with each block an unconstrained matrix
-  if(!is.matrix(x)) return(FALSE) #x must be 2D matrix; is.matrix returns false for 3D array
-  x=as.matrix(unname(x))
-  if(!is.blockdiag(x)) return(FALSE) #blockunconst is a special case of block diag
-  if(uniqueblocks==TRUE && any(table(as.character(x),exclude=c(NA,NaN,0))>1) )  return(FALSE) #all must be unique
-  nr = dim(x)[1]
-  tmpx = x
-  for(i in 1:nr){
-    block = which(!sapply(tmpx[1,,drop=FALSE],identical,0))
-    if(any(sapply(tmpx[block,block,drop=FALSE],is.numeric))) return(FALSE) #the blocks need to be all estimated
-    if(!is.list(tmpx)){ tmp = unique(vec(tmpx[block,block,drop=FALSE]))
-    }else{ tmp = unique(unlist(tmpx[block,block,drop=FALSE])) }
-    dimblock = length(block)
-    if(!is.diagonal(convert.model.mat(tmpx[block,block,drop=FALSE]))) return(FALSE) #not unconstrained
-    notblock = which(sapply(tmpx[1,,drop=FALSE],identical,0))
-    if(length(notblock)==0) break
-    tmpx=tmpx[notblock,notblock,drop=FALSE]
-    dim(tmpx) = c(length(notblock),length(notblock))
-  }
-  return(TRUE) #got through the check without returning FALSE, so OK
-}
-
 is.design = function(x, strict=TRUE, dim=NULL, zero.rows.ok=FALSE, zero.cols.ok=FALSE) {  #can be 2D or 3D
   #strict means only 0,1; not strict means 1s can be other numbers
   #zero.rows.ok means that the rowsums can be 0 (if that row is fixed, say)
@@ -178,8 +211,9 @@ is.design = function(x, strict=TRUE, dim=NULL, zero.rows.ok=FALSE, zero.cols.ok=
     x=unvec(x,dim=dim)
   }
   x=as.matrix(unname(x)) #so that all.equal doesn't fail
-  if(any(is.na(x)) || any(is.nan(x))) return(FALSE)
+  if(any(is.na(x))) return(FALSE)
   if(!is.numeric(x)) return(FALSE)  #must be numeric
+  if(any(is.nan(x))) return(FALSE)
   if(!strict){
       is.zero = !x
 #     is.zero = sapply(lapply(x,all.equal,0),isTRUE) #funky to use near equality
@@ -395,7 +429,7 @@ convert.model.mat=function(param.matrix){
       }
     }else{ #no * or +? Then this is faster
       for(p in varnames){
-        i = which(c==p)
+        i = which(sapply(c,function(x){identical(x,p)})) #which(c==p); c==p fails if user uses names like "1"
         drow=i%%dim.f1
         drow[drow==0]=dim.f1
         free[drow,which(p==varnames),ceiling(i/dim.f1)]=1

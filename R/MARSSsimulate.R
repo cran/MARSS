@@ -17,7 +17,7 @@ MARSSsimulate = function(MLEobj, tSteps=NULL, nsim=1, silent=TRUE, miss.loc=NULL
   m = dim(modelObj$fixed$x0)[1]
   
   ###### Error-checking on modelObj
-  tmp = is.marssMODEL(modelObj)
+  tmp = is.marssMODEL(modelObj, method=MLEobj[["method"]])
   if(!isTRUE(tmp)) {
     if(!silent) cat(tmp)
     stop("Stopped in MARSSsimulate() due to problem with modelObj.\n", call.=FALSE)

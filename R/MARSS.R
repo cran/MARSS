@@ -54,11 +54,11 @@ MARSS = function(y,
   ## Check that the marssMODEL object output by MARSS.form() is ok
   ## More checking on the control list is done by is.marssMLE() to make sure the MLEobj is ready for fitting
   if(silent==2) cat(paste("Checking that the marssMODEL object output by MARSS.",form,"() is ok.\n",sep=""))
-  tmp = is.marssMODEL(marss.object)
+  tmp = is.marssMODEL(marss.object, method=method)
   if(!isTRUE(tmp)) {
     if( !silent || silent==2 ) { cat(tmp); return(marss.object) } 
     stop("Stopped in MARSS() due to problem(s) with model specification. If silent=FALSE, marssMODEL object (in marss form) will be returned.\n", call.=FALSE)
-  }
+  }else{ if(silent==2) cat("  marssMODEL is ok.\n") }
   
   ## checkMARSSInputs() call does the following:  
   ## Check that the user didn't pass in any illegal arguments
@@ -153,18 +153,34 @@ MARSS = function(y,
       if(all(unlist(lapply(MLEobj$marss$free,is.fixed)))){
         MLEobj$convergence=3
         MLEobj$par=list(); for(el in attr(MLEobj$marss,"par.names")) MLEobj$par[[el]]=matrix(0,0,1)
-        kf=MARSSkfss(MLEobj) #kfss is better here
+      }else{ #there is something to estimate
+        if(silent==2 ) cat(paste("Fitting model with ",method,".\n",sep=""))
+        ## Fit and add param estimates to the object
+        if(method %in% kem.methods) MLEobj = MARSSkem(MLEobj)
+        if(method %in% optim.methods) MLEobj = MARSSoptim(MLEobj)
+      }
+      
+      ## Add AIC and AICc and coef to the object
+      ## Return as long as something was estimated and there are no errors, but might not be converged
+      # If all params fixed (so no fitting), convergence==3
+      if((MLEobj$convergence%in%c(0,1)) | (MLEobj$convergence%in%c(10,11) && method %in% kem.methods) ){
+        MLEobj = MARSSaic(MLEobj)
+        MLEobj$coef = coef(MLEobj,type="vector")
+      }
+      ## Add states.se and y.se if no errors.  Return kf and Ey if trace>0
+      if((MLEobj$convergence%in%c(0,1,3)) | (MLEobj$convergence%in%c(10,11) && method %in% kem.methods) ){
+        kf=MARSSkf(MLEobj) #use function requested by user
+        if(fun.kf=="MARSSkfas") kfss=MARSSkfss(MLEobj) else kfss=kf
         MLEobj$states=kf$xtT
         MLEobj$logLik=kf$logLik
-        if(!is.null(kf[["VtT"]])){
+        if(!is.null(kfss[["VtT"]])){
           m = attr(MLEobj$marss,"model.dims")[["x"]][1]
           TT = attr(MLEobj$marss,"model.dims")[["data"]][2]
-          if(m == 1) states.se = sqrt(matrix(kf$VtT[,,1:TT], nrow=1))
-          if(m > 1) {
-            states.se = matrix(0, nrow=m, ncol=TT)
-            for(i in 1:TT) 
-              states.se[,i] = t(sqrt(takediag(kf$VtT[,,i])))
-          }
+          states.se = apply(kfss[["VtT"]],3,function(x){takediag(x)})
+          states.se[states.se<0]=NA
+          states.se=sqrt(states.se)
+          if(m==1) states.se=matrix(states.se,1,TT)
+          rownames(states.se)=attr(MLEobj$marss, "X.names")
         }else{  states.se=NULL }
         MLEobj[["states.se"]] = states.se
         Ey=MARSShatyt(MLEobj)
@@ -173,46 +189,27 @@ MARSS = function(y,
           n = attr(MLEobj$marss,"model.dims")[["y"]][1]
           TT = attr(MLEobj$marss,"model.dims")[["data"]][2]
           if(n == 1) y.se = sqrt(matrix(Ey[["OtT"]][,,1:TT], nrow=1))
-          if(n > 1) {
-            y.se = matrix(0, nrow=n, ncol=TT)
-            for(i in 1:TT) 
-              y.se[,i] = t(sqrt(takediag(Ey[["OtT"]][,,i])))
-          }
+          if(n > 1) y.se = apply(Ey[["OtT"]],3,function(x){sqrt(takediag(x))})
+          rownames(y.se)=attr(MLEobj$marss, "Y.names")
         }else{  y.se=NULL }
         MLEobj$y.se=y.se
-        if(MLEobj$control$trace>0){ 
-          MLEobj$kf=MARSSkf(MLEobj)
+        if(MLEobj$control$trace>0){ #then return kf and Ey
+          MLEobj$kf=kf #from above will use function requested by user
+          #except these are only returned by MARSSkfss
+          MLEobj$Innov=kfss$Innov
+          MLEobj$Sigma=kfss$Sigma
+          MLEobj$Vtt=kfss$Vtt
+          MLEobj$xtt=kfss$xtt
+          MLEobj$J=kfss$J
+          MLEobj$J0=kfss$J0
+          MLEobj$Kt=kfss$Kt
           MLEobj$Ey=MARSShatyt(MLEobj)
         }
-      }else{ #there is something to estimate
-        if(silent==2 ) cat(paste("Fitting model with ",method,".\n",sep=""))
-        ## Fit and add param estimates to the object
-        if(method %in% kem.methods) MLEobj = MARSSkem(MLEobj)
-        if(method %in% optim.methods) MLEobj = MARSSoptim(MLEobj)
+        #apply X and Y names various X and Y related elements
+        MLEobj = MARSSapplynames(MLEobj)
+        
+        
       }
-      
-      #apply X and Y names various X and Y related elements
-      MLEobj = MARSSapplynames(MLEobj)
-      
-      ## Add AIC and AICc and coef to the object
-      ## Return as long as there are no errors, but might not be converged
-      if((MLEobj$convergence%in%c(0,1)) | (MLEobj$convergence%in%c(10,11) && method %in% kem.methods) ){
-        MLEobj = MARSSaic(MLEobj)
-        MLEobj$coef = coef(MLEobj,type="vector")
-        #add on the states.se's
-        kf=MARSSkfss(MLEobj) #kfss is better here
-        if(!is.null(kf[["VtT"]])){
-          m = attr(MLEobj$marss,"model.dims")[["x"]][1]
-          TT = attr(MLEobj$marss,"model.dims")[["data"]][2]
-          if(m == 1) states.se = sqrt(matrix(kf$VtT[,,1:TT], nrow=1))
-          if(m > 1) {
-            states.se = matrix(0, nrow=m, ncol=TT)
-            for(i in 1:TT) 
-              states.se[,i] = t(sqrt(takediag(kf$VtT[,,i])))
-          }
-        }else{  states.se=NULL }
-         MLEobj[["states.se"]] = states.se
-        }
     } # fit the model
     
     if((!silent || silent==2) & MLEobj$convergence %in% c(0,1,3,10,11,12)){ print(MLEobj) }

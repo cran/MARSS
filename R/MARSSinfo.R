@@ -12,7 +12,10 @@ cat("You need to pass in a number or text to get info.
      9: iter=xx MARSSkf: logLik computation is becoming unstable.  Condition num. of Sigma[t=1] = Inf and of R = Inf.
     10: Warning: setting diagonal to 0 blocked at iter=X. logLik was lower in attempt to set 0 diagonals on X
     11: MARSS seems to take a long, long, long time to converge
+    20: Your model object is not the right class.
     21: MARSS complains about init values for V0
+    22: Error: 0s on the diagonal of R; corresponding x0 should be be fixed.
+    23: Warning: Setting of 0s on the diagonal of R blocked; corresponding x0 should not be estimated.
 ")
 return()
 }
@@ -203,4 +206,53 @@ test for the parameters and use only the abstol test---which tests if the log-li
 than some tolerance between iterations.  To do this, pass in a huge value for
 the slope of the log-log convergence test.  Pass this into your MARSS call: control=list(conv.test.slope.tol=1000)\n"))
 
+  if(number==20)
+    writeLines(
+      'Version 3.7 uses model objectd with attributes while versions 3.4 and earlier did not.  In order, to view 3.4
+model fits with MARSS version 3.5+, you need to add on the attributes.  Here is some code to do that.
+              
+# x is a pre 3.5 marssMLE object from a MARSS call.  x=MARSS(....)
+x$marss=x$model
+class(x$marss)="marssMODEL"
+attr(x$marss,"form")="marss"
+attr(x$marss,"par.names")=names(x$marss$fixed)
+tmp=x$marss$model.dims
+for(i in names(tmp)) if(length(tmp[[i]])==2) tmp[[i]]=cbind(tmp[[i]],1)
+tmp$x=c(sqrt(dim(kemz$model$fixed$Q)[1]), dim(kemz$model$data)[2])
+tmp$y=c(sqrt(dim(kemz$model$fixed$R)[1]), dim(kemz$model$data)[2])
+attr(x$marss,"model.dims")=tmp
+attr(x$marss,"X.names")=x$marss$X.names
+              
+class(x$model)="marssMODEL"
+x$model=x$form.info$marxss
+attr(x$model,"form")=x$form.info$form
+attr(x$model,"par.names")=names(x$model$fixed)
+tmp=x$form.info$model.dims
+for(i in names(tmp)) if(length(tmp[[i]])==2) tmp[[i]]=cbind(tmp[[i]],1)
+tmp$x=c(sqrt(dim(kemz$model$fixed$Q)[1]), dim(kemz$model$data)[2])
+tmp$y=c(sqrt(dim(kemz$model$fixed$R)[1]), dim(kemz$model$data)[2])
+attr(x$model,"model.dims")=tmp
+attr(x$model,"X.names")=x$marss$X.names
+              
+#now this should work
+coef(x, type="matrix")
+')
+ 
+  if(number==22)
+    writeLines(
+      strwrap("This is a constraint imposed by the EM algorithm.  What's happening is that x0 cannot be solved for because the 
+0s on the diagonal of R are causing it to disappear from the likelihood.  Most likely you have set tinitx=1, because the problematic
+part of the likelihood is the Y part. You have Y_1 = Z x_1 and depending on Z that might not be solvable for x_1.  If you haven't
+set R to 0, then pass in allow.degen=FALSE.  That will stop R being set to 0.  If you did set R to zero, then try 
+setting tinitx=0 if that makes sense for your model.  You can also try putting a diffuse prior on x0, IF 
+you know the implied covariance structure of x0.  However,
+if you know that, then setting tinitx=0 is likely ok."))
+
+  if(number==23)
+    writeLines(
+      strwrap("This is the same error as number 22 except that the 0s on the diagonal of R are arising because
+              allow.degen=TRUE (this is the default setting in the control list) and R is getting very small.
+              MARSS attempts to set R to 0, but the constraint that x0 associated with R=0 comes into play.
+              MARSS then blocks the setting of R to 0 and warns you.  You can set allow.degen=FALSE, but it
+              is just an informational warning.  There is nothing wrong per se."))
 }

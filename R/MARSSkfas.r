@@ -23,11 +23,11 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
     yt[!YM]=as.numeric(NA)
     
     #Stack the y so that we can get the lag-1 covariance smoother from the Kalman filter output
-    stack.yt=rbind(yt[,1:TT,drop=FALSE],cbind(NA,yt[,1:(TT-1),drop=FALSE]))
-
+    #stack.yt=rbind(yt[,1:TT,drop=FALSE],cbind(NA,yt[,1:(TT-1),drop=FALSE]))
+    #stack.yt=t(stack.yt)
+    
     #KFS needs time going down rows so yt can be properly converted to ts object
     yt=t(yt)
-    stack.yt=t(stack.yt)
     
     #Build the Zt matrix which is n x (m+1) or n x (m+1) x T; (m+1) because A is in Z
     if( model.dims$Z[3] == 1 & model.dims$A[3]==1 ){  
@@ -183,16 +183,7 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
     
 #not using ks.out$v (Innov) and ks.out$F (Sigma) since I think there might be a bug when R is not diagonal.
 par.R=parmat(MLEobj,"R",t=1:model.dims$R[3])$R
-    #expensive test and this is fast
-isDiag = function(x){ all(x[!diag(nrow(x))] == 0) }
-is.diag=ifelse( model.dims$R[3]==1,isDiag(par.R),all(apply(par.R,3,isDiag)) )
-if(is.diag){
-  innov.rtn=ks.out$v
-  sigma.rtn=ks.out$F
-}else{
-  innov.rtn="R is not diagonal; use MARSSkfss to get innovations in this case"
-  sigma.rtn="R is not diagonal; use MARSSkfss to get sigma in this case"
-}
+
     rtn.list = list(
     xtT = ks.out$alphahat[1:m,,drop=FALSE],
     VtT = VtT, 
@@ -210,7 +201,8 @@ if(is.diag){
     Kt="Use MARSSkfss to get Kt", 
     xtt1 = ks.out$a[1:m,1:TT,drop=FALSE], 
     xtt= "Use MARSSkfss to get xtt",
-    Innov=innov.rtn, Sigma=sigma.rtn,
+    Innov="Use MARSSkfss to get Innov", 
+    Sigma="Use MARSSkfss to get Sigma",
     kfas.model=kfas.model,
     logLik=ks.out$logLik,
     ok=TRUE,

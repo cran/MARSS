@@ -6,7 +6,7 @@
 # That it has all its attributes and 
 # that the fixed and free matrices fit the specified attributes (internally consistent)
 ########################################################################
-is.marssMODEL <- function(modelObj) {
+is.marssMODEL <- function(modelObj, method="kem") {
   if(class(modelObj) != "marssMODEL") stop("Stopped in is.marssMODEL() because object class is not marssMODEL.\n", call.=FALSE)
   msg = NULL
   
@@ -145,7 +145,7 @@ is.marssMODEL <- function(modelObj) {
       msg = c(msg, paste("fixed", par.names[dim.fixed],"is not 3D.\n"))   }
     if(any(dim.free)) {
       msg = c(msg, paste("free", par.names[dim.free],"is not 3D.\n"))    }
-    msg=c("\nErrors were caught in is.marssMODEL_marss()\n", msg)
+    msg=c("\nErrors were caught in is.marssMODEL()\n", msg)
     return(msg)
   }
 
@@ -244,7 +244,7 @@ is.marssMODEL <- function(modelObj) {
   tmp=try(exists(is.marssMODEL.fun, mode="function"),silent=TRUE)
   if(isTRUE(tmp)){
     #the is.marssMODEL_form function runs tests and then returns msgs
-    msg=eval(call(is.marssMODEL.fun, modelObj))
+    msg=eval(call(is.marssMODEL.fun, modelObj, method=method))
   }else{ 
     msg=c(msg, paste("No is.marssMODEL_", form[1], " is available to test the model object.\n", sep=""))
   }

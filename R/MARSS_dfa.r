@@ -157,7 +157,7 @@ if(MARSS.call[["z.score"]]){
   dat = dat * (1/Sigma)
 }
 
-MARSS.call = list(data=dat, inits=MARSS.call$inits, MCbounds=MARSS.call$MCbounds, control=MARSS.call$control, method=MARSS.call$method, form="dlm", silent=MARSS.call$silent, fit=MARSS.call$fit)
+MARSS.call = list(data=dat, inits=MARSS.call$inits, MCbounds=MARSS.call$MCbounds, control=MARSS.call$control, method=MARSS.call$method, form="dlm", silent=MARSS.call$silent, fit=MARSS.call$fit, fun.kf=MARSS.call$fun.kf)
 
 #dfa is a type of marxss model, so use MARSS.marxss to test it and set up the marss object
 tmp = MARSS.marxss(list(data=dat,model=dfa.model,method=MARSS.call$method,silent=MARSS.call$silent))
@@ -178,4 +178,4 @@ coef_dfa = function(x){ return(coef_marxss(x)) }
 MARSSinits_dfa = function(MLEobj, inits){ return(MARSSinits_marxss(MLEobj, inits)) }
 predict_dfa = function(x, newdata, n.ahead, t.start){ predict_marxss(x, newdata, n.ahead, t.start) }
 describe_dfa = function(modelObj){ describe_marss(modelObj) }
-is.marssMODEL_dfa = function(modelObj){ is.marssMODEL_marxss(modelObj) }
+is.marssMODEL_dfa = function(modelObj, method="kem"){ is.marssMODEL_marxss(modelObj, method=method) }

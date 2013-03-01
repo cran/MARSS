@@ -862,6 +862,8 @@ kf.x0 = ifelse(modelObj[["tinitx"]]==1,"x10","x00")  #the initial conditions tre
     msg.conv=MLEobj.iter$conv.test$messages
     if( catinfo ) cat(paste("Error! EM algorithm exited due to errors reported by log-log test function.\n" ,sep=""))
   }
+  #if it returns 4, then abstol never reached before maxit hit.  Abstol must be hit before log-log
+  #test run.  Thus we need to run the log-log test here IF we have enough iterations
   if(MLEobj.iter$conv.test$convergence==4){
     tmp.msg=paste("Warning! Reached maxit before parameters converged. Maxit was ",control$maxit,".\n",sep="")
     if( iter>=control$min.iter.conv.test ){  
@@ -880,7 +882,7 @@ kf.x0 = ifelse(modelObj[["tinitx"]]==1,"x10","x00")  #the initial conditions tre
         MLEobj.return$convergence=1
         if( catinfo ) cat(paste(tmp.msg, " neither abstol nor log-log convergence tests were passed.\n",sep=""))
       }      
-      if(loglog.test$convergence>1){
+      if(loglog.test$convergence>1){ #loglog test should never return > 1
         MLEobj.return$convergence=72
         if( catinfo ) cat(paste(tmp.msg, " abstol not reached and log-log convergence returned errors.\n",sep=""))
       }     
@@ -889,11 +891,16 @@ kf.x0 = ifelse(modelObj[["tinitx"]]==1,"x10","x00")  #the initial conditions tre
       if( catinfo ) cat(paste(tmp.msg, " abstol not reached and no log-log test info since maxit less than min.iter.conv.test.\n",sep=""))
     }
   }
+  #At this point $conv.test$convergence==4 still and $convergence is 52,62,72 errors;
+  #1 neither abstol nor loglog; 11 loglog only; 12 no abstol and no info on loglog;
+  
+  #if conv.test$convergence == 3, abstol reached but no info on loglog since maxit < min.iter.conv.test
   if(MLEobj.iter$conv.test$convergence==3){
     tmp.msg=paste("Warning! Abstol convergence only. no info on log-log convergence.\n",sep="")
     MLEobj.return$convergence = 3
     if( catinfo ) cat(paste(tmp.msg, " Maxit (=",control$maxit,") < min.iter.conv.test (=",control$min.iter.conv.test,") so not log-log test.\n", sep=""))
   }
+  #if conv.tst$convergence==1, then abstol reached but no loglog convergence
   if(MLEobj.iter$conv.test$convergence==1){
     MLEobj.return$convergence = 10
     msg.conv=MLEobj.iter$conv.test$messages
@@ -914,22 +921,8 @@ kf.x0 = ifelse(modelObj[["tinitx"]]==1,"x10","x00")  #the initial conditions tre
   
   ## Other misc output
   MLEobj.return$par=MLEobj.iter$par
-  if(control$trace>0) MLEobj.return$kf = MLEobj.iter$kf else MLEobj.return$kf = NULL
-  if(control$trace>0) MLEobj.return$Ey = MLEobj.iter$Ey else MLEobj.return$Ey = NULL
-    MLEobj.return$states = MLEobj.iter$kf$xtT
+  MLEobj.return$states = MLEobj.iter$kf$xtT
   MLEobj.return$logLik = MLEobj.iter$logLik
-
-# I don't want se's added here
-#   ## To calculate confidence intervals based on state std errors, see caption of Fig 6.3 (p337) Shumway & Stoffer 206
-#   if(!is.null(kf[["VtT"]])){
-#     if(m == 1) states.se = sqrt(matrix(kf$VtT[,,1:TT], nrow=1))
-#     if(m > 1) {
-#       states.se = matrix(0, nrow=m, ncol=TT)
-#       for(i in 1:TT) 
-#         states.se[,i] = t(sqrt(takediag(kf$VtT[,,i])))
-#     }
-#     }else  states.se=NULL
-#   MLEobj.return$states.se = states.se
 
   if(!is.null(msg.kem)){ msg.kem=c("\nMARSSkem warnings. Type MARSSinfo() for help.\n", msg.kem); msg=c(msg, msg.kem) }
   if(!is.null(msg.kf)) { msg.kf=c("\nMARSSkf warnings. Type MARSSinfo() for help.\n", msg.kf); msg=c(msg, msg.kf) }
@@ -945,6 +938,7 @@ kf.x0 = ifelse(modelObj[["tinitx"]]==1,"x10","x00")  #the initial conditions tre
 }
 
 ## Run log-log convergence diagnostics
+# 0 converged; 1 not converged; negative problem
 loglog.conv.test = function(iter.record, iter, params.to.test=c("Z","U","x0","R","Q","A","logLik"), deltaT=9, tol=0.5){
   if( !is.list(iter.record) || !all(c("par","logLik") %in% names(iter.record)) || 
     !any(params.to.test %in% c(names(iter.record$par),names(iter.record))) ||

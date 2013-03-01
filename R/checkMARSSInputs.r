@@ -10,7 +10,7 @@ checkMARSSInputs = function(MARSS.inputs, silent=FALSE)
 alldefaults = get("alldefaults",pkg_globals)
 
 #Check that wrapper passed in and all wrapper elements are present
-  el = c("data", "inits", "MCbounds", "marss", "control", "method", "form", "fit", "silent")
+  el = c("data", "inits", "MCbounds", "marss", "control", "method", "form", "fit", "silent", "fun.kf")
   if( !all(el %in% names(MARSS.inputs)) ){ 
      msg=paste(" Element", el[!(el %in% names(MARSS.inputs))], "is missing in MARSS call.\n")
      cat("\n","Errors were caught in checkMARSSInputs \n", msg, sep="")
@@ -85,7 +85,13 @@ msg=c("")
     problem=TRUE
     msg = c(msg, " fit must be TRUE or FALSE.\n")
   }
-  
+
+#check that fun.kf is allowed
+if(!(MARSS.inputs$fun.kf %in% c("MARSSkfas", "MARSSkfss"))){
+  problem=TRUE
+  msg = c(msg, " fun.kf must be MARSSkfas or MARSSkfss (in quotes).\n")
+}
+
 #If there are errors, then don't proceed with the rest of the checks
   if(problem)  {
           cat("\n","Errors were caught in checkMARSSInputs \n", msg, sep="")

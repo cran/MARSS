@@ -5,8 +5,7 @@
 \alias{is.identity}
 \alias{is.diagonal}
 \alias{is.equaltri}
-\alias{is.blockequaltri}
-\alias{is.blockunconst}
+\alias{is.validvarcov}
 \alias{is.design}
 \alias{is.fixed}
 \alias{is.zero}
@@ -32,8 +31,7 @@
 }
 \usage{
 is.blockdiag(x)
-is.blockequaltri(x, uniqueblocks=FALSE)
-is.blockunconst(x, uniqueblocks=FALSE)
+is.validvarcov(x, method="kem")
 is.identity(x, dim=NULL)
 is.diagonal(x, na.rm=FALSE)
 is.equaltri(x)
@@ -68,7 +66,7 @@ parmat(MLEobj, elem = c("B", "U", "Q", "Z", "A", "R", "x0", "V0"),
   \item{free}{ A free matrix per the MARSS specification for free matrix syntax. }
   \item{nrow}{ Number of rows. }
   \item{tol}{ Tolerance. }
-  \item{uniqueblocks}{ Must blocks be unique? }
+  \item{method}{ kem or BFGS.  Used to add extra test for MARSSoptim(). }
   \item{t}{ The time index or third dimension of a 3D matrix }
   \item{nu, V}{ Parameters of a Wishart distribution. }
   \item{param.matrix}{ The list matrix version of a time-invariant MARSS model. }

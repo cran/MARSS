@@ -13,25 +13,34 @@ paramnames=names(paramvec)
 if(method=="hessian")  {
     #if the model has no Hessian specified, then run emHessian to get it
     if(is.null(MLEobj[["Hessian"]])) MLEobj.hessian = MARSShessian(MLEobj)
+    #deal with NAs in the Hessian
+    na.diag = is.na(diag(MLEobj.hessian$Hessian))
+    diag(MLEobj.hessian$Hessian)[ na.diag ] = 1 #this will lead to NA as needed
+    MLEobj.hessian$Hessian[is.na(MLEobj.hessian$Hessian)]=0
+
     #standard errors
     hessInv = try(solve(MLEobj.hessian$Hessian))
     vector.par.se =rep(NA,length(paramvec))
     if(inherits(hessInv, "try-error") ) {
         warning("MARSSparamCIs: Hessian cannot be inverted; stderr = NA is being returned")
     }else{
+      diag(hessInv)[ na.diag ] = 0
     is.neg=diag(hessInv)<0
     vector.par.se[!is.neg] = try(sqrt(diag(hessInv)[!is.neg]), silent=TRUE)      #invert the Hessian; wrap in a try() in case it fails
     if(inherits(vector.par.se, "try-error") || any(is.nan(vector.par.se))) {
         warning("MARSSparamCIs: Some of the hessian diagonals cannot be square-rooted; stderr = NA is being returned")
         }
-    }
+    }    
     paramvec.hessian =  MARSSvectorizeparam(MLEobj.hessian)
-    #this is in Cholessky transformed form
+    #this is in Cholesky transformed form
     vector.par.upCI = paramvec.hessian + qnorm(1-alpha/2)*vector.par.se
     vector.par.lowCI = paramvec.hessian - qnorm(1-alpha/2)*vector.par.se
     #need to back transform
     vector.par.upCI = MARSShessian.backtrans(MLEobj.hessian, vector.par.upCI)
     vector.par.lowCI = MARSShessian.backtrans(MLEobj.hessian, vector.par.lowCI)
+    vector.par.lowCI[ na.diag ] = NA
+    vector.par.upCI[ na.diag ] = NA
+    vector.par.se[ na.diag ] = NA
     vector.par.bias = NULL; par.CI.nboot = NULL
 } #if method hessian
 

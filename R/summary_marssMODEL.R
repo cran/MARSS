@@ -1,5 +1,5 @@
 ###############################################################################################################################################
-#  Summary method for class marssMODEL form = marss
+#  Summary method for class marssMODEL
 ###############################################################################################################################################
 
 summary.marssMODEL <- function (object, ...) 
@@ -8,9 +8,10 @@ summary.marssMODEL <- function (object, ...)
    n = dim(object$data)[1]; m = dim(object$fixed$x0)[1]
    cat(paste("Model Structure is\n","m: ",m," state process(es)\n","n: ",n," observation time series\n",sep=""))
 
-      rpt.list = list()
-      en = c("Z", "A", "R", "B", "U", "Q", "x0", "V0")
-      dim.tmp = list(Z=c(n,m), A=c(n,1), R=c(n,n), B=c(m,m), U=c(m,1), Q=c(m,m), x0=c(m,1), V0=c(m,m))
+   rpt.list = list()
+   en = attr(object,"par.names") #c("Z", "A", "R", "B", "U", "Q", "x0", "V0")
+   dim.tmp = attr(object, "model.dims") 
+   #dim.tmp = list(Z=c(n,m), A=c(n,1), R=c(n,n), B=c(m,m), U=c(m,1), Q=c(m,m), x0=c(m,1), V0=c(m,m))
 
    xnames = attr(object,"X.names")
 	 if(is.null(xnames)) xnames = paste("X",1:m,sep="")
@@ -19,9 +20,9 @@ summary.marssMODEL <- function (object, ...)
    
   for (elem in en) {
     #list matrix version of the model    
-    Tmax=max(dim(object$fixed[[elem]])[3],dim(object$free[[elem]])[3])
+    Tmax=dim.tmp[[elem]][3]
     for(t in 1:Tmax){
-      tmp = fixed.free.to.formula( sub3D(object$fixed[[elem]],t=t),sub3D(object$free[[elem]],t=t),dim.tmp[[elem]] )
+      tmp = fixed.free.to.formula( sub3D(object$fixed[[elem]],t=t),sub3D(object$free[[elem]],t=t),dim.tmp[[elem]][1:2] )
       if(Tmax==1) rpt.list[[elem]] = tmp
       if(t==1 & Tmax>1) rpt.list[[elem]]=array(list(),dim=c(dim(tmp),Tmax))
       if(Tmax>1) rpt.list[[elem]][,,t] = tmp
@@ -33,8 +34,9 @@ summary.marssMODEL <- function (object, ...)
 	  if(elem %in% c("B","U","Q","x0","V0")) rownames(rpt.list[[elem]])=xnames
 	  if(elem %in% c("Z","A","R")) rownames(rpt.list[[elem]])=ynames
   } #for elem
-  
+  rpt.list$tinitx = object$tinitx
+   
   print(rpt.list, quote=FALSE)
-  invisible(object)
+  invisible(rpt.list)
           
   }

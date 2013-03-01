@@ -1,8 +1,8 @@
-toLatex.marssMODEL = function(object, ..., file=NULL,digits=2,greek=TRUE,orientation="landscape",math.sty="amsmath",output=c("pdf","tex"),replace=TRUE,simplify=TRUE){
+toLatex.marssMODEL = function(object, ..., file=NULL, digits=2, greek=TRUE, orientation="landscape", math.sty="amsmath", output=c("pdf","tex"),replace=TRUE,simplify=TRUE){
   #by default uses geometry package and amsmath
   require(Hmisc)
   require(stringr)
-  x = object
+  x=object
   #set the environment of the subfunction to this function since I want them to have access to the passed in variables
   #environment(build.eqn.tex)=environment()
   #environment(get.mat.tex)=environment()

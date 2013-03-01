@@ -15,6 +15,8 @@ Mt = array(0,dim=c(n,n,TT))
 Jt = matrix(0,m,TT)
 #MARSSkfas doesn't output Innov, Sigma or Kt so might need to run MARSSkfss to get those
 if(is.null(MLEobj[["kf"]]) | is.null(MLEobj$kf$Innov) | is.null(MLEobj$kf$Sigma) | is.null(MLEobj$kf$Kt)) MLEobj$kf=MARSSkfss(MLEobj)
+#MARSSkfas sets these to a character warning, so not NULL; add this to catch that
+if(!is.array(MLEobj$kf$Innov) | is.array(MLEobj$kf$Sigma) | is.array(MLEobj$kf$Kt)) MLEobj$kf=MARSSkfss(MLEobj)
 vt = MLEobj$kf$Innov
 Ft = MLEobj$kf$Sigma
 for(t in seq(TT,2,-1)){

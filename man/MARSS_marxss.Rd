@@ -4,7 +4,7 @@
 \description{
 The argument \code{form="marxss"} in a MARSS() function call specifies a MAR-1 model with eXogenous variables model.  This is a MARSS(1) model of the form:
 \describe{
-\item{x(t+1) = B(t) x(t) + u(t) + C(t)c(t) + w(t), where w(t) ~ MVN(0,Q(t))}{}
+\item{x(t) = B(t) x(t-1) + u(t) + C(t)c(t) + w(t), where w(t) ~ MVN(0,Q(t))}{}
 \item{y(t) = Z(t) x(t) + a(t) + D(t)d(t) + v(t), where v(t) ~ MVN(0,R(t))}{}
 \item{x(0) ~ MVN(x0, V0)}{} 
 }

@@ -24,43 +24,54 @@ model.list.2=list(Z=Z,B=B,U=U,Q=Q,A=A,R=R,x0=pi,V0=V,tinitx=1)
 ###################################################
 ### code chunk number 5: Cs_03_ar2.fit
 ###################################################
-init.list=list(Q=matrix(1,1,1),B=matrix(1,2,1))
-ar2=MARSS(sim.ar2[2:TT],model=model.list.2,inits=init.list)
-print(cbind(true=true.2[2:4],estimated=coef(ar2,type="vector")))
+ar2=MARSS(sim.ar2[2:TT],model=model.list.2)
 
 
 ###################################################
-### code chunk number 6: Cs_04_ar2.gappy
+### code chunk number 6: Cs_03a_ar2.fit
 ###################################################
-TT=50
+print(cbind(true=true.2[2:4],estimates=coef(ar2,type="vector")))
+
+
+###################################################
+### code chunk number 7: Cs_04_ar2.gappy
+###################################################
 gappy.data=sim.ar2[2:TT]
-gappy.data[floor(runif(TT/2,1,TT))]=NA
-ar2.gappy=MARSS(gappy.data,model=model.list.2,inits=init.list)
+gappy.data[floor(runif(TT/2,2,TT))]=NA
+ar2.gappy=MARSS(gappy.data,model=model.list.2)
 
 
 ###################################################
-### code chunk number 7: Cs_05_arima
+### code chunk number 8: Cs_04a_ar2.gappy
+###################################################
+print(cbind(true=true.2[2:4],
+   estimates.no.miss=coef(ar2,type="vector"),
+   estimates.w.miss=coef(ar2.gappy,type="vector")))
+
+
+###################################################
+### code chunk number 9: Cs_05_arima
 ###################################################
 arima(gappy.data,order=c(2,0,0),include.mean=FALSE)
 
 
 ###################################################
-### code chunk number 9: Cs_060_mar2.sim
+### code chunk number 11: Cs_060_mar2-sim
 ###################################################
 TT=50
 true.2=c(r=0,b1=-1.5,b2=-0.75,q=1)
-temp1=arima.sim(n=TT,list(ar=true.2[2:3]),sd=sqrt(true.2[4]))
+temp1=arima.sim(n=TT,list(ar=true.2[c("b1","b2")]),sd=sqrt(true.2["q"]))
 
 
 ###################################################
-### code chunk number 11: Cs_061_mar2.sim
+### code chunk number 13: Cs_061_mar2-sim
 ###################################################
-temp2=arima.sim(n=TT,list(ar=true.2[2:3]),sd=sqrt(true.2[4]))
+temp2=arima.sim(n=TT,list(ar=true.2[c("b1","b2")]),sd=sqrt(true.2["q"]))
 sim.mar2=rbind(temp1,temp2)
 
 
 ###################################################
-### code chunk number 12: Cs_07_mar2.model
+### code chunk number 14: Cs_07_mar2-model
 ###################################################
 Z=matrix(c(1,0,0,1,0,0,0,0),2,4)
 B1=matrix(list(0),2,2); diag(B1)="b1"
@@ -78,67 +89,76 @@ model.list.2m=list(Z=Z,B=B,U=U,Q=Q,A=A,R=R,x0=pi,V0=V,tinitx=1)
 
 
 ###################################################
-### code chunk number 13: Cs_08_mar2.fit
+### code chunk number 17: Cs_08_mar2-fit
 ###################################################
-init.list=list(Q=matrix(1,1,1),B=matrix(1,2,1))
-mar2=MARSS(sim.mar2[,2:TT],model=model.list.2m,inits=init.list)
+mar2=MARSS(sim.mar2[,2:TT],model=model.list.2m)
 
 
 ###################################################
-### code chunk number 14: Cs_09_mar2.compare
+### code chunk number 18: Cs_09_mar2-compare
 ###################################################
 model.list.2$x0=matrix(sim.mar2[1,2:1],2,1)
-mar2a=MARSS(sim.mar2[1,2:TT],model=model.list.2,inits=init.list)
+mar2a=MARSS(sim.mar2[1,2:TT],model=model.list.2)
 model.list.2$x0=matrix(sim.mar2[2,2:1],2,1)
-mar2b=MARSS(sim.mar2[2,2:TT],model=model.list.2,inits=init.list)
+mar2b=MARSS(sim.mar2[2,2:TT],model=model.list.2)
 
 
 ###################################################
-### code chunk number 15: Cs_10_compare.mars
+### code chunk number 19: Cs_10_compare-mars
 ###################################################
 print(cbind(true=true.2[2:4],est.mar2=coef(mar2,type="vector"),est.mar2a=coef(mar2a,type="vector"),est.mar2b=coef(mar2b,type="vector")))
 
 
 ###################################################
-### code chunk number 17: Cs_11_sim-ar3-data
+### code chunk number 21: Cs_11_sim-ar3-data
 ###################################################
 TT=100
-temp=arima.sim(n=TT,list(ar=c(-1.5,-.75, .05)),sd=1)
-sim.ar3=matrix(temp,nrow=1)
+true.3=c(r=0,b1=-1.5,b2=-0.75,b3=.05,q=1)
+temp3=arima.sim(n=TT,list(ar=true.3[c("b1","b2","b3")]),sd=sqrt(true.3["q"]))
+sim.ar3=matrix(temp3,nrow=1)
 
 
 ###################################################
-### code chunk number 18: Cs_12_set-up-ar3-model
+### code chunk number 22: Cs_12_set-up-ar3-model
 ###################################################
 Z=matrix(c(1,0,0),1,3)
-B=matrix(list("b.1",1,0,"b.2",0,1,"b.3",0,0),3,3)
+B=matrix(list("b1",1,0,"b2",0,1,"b3",0,0),3,3)
 U=matrix(0,3,1)
-Q=matrix(list(0),3,3); Q[1,1]="q.1"
+Q=matrix(list(0),3,3); Q[1,1]="q"
 A=matrix(0,1,1)
 R=matrix(0,1,1)
 pi=matrix(sim.ar3[3:1],3,1)
 V=matrix(0,3,3)
-model.list=list(Z=Z,B=B,U=U,Q=Q,A=A,R=R,x0=pi,V0=V,tinitx=1)
+model.list.3=list(Z=Z,B=B,U=U,Q=Q,A=A,R=R,x0=pi,V0=V,tinitx=1)
 
 
 ###################################################
-### code chunk number 19: Cs_13_fit-ar3
+### code chunk number 23: Cs_130_fit-ar3
 ###################################################
-init.list=list(Q=matrix(1,1,1),B=matrix(1,3,1))
-ar3=MARSS(sim.ar3[3:TT],model=model.list,inits=init.list)
+ar3=MARSS(sim.ar3[3:TT],model=model.list.3)
 
 
 ###################################################
-### code chunk number 21: Cs_14_fig-arss-model
+### code chunk number 24: Cs_131_fit-ar3
+###################################################
+print(cbind(true=true.3[c("b1","b2","b3","q")],
+   estimates.no.miss=coef(ar3,type="vector")))
+
+
+###################################################
+### code chunk number 26: Cs_140_fig-arss-model
 ###################################################
 TT=1000 #set long
 true.2ss=c(r=.5,b1=-1.5,b2=-0.75,q=.1)
-temp=arima.sim(n=TT,list(ar=true.2ss[2:3]),sd=sqrt(true.2ss[4]))
+temp=arima.sim(n=TT,list(ar=true.2ss[c("b1","b2")]),sd=sqrt(true.2ss["q"]))
 sim.ar=matrix(temp,nrow=1)
-noise=rnorm(TT-1,0,sqrt(true.2ss[1]))
+noise=rnorm(TT-1,0,sqrt(true.2ss["r"]))
 noisy.data=sim.ar[2:TT]+noise
 
-#set up a lag-2 model as MARSS lag-1
+
+###################################################
+### code chunk number 27: Cs_141_fig-arss-model
+###################################################
 Z=matrix(c(1,0),1,2)
 B=matrix(list("b1",1,"b2",0),2,2)
 U=matrix(0,2,1)
@@ -149,29 +169,43 @@ V=matrix(0,2,2)
 pi=matrix(mean(noisy.data),2,1)
 model.list.2ss=list(Z=Z,B=B,U=U,Q=Q,A=A,R=R,x0=pi,V0=V,tinitx=0)
 
-#give it some reasonable inits to run faster
-init.list=list(Q=matrix(.01,1,1),B=matrix(1,2,1))
-ar2ss=MARSS(noisy.data,model=model.list.2ss,inits=init.list)
+
+###################################################
+### code chunk number 28: Cs_142_fig-arss-model
+###################################################
+ar2ss=MARSS(noisy.data,model=model.list.2ss)
 
 
 ###################################################
-### code chunk number 22: Cs_15_fit-arss2-model
+### code chunk number 29: Cs_150_fit-arss2-model
 ###################################################
-model.list.2ss$R=matrix(0)
-ar2ss2=MARSS(noisy.data,model=model.list.2ss,inits=init.list)
+model.list.2ss.bad=model.list.2ss
+#set R to zero in this model
+model.list.2ss.bad$R=matrix(0)
+
+
+###################################################
+### code chunk number 30: Cs_151_fit-arss2-model
+###################################################
+ar2ss2=MARSS(noisy.data,model=model.list.2ss.bad)
+
+
+###################################################
+### code chunk number 31: Cs_153_fit-arss2-model
+###################################################
 print(cbind(true=true.2ss,
-  est.no.noise=c(NA,coef(ar2ss2,type="vector")),
-  est.noisy=coef(ar2ss,type="vector")))
+  model.no.error=c(NA,coef(ar2ss2,type="vector")),
+  model.w.error=coef(ar2ss,type="vector")))
 
 
 ###################################################
-### code chunk number 23: Cs_16_fit-arss2-with-arima
+### code chunk number 32: Cs_16_fit-arss2-with-arima
 ###################################################
 arima(noisy.data,order=c(2,0,2),include.mean=FALSE)
 
 
 ###################################################
-### code chunk number 25: Cs_17_code-to-compare-arss-estimation
+### code chunk number 34: Cs_17_code-to-compare-arss-estimation
 ###################################################
 # This is the code used to make the figure comparing different ways to estimate 
 # AR parameters from AR with noise data

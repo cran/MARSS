@@ -6,7 +6,14 @@ print.marssMLE <- function (x, digits = max(3, getOption("digits")-4), ..., what
   return.obj=list()
   what.to.print = what
   orig.x=x
-  if(is.null(form)){ #allow user to printing using a different form than x$model form
+  if(class(x$model)[1]!="marssMODEL"){
+    cat("\nThe model element of your marssMLE object is not class marssMODEL.\n")
+    cat("Are you using a marssMLE object from a MARSS version before 3.5?\n")
+    cat("Type MARSSinfo(20) for help.\n")
+    return()
+  }
+    
+  if(is.null(form)){ #allow user to print using a different form than x$model form
     form = attr(x[["model"]], "form")
   }
   print.fun = paste("print_",form[1],sep="")
@@ -15,7 +22,7 @@ print.marssMLE <- function (x, digits = max(3, getOption("digits")-4), ..., what
       #the print function can print or return an updated x to use for printing
       #it changes the $par element to match $model instead of $marss
       x=eval(call(print.fun, x))
-    }else{ x = print_marss(x) } #if print_form is missing use print_marss
+    }else{ x = print_null(x) } #if print_form is missing use print_marss
 
   if(class(x)=="marssMLE"){ #use x to print; if print.fun returns NULL, say, nothing happens
    if(identical(what.to.print,"fit")){
@@ -49,23 +56,22 @@ print.marssMLE <- function (x, digits = max(3, getOption("digits")-4), ..., what
       }
 	    if (x$convergence==2) cat("Invalid MLE object. \n")
 	    if (x$convergence==3) cat("No convergence information. \n")
-      if (x$method %in% kem.methods && x$convergence %in% c(10,12)){
-        if(x$convergence==10) tmp.msg=paste("maxit reached at ",x$control$maxit," iter before log-log convergence.\n", sep="") 
-        if(x$convergence==12) tmp.msg=paste("maxit (=",x$control$maxit,") < min.iter.conv.test (=",x$control$min.iter.conv.test,") therefore no log-log test info.\n", sep="")           
-         cat("WARNING: no abstol convergence nor log-log convergence.\n", tmp.msg,
-         "The likelihood and params might not be at the ML values.\n",
-         "Try setting control$maxit higher.\n")
+      if (x$method %in% kem.methods && x$convergence==10){
+        tmp.msg=paste("maxit (=",x$control$maxit,") reached before log-log convergence.\n",sep="")
+        cat("WARNING: Abstol convergence only no log-log convergence.\n", tmp.msg,
+            "The likelihood and params might not be at the ML values.\n",
+            "Try setting control$maxit higher.\n")
+      }
+      if (x$method %in% kem.methods && x$convergence==12){
+        tmp.msg=paste("No log-log convergence info because maxit (=",x$control$maxit,") < min.iter.conv.test (=",x$control$min.iter.conv.test,").\n", sep="")           
+        cat("WARNING: Abstol convergence only no info on log-log convergnece.\n", tmp.msg,
+            "The likelihood and params might not be at the ML values.\n",
+            "Try setting control$maxit higher.\n")
       }
       if (x$method %in% kem.methods && x$convergence==11){
-         tmp.msg=paste("maxit reached at ",x$control$maxit," iter before abstol convergence.\n", sep="")
+         tmp.msg=paste("maxit (=",x$control$maxit,") reached before abstol convergence.\n", sep="")
          cat("WARNING: log-log convergence only no abstol convergence.\n", tmp.msg,
          "The likelihood and params might not be at the ML values.\n",
-         "Try setting control$maxit higher.\n")
-      }
-      if (x$method %in% kem.methods && x$convergence==13){
-         tmp.msg=paste("maxit (=",x$control$maxit,") < min.iter.conv.test (=",x$control$min.iter.conv.test,") therefore no log-log test info.\n", sep="")
-         cat("WARNING: maxit reached before abstol convergence and no log-log test info.\n", tmp.msg,
-         "The likelihood and params are not at the ML values.\n",
          "Try setting control$maxit higher.\n")
       }
       if (x$method %in% optim.methods && x$convergence==10) 
@@ -114,8 +120,12 @@ print.marssMLE <- function (x, digits = max(3, getOption("digits")-4), ..., what
       
   cat("\n")
   if(is.null(x[["par.se"]])) cat("Standard errors have not been calculated. \n")
-  if(!is.null(x[["par.lowCI"]]) & !is.null(x[["par.upCI"]])){cat(paste("CIs calculated at alpha = ", x$par.CI.alpha, " via method=", x$par.CI.method, sep=""), "\n")
-  }else cat("Use MARSSparamCIs to compute CIs and bias estimates.\n")
+  if(!is.null(x[["par.lowCI"]]) & !is.null(x[["par.upCI"]])){
+    cat(paste("CIs calculated at alpha = ", x$par.CI.alpha, " via method=", x$par.CI.method, sep=""), "\n")
+    if( x$par.CI.method=="hessian" & ( any(is.na(x[["par.lowCI"]])) | any(is.na(x[["par.upCI"]])) | any(is.na(x[["par.se"]])) ) ){
+      cat("There are NAs in the Hessian matrix. Type MARSSinfo() for details.\n")
+    }
+    }else cat("Use MARSSparamCIs to compute CIs and bias estimates.\n")
 	if(!is.null(x[["par.bias"]])){cat(paste("Bias calculated via",x$par.CI.method,"bootstrapping with",x$par.CI.nboot,"bootstraps. \n"))
   }
   
@@ -254,6 +264,5 @@ print.marssMLE <- function (x, digits = max(3, getOption("digits")-4), ..., what
   } #x is type marssMLE  
  }  #end of print.marssMLE
  
- print_marss = function(x){ 
-   x$model = x$marss
+ print_null = function(x){ 
    return(x) }

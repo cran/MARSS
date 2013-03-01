@@ -66,7 +66,7 @@ MARSS.marss=function(MARSS.call){
   if(is.vector(dat)) dat=matrix(dat,1,length(dat))
   n = dim(dat)[1]; TT = dim(dat)[2]
   if(is.null(rownames(dat))){
-    Y.names = paste(seq(1, n), sep="") #paste("Y",seq(1, n),sep="")
+    Y.names = paste("Y",seq(1, n),sep="") #paste(seq(1, n), sep="") #
     rownames(dat)=Y.names
   }else{ 
     Y.names = rownames(dat)
@@ -95,17 +95,23 @@ MARSS.marss=function(MARSS.call){
   X.names=NULL
   if(!(is.null(model[["X.names"]]))) X.names = model[["X.names"]]
   if(is.null(X.names) & identical(model$Z,"identity"))
-    X.names=Y.names
+    X.names=paste("X.",Y.names,sep="")
   if( is.null(X.names) & is.array(model$Z)){
-    if(!is.null(colnames(model$Z))) X.names=colnames(model$Z)
+    if(length(dim(model$Z))==3)
+      if(dim(model$Z)[3]==1)
+        if(is.design(model$Z) & !is.null(colnames(model$Z)))
+          X.names=colnames(model$Z)
   }
   if( is.null(X.names) & is.factor(model$Z)){
     X.names=unique(as.character(model$Z))
   }
   if(is.null(X.names) & is.matrix(model$Z))
-    if(is.identity(model$Z)) X.names=Y.names
-  if(is.null(X.names)) X.names = paste(seq(1, m),sep="")  #paste("X",seq(1, m),sep="") 
-    
+    if(is.design(model$Z) & !is.null(colnames(model$Z)))X.names=colnames(model$Z)
+  if(is.null(X.names) & is.matrix(model$Z))
+    if(is.identity(model$Z)) 
+      X.names = paste("X.",Y.names,sep="")
+  if(is.null(X.names)) X.names = paste("X",seq(1, m),sep="") #paste(seq(1, m),sep="")  #
+  
   #3rd dim of params are set to 1 and will be reset to correct value at end
   model.dims = list(data=c(n,TT),x=c(m,TT),y=c(n,TT),w=c(m,TT),v=c(n,TT),Z=c(n,m,1),U=c(m,1,1),A=c(n,1,1),B=c(m,m,1),Q=c(m,m,1),R=c(n,n,1),x0=c(m,1,1),V0=c(m,m,1))
   
@@ -380,15 +386,12 @@ describe_marss = function(modelObj, model.elem=NULL){
             constr.type[[elem]] = "one variance value and covariance value"; break 
           }else{ constr.type[[elem]] = "one diagonal value and one off-diagonal value"; break }
         }  
+        if(is.blockdiag(tmp.mat)) { 
+          if(elem %in% c("Q","R","V0")){ #variance-covariance matrices
+            constr.type[[elem]] = "variance-covariance matrix with block diagonal structure"; break 
+          }else{ constr.type[[elem]] = "block diagonal matrix"; break }
+        }  
         
-        tmp.unique = is.blockunconst(tmp.mat, uniqueblocks=TRUE)
-        if(tmp.unique) { constr.type[[elem]] = "unique block diagonal unconstrained"; break }
-        tmp.uniqueornot = is.blockunconst(tmp.mat, uniqueblocks=FALSE)
-        if( tmp.uniqueornot && !tmp.unique ) { constr.type[[elem]] = "shared block diagonal unconstrained"; break }      
-        tmp.unique = is.blockequaltri(tmp.mat, uniqueblocks=TRUE) & is.blockunconst(tmp.mat, uniqueblocks=TRUE)
-        if(tmp.unique) { constr.type[[elem]] = "unique block diagonal equalvarcov"; break }
-        tmp.uniqueornot = is.blockequaltri(tmp.mat, uniqueblocks=FALSE) & is.blockunconst(tmp.mat, uniqueblocks=FALSE)
-        if(tmp.uniqueornot && !tmp.unique) { constr.type[[elem]] = "shared block diagonal equalvarcov"; break }
       }
       constr.type[[elem]]="see summary()" #not assigned to one of the above cases
     }
@@ -408,9 +411,9 @@ describe_marss = function(modelObj, model.elem=NULL){
 # and that these have the proper size and form
 # m is pulled from fixed$x0
 ########################################################################
-is.marssMODEL_marss <- function(modelObj){
+is.marssMODEL_marss <- function(modelObj, method="kem"){
   msg=NULL
-  ## Set up par.names that should be marss model
+  ## Set up par.names that should be in a marss model
   en = c("Z", "A", "R", "B", "U", "Q", "x0", "V0")
   
   #Check that par.names has these and only these names
@@ -420,6 +423,10 @@ is.marssMODEL_marss <- function(modelObj){
   }
   if( !all( par.names %in% en ) ) { 
     msg = c(msg, "Only ", en, "should be in the par.names attribute of the model object.\n")
+  }
+  model.dims=attr(modelObj, "model.dims")
+  if( !all(en %in% names(model.dims) ) ){ 
+    msg = c(msg, "Element ", en[!(en %in% names(model.dims) )], " is missing from the model.dims attribute of the model object.\n")
   }
   if(!is.null(msg)){  #rest of the tests won't work so stop now
     return(msg)
@@ -434,7 +441,6 @@ is.marssMODEL_marss <- function(modelObj){
   en = c("Z", "A", "R", "B", "U", "Q", "x0", "V0", "data", "x", "y", "w", "v")
   correct.dim1 = c(Z=n,A=n,R=n,B=m, U=m, Q=m, x0=m, V0=m, data=n, x=m, y=n, w=m, v=n)
   correct.dim2 = c(Z=m,A=1,R=n,B=m, U=1, Q=m, x0=1, V0=m, data=TT, x=TT, y=TT, w=TT, v=TT)
-  model.dims=attr(modelObj, "model.dims")
   for (elem in en) {
     ## Check for problems in the fixed/free pairs. Problems show up as TRUE 
     dim.flag1 = dim.flag2 = FALSE
@@ -511,33 +517,27 @@ is.marssMODEL_marss <- function(modelObj){
   }
   
   ###########################
-  # Check that fixed V0, Q and R matrices are symmetric and positive-definite
+  # Check that V0, Q and R matrices are symmetric and positive-definite
   ###########################
   en = c("R", "Q", "V0")
   pos = symm = NULL
   for (elem in en) {
-    symm.flag = FALSE
-    pos.flag = FALSE
+    varcov.flag = TRUE; varcov.msg=""
     var.dim = c(correct.dim1[[elem]],correct.dim2[[elem]])
-    for(i in 1:max(dim(fixed[[elem]])[3],dim(free[[elem]])[3])){
+    for(i in 1:model.dims[[elem]][3]){
       if(dim(fixed[[elem]])[3]==1){i1=1}else{i1=i}
       if(dim(free[[elem]])[3]==1){i2=1}else{i2=i}
       #works on 3D if dim3=1
       par.as.list = fixed.free.to.formula(fixed[[elem]][,,i1,drop=FALSE],free[[elem]][,,i2,drop=FALSE],var.dim) #coverts the fixed,free pair to a list matrix
-      if(!isTRUE(all.equal(par.as.list, t(par.as.list)))) symm.flag=TRUE
-      if(is.fixed(free[[elem]][,,i2,drop=FALSE])){
-        var.mat=unvec(fixed[[elem]][,,i1,drop=FALSE],dim=var.dim)
-        tmp = try( eigen(var.mat), silent=TRUE )
-        if(class(tmp)=="try-error") pos.flag=TRUE
-        else if(!all(tmp$values >= 0)) pos.flag=TRUE
-      }
+      tmp=is.validvarcov(par.as.list, method=method)
+      varcov.flag=varcov.flag & tmp$ok
+      if(!tmp$ok) varcov.msg = c(varcov.msg, paste(" ", tmp$error, "at t=", i, "\n",sep=""))
+            
+      if(!varcov.flag) msg = c(msg, paste("The variance-covariance matrix ", elem, " is not properly constrained.\n", sep=""), varcov.msg)
     } #end for loop over time
-    pos = c(pos, pos.flag)
-    symm = c(symm, symm.flag)
+
   } #end for loop over elements
-  if(any(pos)) msg = c(msg, paste("The fixed matrix ", en[pos], " is not positive-definite (and var-cov matrices must be).\n", sep=""))
-  if(any(symm)) msg = c(msg, paste("The variance matrix ", en[symm], " is not symmetric (and var-cov matrices must be).\n", sep=""))
-  
+
   if(length(msg) == 0){ return(NULL)
   }else {
     msg=c("\nErrors were caught in is.marssMODEL_marss()\n", msg)

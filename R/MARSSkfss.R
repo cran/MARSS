@@ -54,10 +54,12 @@ MARSSkfss = function( MLEobj ) {
          if(class(Ck)=="try-error"){
            return(list(ok=FALSE,errors="Some R diagonal elements are 0, but Z is such that model is indeterminate in this case."))
          }else{ OmgRVtt = diag(ifelse(colSums(Z.R0)!=0,0,1),m) }#mxm; sets the p elem of Vtt to 0 because these are determined by data
-      }else{ 
+      }else{ #then num rows must be greater than num cols
          if(dim(Z.R0.n0)[1]>dim(Z.R0.n0)[2]){
            return(list(ok=FALSE,errors="Some R diagonal elements are 0, and Z is such that model is over-determined."))
-         } 
+         }else{
+           OmgRVtt = diag(ifelse(colSums(Z.R0)!=0,0,1),m)
+         }
       }
       diag.OmgRVtt = takediag(OmgRVtt)
     }
@@ -195,8 +197,9 @@ MARSSkfss = function( MLEobj ) {
      #Abandon if solution is so unstable that Vtt diagonal became negative
      if(m==1) diag.Vtt = unname(Vtt[,,t]) else diag.Vtt=unname(Vtt[,,t])[1 + 0:(m - 1)*(m + 1)]   #much faster way to get the diagonal
      if( any(diag.Vtt<0) ){
+       browser()
           return(list(ok=FALSE, 
-          errors=paste("Stopped in MARSSkfss: soln became unstable and negative values appeared on the diagonal of Vtt.\n") ) )
+          errors=paste("Stopped in MARSSkfss: soln became unstable and negative values appeared on the diagonal of Vtt at t=",t,".\n",sep="") ) )
      }
     ####### End Error-checking
 
@@ -230,7 +233,8 @@ MARSSkfss = function( MLEobj ) {
       #Error-checking for 0s on diagonal of Vtt1 that they are allowed 
       if(debugkf!=-1 & any(diag.Vtt1==0) ) {  
         #deal with 0s that are ok if there are corresponding 0s on Q diagonal
-        Q0s=identical(which(diag.Q==0),which(diag.Vtt1==0))
+        Q0s=all(which(diag.Vtt1==0)%in%which(diag.Q==0))
+        #Q0s=identical(which(diag.Q==0),which(diag.Vtt1==0))
         if(!Q0s && (init.state=="x00" || (init.state=="x10" && t>1)) ){
           return(list(ok=FALSE, errors=paste("Stopped in MARSSkfss: soln became unstable when zeros appeared on the diagonal of Vtt1 at t=",t,".\n") ) )
         }
@@ -265,7 +269,7 @@ MARSSkfss = function( MLEobj ) {
         #deal with 0s that are ok if there are corresponding 0s on Q diagonal
         Q0s=identical(which(diag.Q==0),which(diag.Vtt1==0))
         if(!Q0s && (init.state=="x00" || (init.state=="x10" && t>1)) ){
-          return(list(ok=FALSE, errors=paste("Stopped in MARSSkfss: soln became unstable when zeros appeared on the diagonal of Vtt1 at =1.\n") ) )
+          return(list(ok=FALSE, errors=paste("Stopped in MARSSkfss: soln became unstable when zeros appeared on the diagonal of Vtt1 at t=1.\n") ) )
         }
       }
       if(m==1){ Vinv=pcholinv(matrix(Vtt1[,,1],1,1))  #pcholinv doesn't like vectors
@@ -317,8 +321,9 @@ MARSSkfss = function( MLEobj ) {
          return(c(rtn.list,list(ok=FALSE, logLik = NaN,
          errors = paste("One of the diagonal elements of Sigma[,,",t,"]=0. That should never happen when t>1 or t=1 and tinitx=0.  \n Are both Q[i,i] and R[i,i] being set to 0?\n",sep=""))))
         }else{ #t=1 so ok. get the det of Ft and deal with 0s that might appear on diag of Ft when t=1 and V0=0 and R=0 and tinitx=1
-         if(any(abs(vt[diag.Ft==0,1])>1E-16)){ 
-             return(c(rtn.list,list(ok=FALSE, logLik = Inf, errors = "V0=0, tinitx=1, R=0 and y[1] does not match x0. You shouldn't estimate x0 when R=0.\n")))    }
+         if(any(abs(vt[diag.Ft==0,1])>1E-16)){
+             return(c(rtn.list,list(ok=FALSE, logLik = Inf, errors = "V0=0, tinitx=1, R=0 and y[1] does not match x0. You shouldn't estimate x0 when R=0.\n")))
+         }
           OmgF1=makediag(1,n)[diag.Ft!=0,,drop=FALSE] #permutation matrix
           if(dim(OmgF1)[1]==0){ #no non-zero Ft[,,1]
             detFt=1 #means R and diag(Ft[,,1] all 0; will become 0 when logged

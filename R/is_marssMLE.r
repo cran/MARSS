@@ -20,7 +20,7 @@ is.marssMLE <- function(MLEobj)
   }
   
   #here form="marss" since $marss is of that form
-  msg = is.marssMODEL(MLEobj[["marss"]])        #returns TRUE or a vector of msgs
+  msg = is.marssMODEL(MLEobj[["marss"]], method=MLEobj[["method"]])        #returns TRUE or a vector of msgs
   ## Break out now if there was a problem with the model
   if(!isTRUE(msg)){ 
     msg=c("\nErrors were caught in is.marssMLE() in the call to is.marssMODEL().\n", msg)
@@ -28,7 +28,7 @@ is.marssMLE <- function(MLEobj)
   }
 
   #check that model object in the called form is ok too
-  msg = is.marssMODEL(MLEobj[["model"]])        #returns TRUE or a vector of msgs
+  msg = is.marssMODEL(MLEobj[["model"]], method=MLEobj[["method"]])        #returns TRUE or a vector of msgs
   ## Break out now if there was a problem with the model
   if(!isTRUE(msg)){ 
     msg=c("\nErrors were caught in is.marssMLE() in the call to is.marssMODEL().\n", msg)

@@ -14,7 +14,7 @@ The rest of this help page discusses the vectorized form of a MARSS model.
 
 The MARSS package fits time-varying state-space models that can be transformed into the form (termed form=marss):
 \describe{
-\item{x(t+1) = (t(x(t)) (x) I_m)(f_b(t)+D_b(t)beta) + (f_u(t)+D_u(t)upsilon) + w(t), where w(t) ~ MVN(0,Q(t))}{}
+\item{x(t) = (t(x(t-1)) (x) I_m)(f_b(t)+D_b(t)beta) + (f_u(t)+D_u(t)upsilon) + w(t), where w(t) ~ MVN(0,Q(t))}{}
 \item{y(t) = (t(x(t)) (x) I_n)(f_z(t)+D_z(t)zeta) + (f_z(t)+D_z(t)alpha) + v(t), where v(t) ~ MVN(0,R(t))}{}
 \item{x(1) ~ MVN(x0, V0) or x(0) ~ MVN(x0, V0)}{} 
 }

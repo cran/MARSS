@@ -1,6 +1,5 @@
 MARSSapplynames=function(MLEobj){
 ## Helper function to put names on the elements in a marssMLE object
-  theclass="marssMLE"
   if(!(class(MLEobj) %in% c("marssMLE")))
      stop("Stopped in MARSSapplynames() because this function is for marssMLE objects only.\n", call.=FALSE)
 

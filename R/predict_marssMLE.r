@@ -46,7 +46,7 @@ predict.marssMLE <- function (object, ..., n.ahead=1, t.start=NULL, newdata=list
   marss.model=pred.obj[["marss"]]
   ## Check that the marssMODEL object is ok
   ## More checking on the control list is done by is.marssMLE() to make sure the MLEobj is ready for fitting
-  tmp = is.marssMODEL(marss.model)
+  tmp = is.marssMODEL(marss.model, method=object[["method"]])
   
   if(!isTRUE(tmp)) {
     cat("predict_marssMLE: Stopped in predict() due to problem(s) with model specification. \nThe marssMLE object constructed for predict call is being returned (invisibly).  Examine $model for problems.\n")

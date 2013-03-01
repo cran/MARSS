@@ -2,6 +2,37 @@ MARSS Development site
 ------------------------------------
 New work on MARSS before posting to CRAN is at ``http://fishbox.iugo-cafe.org/user/e2holmes/MARSS Dev Site''.  Notes on known issues are also posted there.
 
+CHANGES IN MARSS 3.8
+------------------------------------
+* added check for fun.kf value in checkMARSSinputs()
+* added check to print.marssMLE to make sure models are class marssMODEL.  Added info to MARSSinfo() to give the user some code to convert pre-3.5 marssMLE object to the 3.5+ form.
+* changed summary.marssMODEL to return the list matrix instead of the marssMODEL passed in. Added tinitx to the returned (and printed) list.
+* removed is.blockunconst and is.blockequaltri functions.  Not really used or useful and were buggy.
+* much of their code (assoc with identifying blocks) incorporated into a better is.validvarcov function to test for many more illegal constraints on a variance-covariance matrix.  This will catch most but not all illegal constraints on Q, R and V0.  It has a method argument, so method=BFGS can be passed in to check that all blocks are diagonal or unconstrained as needed by the chol transformation used in the MARSSoption() code to ensure varcov matrices stay postitive-definite.
+* in MARSS().  
+   -- Switched to use MARSSkf() to return kf (so use what user requested), but set Innov, Sigma, Kt etc with MARSSkfss.
+   -- Added row names to states.se and y.se.
+* in MARSSkem(). Removed adding of kf and Ey when trace>0.  This happens in MARSS().
+* Changed summary.marssMODEL to use marssMODEL attributes for par.names and model.dims, so it works on non-marss form marssMODEL objects.
+* added ability to handle time-varying var-cov matrices in MARSShessian()
+* added check that Hessian CIs are only computed for models with diagonal var-cov matrices
+* added ability to deal with NAs in Hessian in MARSShessian()
+* The OR and CA years for the harborSeal dataset were off.  Fixed and added references to the man file for harborSeal.  Removed the harborSealnomiss dataset as that is no longer used in the User Guide.
+
+- bugs
+* in MARSSkfss. When Z was not square (num rows > num cols), OmgRVtt was not getting set.  OmgRVtt sets Vtt diagonals (and corresponding cols and row) to zero when R had 0s on the diagonal.
+* in MARSSkfas. Was returning $Innov and $Sigma using $v and $F, but as detailed in the KFS help page (KFAS package), the ones returned by KFS are not the same as the standard innovations and Sigma for multivariate data.  Now, MARSSkfas() returns a text message to use MARSSkfss to get these.
+* residuals.marssMLE & MARSSinnovationsboot that was not running MARSSkfss to get Innov, Kt, and Sigma when R was not diagonal.  Problem occurred after I changed MARSSkfss() to return text error instead of NULL for these.
+* bug introduced in 3.6 that printed no absol convergence when convergence=10.  Should have printed abstol convergence only.
+* bug in MARSSoptim (method=BFGS) that lead to only diagonal var-cov matrices when anything other than a diagonal var-cov matrix was selected.
+* same bug affected attempt to compute CIs for non-diagonal var-cov matrices with Hessian.
+* bug in MARSSoptim (method=BFGS) that allowed user to specify time-varying Q and R models, which code does not allow because cannot backsolve for par in that case.
+* bug in MARSSoptim (method=BFGS) that allowed Q, R, and V0 structures that can't be handled by the chol transformation in that code.  The transformation requires that Q, R, and V0 matrices be block unconstrained.  Blocks can be identical or unique or some identical and others unique but each must be unconstrained.  Note, in the context of a "block" matrix, a diagonal matrix is composed of n 1x1 blocks where n=nrows.  Thus by definition, a diagonal matrix (with shared or unshared elements on the diagonal) is always block unconstrained.  Dealt with with new is.validvarcov() function.
+* bug in convert.model.mat() when user used names like "2" or "1" and had fixed values of the same (e.g. 1,2).  This is because, inexplicably, R considers 1=="1" to be TRUE (and 2=="2", etc).  Replaced with sapply and identical() embedded within.
+* There is a check in MARSSkfss() that any 0s on the diagonal of Vtt1 have a corresponding 0 on the diagonal of Q.  Was this line: Q0s=identical(which(diag.Q==0),which(diag.Vtt1==0)).  But that forced a more stringent requirement, that all 0s on diag of Q were identical to 0s on diag of vtt1 rather than that 0s on diag of Vtt1 had 0 on diag on Q, but not the converse.  Changed to Q0s=all(which(diag.Vtt1==0)%in%which(diag.Q==0)) so that requirement is one-way.
+* X names were not getting applied to states in MARSS(); default X.names would be odd for non-design Z matrices. MARSS_marss() and MARSS_marxss().
+
+
 CHANGES IN MARSS 3.7
 ------------------------------------
 3.7 update required due to new version of KFAS that changed its API.

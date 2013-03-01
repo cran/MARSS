@@ -35,8 +35,8 @@ A list with the following components (m is the number of state processes). "V" e
   \item{Vtt1T}{ State lag-one covariance E[(x(t)-xtT(t))(x(t-1)-xtT(t-1))' | y(1:T)] (m x m x T). Kalman smoother output. P_{t,t-1}^T in S&S (S&S eqn 6.18 with s=T, t1=t, t2=t-1). State lag-one second moments E[x(t)x(t-1)'| y(1:T)] = Vtt1T(t)+xtT(t)xtT(t-1)'. }
   \item{x0T}{ Initial state estimate E[x(i) | y(1:T)] (m x 1). If control$kf.x0="x00", i=0; if ="x10", i=1. Kalman smoother output.}
   \item{V0T}{ Estimate of initial state covariance matrix E[x(i)x(i)' | y(1:T)] (m x m). If model$tinitx=0, i=0; if =1, i=1.  Kalman smoother output. P_0^T in S&S.}
-  \item{J}{ (m x m x T) Kalman smoother output.  Only for \code{MARSSkf}. (ref S&S eqn 6.49)}
-  \item{J0}{ J at init time (t=0 or t=1) (m x m x T). Kalman smoother output. Only for \code{MARSSkf}.}
+  \item{J}{ (m x m x T) Kalman smoother output.  Only for \code{MARSSkfss}. (ref S&S eqn 6.49)}
+  \item{J0}{ J at init time (t=0 or t=1) (m x m x T). Kalman smoother output. Only for \code{MARSSkfss}.}
   \item{xtt}{ State first moment conditioned on y(1:t): E[x(t) | y(1:t)] (m x T).  Kalman filter output. (S&S eqn 6.17 with s=t)}
   \item{xtt1}{ State first moment conditioned on y(1:t-1): E[x(t) | y(1:t-1)] (m x T).  Kalman filter output. (S&S eqn 6.17 with s=t-1) }
   \item{Vtt}{ State variance conditioned on y(1:t): E[(x(t)-xtt(t))(x(t)-xtt(t))'| | y(1:t)] (m x m x T array). Kalman filter output. P_t^t in S&S (S&S eqn 6.18 with s=t, t1=t2=t). State second moment E[x(t)x(t)'| y(1:t)] = Vtt(t)+xtt(t)xtt(t)' }

@@ -59,7 +59,7 @@ msg=NULL
             par.not.fixed = any( ((II %x% II0)%*%dpart)!=0 )
       
             if(par.not.fixed){
-              msg=c(msg, paste("t=",i,": If an element of the diagonal of R is 0, the corresponding row of ", par.test, " must be fixed.\n",sep=""))
+              msg=c(msg, paste("t=",i,": For method=kem (EM), if an element of the diagonal of R is 0, the corresponding row of ", par.test, " must be fixed.\n",sep=""))
             }
            } #for par.test
         } #if par needs to be tested; don't need to do over all TT just up to Tmax
@@ -134,7 +134,7 @@ msg=NULL
           par.not.fixed = any( ((II %x% (II0$R%*%parZ%*%II0$Q))%*%dpart)!=0 )
       
           if(par.not.fixed){
-            msg=c(msg, paste("t=",i,": If an element of the diagonal of R & Q is 0, the corresponding row of ", par.test, " must be fixed.\n",sep=""))
+            msg=c(msg, paste("t=",i,": For method=kem (EM), if an element of the diagonal of R & Q is 0, the corresponding row of ", par.test, " must be fixed.\n",sep=""))
             ok=FALSE
           }
         } #for par.test

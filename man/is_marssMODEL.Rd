@@ -1,6 +1,7 @@
 \name{is.marssMODEL}
 \alias{is.marssMODEL}
 \alias{is.marssMODEL_marss}
+\alias{is.marssMODEL_marxss}
 \alias{is.marssMODEL_dfa}
 \title{ Test Model Objects }
 \description{
@@ -9,11 +10,12 @@ These are model objects and utility functions for model objects in the package \
   \code{MARSS_formname()} translates a model list as passed in call to MARSS() into a marssMODEL model object.
 }
 \usage{
-is.marssMODEL(modelObj)
+is.marssMODEL(modelObj, method="kem")
 }
 
 \arguments{
   \item{modelObj}{ An object of class marssMODEL. }
+  \item{method}{ Method used for fitting in case there are special constraints for that method. }
 }
 \details{
 A \code{\link{marssMODEL}} object is an R representation of a MARSS model along with the data.  
