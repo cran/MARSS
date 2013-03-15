@@ -220,6 +220,7 @@ Q3[,5]=0; Q3[5,]=0; Q3[5,5]="q.hc"
 Q.models=list("equalvarcov","unconstrained",Q3)
 names(Q.models)=c("equalvarcov","unconstrained","hood.independent")
 
+
 ###################################################
 ### code chunk number 31: Cs22_hood-q3
 ###################################################

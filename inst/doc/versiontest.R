@@ -5,6 +5,7 @@
 # Install a second version into the local R library
 # Open the unit test.R file
 # RShowDoc("versiontest.R", package="MARSS")
+# Change working directory to a directory where many test files can be stored (sandbox)
 # Source the code.
 # Note: Using 'build and reload' from RStudio builds the package into the local
 # library but does not install the doc or help files
@@ -21,6 +22,7 @@ library(MARSS, lib.loc = lib.loc)
 
 #Get whatever code files are in the doc directory; these are tested
 unittestfiles = dir(path=paste(lib.loc,"/MARSS/doc",sep=""), pattern="*[.]R$", full.names = TRUE)
+unittestfiles = unittestfiles[unittestfiles!=paste(lib.loc,"/MARSS/doc/versiontest.R",sep="")]
 
 cat("Running code with MARSS version", as.character(unittestvrs), "\n")
 for(unittestfile in unittestfiles){
@@ -39,7 +41,9 @@ for(unittestfile in unittestfiles){
   try(source(unittestfile))
   sink()
   #make a list of objects created by the test code
-  testNew = mget(ls()[!(ls()%in%c("unittestfile","unittestfiles","unittestvrs"))])
+  funs=sapply(ls(),function(x){isTRUE(class(get(x))=="function")})
+  test.these = ls()[!(ls()%in%c("unittestfile","unittestfiles","unittestvrs")) & !funs]
+  testNew = mget(test.these)
   save(testNew,file=paste(tag,unittestvrs,".Rdata",sep=""))
 }
 #detach the new version
@@ -60,7 +64,9 @@ for(unittestfile in unittestfiles){
   set.seed(10)
   try(source(unittestfile))
   sink()
-  testOld = mget(ls()[!(ls()%in%c("unittestfile","unittestfiles","unittestvrs"))])
+  funs=sapply(ls(),function(x){isTRUE(class(get(x))=="function")})
+  test.these = ls()[!(ls()%in%c("unittestfile","unittestfiles","unittestvrs")) & !funs]
+  testOld = mget(test.these)
   save(testOld,file=paste(tag,unittestvrs,".Rdata",sep=""))
 }
 detach(package:MARSS)

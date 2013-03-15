@@ -19,8 +19,7 @@ export(
   MARSSmcinit,
   MARSSoptim,
   MARSSparamCIs,
-  MARSSsimulate,
-  takediag, is.diagonal, is.blockdiag, is.validvarcov
+  MARSSsimulate
 )
 
 #these are part of base, but user could unattach them and then MARSS wouldn't work

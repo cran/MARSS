@@ -2,6 +2,10 @@ MARSS Development site
 ------------------------------------
 New work on MARSS before posting to CRAN is at ``http://fishbox.iugo-cafe.org/user/e2holmes/MARSS Dev Site''.  Notes on known issues are also posted there.
 
+CHANGES IN MARSS 3.9
+------------------------------------
+none. resubmission due to missing file
+
 CHANGES IN MARSS 3.8
 ------------------------------------
 * added check for fun.kf value in checkMARSSinputs()
@@ -18,6 +22,7 @@ CHANGES IN MARSS 3.8
 * added check that Hessian CIs are only computed for models with diagonal var-cov matrices
 * added ability to deal with NAs in Hessian in MARSShessian()
 * The OR and CA years for the harborSeal dataset were off.  Fixed and added references to the man file for harborSeal.  Removed the harborSealnomiss dataset as that is no longer used in the User Guide.
+* Rewrote the Seal Population Structure chapter and MAR(p) chapter.
 
 - bugs
 * in MARSSkfss. When Z was not square (num rows > num cols), OmgRVtt was not getting set.  OmgRVtt sets Vtt diagonals (and corresponding cols and row) to zero when R had 0s on the diagonal.
