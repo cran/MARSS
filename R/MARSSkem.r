@@ -1,16 +1,18 @@
 #######################################################################################################
 #   KEM function
-#   Minimal error checking is done.  You should run is.marssMLE(MLEobj) and is.marssm(MLEobj$model) before calling this.
+#   Minimal error checking is done.  You should run is.marssMLE(MLEobj) before calling this.
 #   Maximization using an EM algorithm with Kalman filter
 #######################################################################################################
 MARSSkem = function( MLEobj ) {
+  modelObj=MLEobj[["marss"]]
 # This is a core function and does not check if user specified a legal or solveable model. 
-# y is MLEobj$model$data with the missing values replaced by 0
-kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions treatment "x00" x0 is at t=0 or "x01" x0 is at t=1
+# y is MLEobj$marss$data with the missing values replaced by 0
+kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatment "x00" x0 is at t=0 or "x01" x0 is at t=1
 #kf.x0=x00 prior is defined as being E[x(t=0)|y(t=0)]; xtt[0]=x0; Vtt[0]=V0
 #kf.x1=x10 prior is defined as being E[x(t=0)|y(t=0)]; xtt1[1]=x0; Vtt1[1]=V0
 
-  constr.type = describe.marssm( MLEobj$model )
+  #The model will be form = marss, so use base function for that form here
+  constr.type = describe_marss( modelObj )
   #Check that model is allowed given the EM algorithm constaints; returns some info on the model structure
   if(MLEobj$control$trace != -1){
     errhead = "\nErrors were caught in MARSSkemcheck \n"
@@ -23,11 +25,10 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
   msg=NULL; stop.msg=NULL; msg.kem=NULL; msg.kf=NULL; msg.conv=NULL #error messages
 
   ## attach would be risky here since user might have one of these variables in their workspace    
-  y = MLEobj$model$data #must have time going across columns
-  model = MLEobj$model
-  d = MLEobj$model$free      # D or free matrix
-  f = MLEobj$model$fixed    # f matrix
-  inits = MLEobj$start
+  y = modelObj[["data"]]#must have time going across columns
+  d = modelObj[["free"]]      # D or free matrix
+  f = modelObj[["fixed"]]   # f matrix
+  inits = MLEobj[["start"]]
   model.el = names(f)
   n = dim(y)[1]; TT = dim(y)[2]; m = dim(f$x0)[1]
   Id = list(m = diag(1,m), n = diag(1,n)); IIm=diag(1,m) # identity matrices
@@ -41,20 +42,19 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
   MLEobj.iter$par=list()
   ## assign the starting parameter values; use fixed values where fixed otherwise use inits
   for(elem in model.el) MLEobj.iter$par[[elem]]=inits[[elem]]
-    
+  
   ## make a list of time-varying parameters
   time.varying = list()
   for(elem in model.el) {
     if( is.fixed(d[[elem]]) ) MLEobj.iter$par[[elem]]=matrix(0,0,1)
-    if( (dim(model$free[[elem]])[3] == 1) & (dim(model$fixed[[elem]])[3] == 1)){
+    if( (dim(modelObj$free[[elem]])[3] == 1) & (dim(modelObj$fixed[[elem]])[3] == 1)){
         time.varying[[elem]] = FALSE
       }else{ time.varying[[elem]] = TRUE }  #time-varying
   }
   IIz=list(); IIz$V0=makediag(as.numeric(takediag(parmat(MLEobj.iter, "V0", t=1)$V0)==0),m)
     
   ## YM shows the location of missing values after missing values in y are zero-ed out
-  if(is.na(MLEobj$model$miss.value)){ YM=matrix(as.numeric(!is.na(y)),n,TT)
-  }else  YM=matrix(as.numeric(!(y==MLEobj$model$miss.value)),n,TT)  #Make sure the missing vals in y are zeroed out
+  YM=matrix(as.numeric(!is.na(y)),n,TT)
   ## zero out the missing values
   y[!YM]=0
 
@@ -68,7 +68,7 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
   cvg = 1 + control$abstol
   MLEobj.iter$logLik = NA #start with no value
   # 72 means no info yet; 0 means converged
-  MLEobj.iter$conv.test=list(convergence=72, messages="No convergence testing performed.\n", not.converged.params=names(MARSSvectorizeparam(MLEobj.iter)), converged.params=c() )
+  MLEobj.iter$conv.test=list(convergence=72, messages="No convergence testing performed.\n", not.converged.params=names(coef(MLEobj.iter,type="vector")), converged.params=c() )
   
   for(iter in 1:(control$maxit+1)) { #+1 so that the iter.record and kf are run for the last EM iteration
     ################# E STEP Estimate states given U,Q,A,R,B,X0 via Kalman filter
@@ -109,14 +109,14 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
     # Keep a record of the iterations for debugging and convergence diagnostics
     ################################################################
     if(control$trace>0){ # if trace is on, keep the full record over all iterations
-      iter.record$par=rbind(iter.record$par,MARSSvectorizeparam(MLEobj.iter))
+      iter.record$par=rbind(iter.record$par,coef(MLEobj.iter,type="vector"))
       iter.record$logLik=c(iter.record$logLik,MLEobj.iter$logLik)
       if(!is.null(MLEobj.iter[["kf"]][["errors"]])) {
         msg.kf=c(msg.kf, paste("iter=",iter," ", kf$errors, sep=""))
         }
       MLEobj.iter$iter.record=iter.record
     }else { #Otherwise keep just last (control$conv.test.deltaT+1) iterations for diagnostics
-      iter.record$par=rbind(iter.record$par,MARSSvectorizeparam(MLEobj.iter))
+      iter.record$par=rbind(iter.record$par,coef(MLEobj.iter,type="vector"))
       iter.record$logLik=c(iter.record$logLik,MLEobj.iter$logLik)
       tmp.len=dim(iter.record$par)[1]
       if(tmp.len>(control$conv.test.deltaT+1)) {
@@ -156,9 +156,9 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
     # For the degen test, I require that d is a design matrix;
     if(control$allow.degen){
       tmp=degen.test("R", MLEobj.iter, iter) #this will test degeneracy and replace diags with 0s if needed
-      MLEobj.iter=tmp$MLEobj; msg.kem=c(tmp$msg, msg.kem)
-      d$R=MLEobj.iter$model$free$R
-      f$R=MLEobj.iter$model$fixed$R
+      MLEobj.iter=tmp$MLEobj; msg.kem=c(msg.kem, tmp$msg)
+      d$R=MLEobj.iter$marss$free$R
+      f$R=MLEobj.iter$marss$fixed$R
       kf=MLEobj.iter$kf
       Ey=MLEobj.iter$Ey
     }
@@ -187,7 +187,7 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
         if(length(t.dR.dR)==1){ inv.dR=1/t.dR.dR }else{ inv.dR = pcholinv(t.dR.dR) }
       }else{ 
         if(length(t.dR.dR)==1){ inv.dR=(1/t.dR.dR)/TT }else{ inv.dR = pcholinv(t.dR.dR)/TT }
-      }      
+      } 
       MLEobj.iter$par$R = matrix(0,dim(d$R)[2],1)
       MLEobj.iter$par$R = inv.dR%*%sum1
       par1$R=parmat(MLEobj.iter,"R",t=1)$R
@@ -226,9 +226,9 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
     # For the degen test, I require that d is a design matrix;
     if(control$allow.degen){
       tmp=degen.test("Q", MLEobj.iter, iter) #this will test degeneracy and replace diags with 0s if needed
-      MLEobj.iter=tmp$MLEobj; msg.kem=c(tmp$msg, msg.kem)
-      d$Q=MLEobj.iter$model$free$Q
-      f$Q=MLEobj.iter$model$fixed$Q
+      MLEobj.iter=tmp$MLEobj; msg.kem=c(msg.kem, tmp$msg)
+      d$Q=MLEobj.iter$marss$free$Q
+      f$Q=MLEobj.iter$marss$fixed$Q
       kf=MLEobj.iter$kf
       Ey=MLEobj.iter$Ey
     }
@@ -285,7 +285,6 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
       MLEobj.iter$par$Q = matrix(0,dim(d$Q)[2],1)
       #0 will appear in par where there all 0 cols in d since inv.dQ will be 0 row/col there      
       MLEobj.iter$par$Q=inv.dQ%*%sum1
-
       par1$Q=parmat(MLEobj.iter,"Q",t=1)$Q
       
     #Start~~~~~~~~~~~~Error checking
@@ -391,7 +390,7 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
           Delta6=Z%*%IId%*%Bstar%*%IIz$V0%*%d.x0          
           if(any(diag.R1==0)){
              if(any(t(Delta6)%*%IIz.R%*%Delta6 !=0)){
-               stop.msg = paste("Stopped at iter=",iter," in MARSSkem at x0 update.\n There are 0s on R diagonal. x0 assoc with these must be fixed.\n", sep="")
+               stop.msg = paste("Stopped at iter=",iter," in MARSSkem at x0 update.\n There are 0s on R diagonal. x0 assoc with these must be fixed (not estimated).\n", sep="")
                stopped.with.errors=TRUE
                break
              }
@@ -425,7 +424,7 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
               #Deal with Delta6=0 and Rinv=Inf, so 0*Inf
               if(any(diag.R1==0)){
                 if(any(t(Delta6)%*%IIz.R%*%Delta6 !=0)){
-                  stop.msg = paste("Stopped at iter=",iter," in MARSSkem at x0 update.\n There are 0s on R diagonal. x0 assoc with these must be fixed.\n", sep="")
+                  stop.msg = paste("Stopped at iter=",iter," in MARSSkem at x0 update.\n There are 0s on R diagonal. x0 assoc with these must be fixed (not estimated).\n", sep="")
                   stopped.with.errors=TRUE
                   break
                 }
@@ -443,7 +442,7 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
       } #any diag.LAM=0
       if(length(denom)==1){ denom = 1/denom }else{ denom=try(pcholinv( denom ) ) }
       if(inherits(denom, "try-error") | (length(denom)==1 && denom==Inf)){
-        stop.msg = paste("Stopped at iter=",iter," in MARSSkem at x0 update. denom is not invertible.\n This means that some of the x0 cannot be estimated. Check model specification. Type MARSSinfo(\"denom not invertible\") for more info.\n", sep="")
+        stop.msg = paste("Stopped at iter=",iter," in MARSSkem at x0 update. denom is not invertible. This means that some of the x0 cannot be estimated.\n", sep="")
         stopped.with.errors=TRUE
         break
       }
@@ -522,7 +521,7 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
       }
       if(length(denom)==1){ denom = try(1/denom) }else{ denom=try(chol2inv(chol( denom ))) }
       if(inherits(denom, "try-error")){
-        stop.msg = paste("Stopped at iter=",iter," in MARSSkem at A update. denom is not invertible. \n If R diagonals equal to 0,\n then A elements corresponding to R==0 cannot be estimated. \n Type MARSSinfo(\"denom not invertible\") for more info.\n", sep="")
+        stop.msg = paste("Stopped at iter=",iter," in MARSSkem at A update. denom is not invertible. \n If R diagonals equal to 0,\n then A elements corresponding to R==0 cannot be estimated.\n", sep="")
         stopped.with.errors=TRUE;  break }
       MLEobj.iter$par$A = denom%*%numer
       if(!is.matrix(MLEobj.iter$par$A) ) MLEobj.iter$par$A=matrix(MLEobj.iter$par$A,dim(d$A)[2],1)
@@ -622,7 +621,7 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
           } #for i
       if(length(denom)==1){ denom = 1/denom }else{ denom=try(chol2inv(chol( denom ) ),silent=TRUE) }
       if(inherits(denom, "try-error") | (length(denom)==1 && denom==0)){
-        stop.msg = paste("Stopped at iter=",iter," in MARSSkem at U update. denom is not invertible.\n Type MARSSinfo(\"denom not invertible\") for more info.\n", sep="")
+        stop.msg = paste("Stopped at iter=",iter," in MARSSkem at U update. denom is not invertible.\n", sep="")
         stopped.with.errors=TRUE
         break
       }
@@ -685,7 +684,7 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
         } #for i
         if(length(denom)==1){ denom = try(1/denom) }else{ denom=try(chol2inv(chol( denom ) )) }
         if(inherits(denom, "try-error")){
-            stop.msg = paste("Stopped at iter=",iter," in MARSSkem at B update. denom is not invertible.\n Type MARSSinfo(\"denom not invertible\") for more info.\n", sep="")
+            stop.msg = paste("Stopped at iter=",iter," in MARSSkem at B update. denom is not invertible.\n", sep="")
             stopped.with.errors=TRUE;  break }
         MLEobj.iter$par$B = denom%*%numer
         if( !is.matrix(MLEobj.iter$par$B) ) MLEobj.iter$par$B=matrix(MLEobj.iter$par$B,dim(d$B)[2],1)
@@ -738,7 +737,7 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
       } #for i
       if(length(denom)==1){ denom = try(1/denom) }else{ denom=try(chol2inv(chol( denom ) )) }
       if(inherits(denom, "try-error")){ 
-        stop.msg = paste("Stopped at iter=",iter," in MARSSkem in Z update.  denom is not invertible.\n Type MARSSinfo(\"denom not invertible\") for more info.\n", sep="")
+        stop.msg = paste("Stopped at iter=",iter," in MARSSkem in Z update.  denom is not invertible.\n", sep="")
         stopped.with.errors=TRUE;  break }
       MLEobj.iter$par$Z = denom%*%numer
       if( !is.matrix(MLEobj.iter$par$Z) ) MLEobj.iter$par$Z=matrix(MLEobj.iter$par$Z,dim(d$Z)[2],1)
@@ -769,9 +768,10 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
 
   #prepare the MLEobj to return which has the elements set here
   MLEobj.return = MLEobj
-  MLEobj.return$control=MLEobj$control
-  MLEobj.return$start=MLEobj$start
-  MLEobj.return$model=MLEobj$model
+#not sure why this was here 3-18-13
+#   MLEobj.return$control=MLEobj$control
+#   MLEobj.return$start=MLEobj$start
+#   MLEobj.return$model=MLEobj$model
   MLEobj.return$iter.record = iter.record
   MLEobj.return$numIter = iter
   
@@ -786,8 +786,8 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
         msg=c(msg,"Use control$trace=1 to generate a more detailed error report. See user guide for insight.\n")
         }
     ## Attach any algorithm errors to the MLEobj
-    if(control$trace>0 && !is.null(msg.kem)) msg=c(msg,"\nMARSSkem errors\n",msg.kem)
-    if(control$trace>0 && !is.null(msg.kf)) msg=c(msg,"\nMARSSkf errors\n",msg.kf,"\n")    
+    if(control$trace>0 && !is.null(msg.kem)) msg=c(msg,"\nMARSSkem errors. Type MARSSinfo() for help.\n",msg.kem)
+    if(control$trace>0 && !is.null(msg.kf)) msg=c(msg,"\nMARSSkf errors. Type MARSSinfo() for help.\n",msg.kf,"\n")    
     MLEobj.return$errors=msg
         
     MLEobj.return$par=MLEobj.iter$par
@@ -876,19 +876,20 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
     MLEobj.return$states = MLEobj.iter$kf$xtT
   MLEobj.return$logLik = MLEobj.iter$logLik
 
-  ## To calculate confidence intervals based on state std errors, see caption of Fig 6.3 (p337) Shumway & Stoffer 206
-  if(!is.null(kf[["VtT"]])){
-    if(m == 1) states.se = sqrt(matrix(kf$VtT[,,1:TT], nrow=1))
-    if(m > 1) {
-      states.se = matrix(0, nrow=m, ncol=TT)
-      for(i in 1:TT) 
-        states.se[,i] = t(sqrt(takediag(kf$VtT[,,i])))
-    }
-    }else  states.se=NULL
-  MLEobj.return$states.se = states.se
+# I don't want se's added here
+#   ## To calculate confidence intervals based on state std errors, see caption of Fig 6.3 (p337) Shumway & Stoffer 206
+#   if(!is.null(kf[["VtT"]])){
+#     if(m == 1) states.se = sqrt(matrix(kf$VtT[,,1:TT], nrow=1))
+#     if(m > 1) {
+#       states.se = matrix(0, nrow=m, ncol=TT)
+#       for(i in 1:TT) 
+#         states.se[,i] = t(sqrt(takediag(kf$VtT[,,i])))
+#     }
+#     }else  states.se=NULL
+#   MLEobj.return$states.se = states.se
 
-  if(!is.null(msg.kem)){ msg.kem=c("\nMARSSkem warnings\n", msg.kem); msg=c(msg, msg.kem) }
-  if(!is.null(msg.kf)) { msg.kf=c("\nMARSSkf warnings\n", msg.kf); msg=c(msg, msg.kf) }
+  if(!is.null(msg.kem)){ msg.kem=c("\nMARSSkem warnings. Type MARSSinfo() for help.\n", msg.kem); msg=c(msg, msg.kem) }
+  if(!is.null(msg.kf)) { msg.kf=c("\nMARSSkf warnings. Type MARSSinfo() for help.\n", msg.kf); msg=c(msg, msg.kf) }
   if((!is.null(msg.kem) || !is.null(msg.kf)) && control$trace<1){  msg = c(msg,  "\nUse control$trace=1 to generate a more detailed error report.\n") }
   if((!is.null(msg.kem) || !is.null(msg.kf)) && (!control$silent || control$silent==2) ){
         cat("Alert: Numerical warnings were generated. Print the $errors element of output to see the warnings.\n")
@@ -897,7 +898,6 @@ kf.x0 = ifelse(MLEobj$model$tinitx==1,"x10","x00")  #the initial conditions trea
   ## Attach any algorithm errors to the MLEobj
   MLEobj.return$errors=msg
 
-  ## Object returned is list(model, start, control, kf, iter.record, numIter, convergence, logLik, states.se, errors)
   return(MLEobj.return)
 }
 
@@ -940,6 +940,7 @@ loglog.conv.test = function(iter.record, iter, params.to.test=c("Z","U","x0","R"
   } 
   if(!is.null(test.conv) && !any(is.na(test.conv)) && any(abs(test.conv)>tol)){
     msg=paste("Warning: the ",names.iter[abs(test.conv)>tol]," parameter value has not converged.\n")
+    msg=c(msg,"Type MARSSinfo(\"convergence\") for more info on this warning.\n")
     return( list(convergence=1, messages=msg, not.converged.params=names.iter[abs(test.conv)>tol], converged.params=names.iter[abs(test.conv)<=tol]) ) 
    }else { return( list(convergence=0, messages=NULL, not.converged.params=names.iter[abs(test.conv)>tol], converged.params=names.iter[abs(test.conv)<=tol] ) ) }  #0 means converged successfully
 }
@@ -961,7 +962,7 @@ rerun.kf = function(elem, MLEobj, iter){    #Start~~~~~~~~Error checking
       loglike.new = kf$logLik
       if(iter>1 && is.finite(loglike.old) == TRUE && is.finite(loglike.new) == TRUE ) cvg2 = loglike.new - loglike.old  
       if(iter > 2 & cvg2 < -sqrt(.Machine$double.eps)) {
-        if(MLEobj$control$trace>0){ 
+        if(MLEobj$control$trace>0){
           msg.kem=paste("iter=",iter," LogLike DROPPED in ",elem," update. logLik old=", loglike.old, " new=", loglike.new,"\n", sep="")
         }else msg.kem = paste("MARSSkem: The soln became unstable and logLik DROPPED in the",elem, "updates.\n")
         }
@@ -969,11 +970,11 @@ rerun.kf = function(elem, MLEobj, iter){    #Start~~~~~~~~Error checking
 }
 
 degen.test = function(elem, MLEobj, iter){
-    if( is.fixed(MLEobj$model$free[[elem]]) ) return(list(MLEobj=MLEobj, msg=NULL))
+    if( is.fixed(MLEobj$marss$free[[elem]]) ) return(list(MLEobj=MLEobj, msg=NULL))
     if( MLEobj$constr.type[[elem]]=="time-varying" ) return(list(MLEobj=MLEobj, msg=NULL))
     if( !MLEobj$control$allow.degen ) return(list(MLEobj=MLEobj, msg=NULL))
     if( iter<=MLEobj$control$min.degen.iter ) return(list(MLEobj=MLEobj, msg=NULL))
-    if( !is.design(MLEobj$model$free[[elem]], zero.rows.ok=TRUE) )
+    if( !is.design(MLEobj$marss$free[[elem]], zero.rows.ok=TRUE) )
        return(list(MLEobj=MLEobj, msg=NULL))  #strict, i.e. only 0 and 1
     #not fixed, not time-varying, allow.degen set, iter>min iter and free is a design matrix
     #So can proceed
@@ -985,17 +986,17 @@ degen.test = function(elem, MLEobj, iter){
       for(i in which(degen.par)){
         MLEobj.tmp=MLEobj
         MLEobj.tmp$par[[elem]][i,1]=0
-        MLEobj.tmp$model$free[[elem]][,i,1]=0 #req not time-varying
+        MLEobj.tmp$marss$free[[elem]][,i,1]=0 #req not time-varying
         kemcheck=MARSSkemcheck(MLEobj.tmp)
 
         if(kemcheck$ok){
           new.kf = MARSSkf( MLEobj.tmp )
           loglike.old=MLEobj$logLik
-          if(!new.kf$ok) msg.degen=c(msg.degen,paste("Warning: kf returned error at iter=",iter," in attempt to set 0 diagonals for ", elem,"\n", new.kf$errors,"Perhaps Q and R are both going to 0?\n", sep="") ); 
+          if(!new.kf$ok) msg.degen=c(msg.degen,paste("iter=",iter," MARSSkf returned error in attempt to set 0 diagonals for ", elem,"\n  ", new.kf$errors,"Perhaps Q and R are both going to 0?\n", sep="") ); 
         if(new.kf$ok && is.finite(loglike.old) && is.finite(new.kf$logLik) ) tmp.cvg2 = new.kf$logLik - loglike.old  else tmp.cvg2=Inf
         if(new.kf$ok && tmp.cvg2 < -sqrt(.Machine$double.eps)) {
-            msg.degen=c(msg.degen,paste("Warning: setting diagonal to 0 blocked at iter=",iter,". logLik was lower in attempt to set 0 diagonals on ",elem," logLik old=", loglike.old, " new=", new.kf$logLik,"\n", sep=""))
-        }
+            msg.degen=c(msg.degen,paste("iter=",iter," Setting diagonal to 0 blocked. logLik was lower in attempt to set 0 diagonals on ",elem," logLik old=", loglike.old, " new=", new.kf$logLik,"\n", sep=""))
+         }
         if(new.kf$ok && tmp.cvg2 > -sqrt(.Machine$double.eps)) { #this means degenerate elem has lower LL, so accept it
           MLEobj=MLEobj.tmp
           MLEobj$kf=new.kf
@@ -1007,7 +1008,7 @@ degen.test = function(elem, MLEobj, iter){
           }
           MLEobj$logLik=new.kf$logLik
         } 
-      }else{ msg.degen=c( msg.degen, paste("Warning: setting element of ",elem," to 0, blocked at iter=",iter," due to MARSSkemcheck errors.\n",sep=""), paste("MARSSkemcheck error: ", kemcheck$msg) ) }
+      }else{ msg.degen=c( msg.degen, paste("iter=",iter," Setting element of ",elem," to 0, blocked due to the following MARSSkemcheck errors.\n  MARSSkemcheck error: ", kemcheck$msg,sep="")) }
       } #for degen.par; do one by one
     } #update MLEobj
   return(list(MLEobj=MLEobj, msg=msg.degen))

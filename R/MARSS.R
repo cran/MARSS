@@ -1,87 +1,100 @@
 MARSS = function(y,
-    inits=NULL,
-    model=NULL,
-    miss.value=NA,
-    method = "kem",
-    form = "marxss",
-    fit=TRUE, 
-    silent = FALSE,
-    control = NULL,
-    MCbounds = NULL,
-    fun.kf = "MARSSkfas",
-    ... 
-    ) 
+                 inits=NULL,
+                 model=NULL,
+                 miss.value=as.numeric(NA),
+                 method = "kem",
+                 form = "marxss",
+                 fit=TRUE, 
+                 silent = FALSE,
+                 control = NULL,
+                 MCbounds = NULL,
+                 fun.kf = "MARSSkfas",
+                 ... 
+) 
 {
-if(is.na(miss.value)) miss.value=as.numeric(miss.value)
-
-MARSS.call = list(data=y, inits=inits, MCbounds=MCbounds, model=model, miss.value=miss.value, control=control, method=method, form=form, silent=silent, fit=fit, fun.kf=fun.kf, ...)
-
-#First make sure specified equation form has a corresponding function to do the conversion to marssm object
-  as.marssm.fun = paste("MARSS.",form,sep="")
-  tmp=try(exists(as.marssm.fun,mode="function"),silent=TRUE)
+  ## Start by checking the data, since if the data have major problems then the rest of the code
+  ## will have problems
+  if(!missing(miss.value)){
+    stop("miss.value is deprecated in MARSS.  Replace missing values in y with NA.\n")
+  }
+  if(is.null(y)){ stop("MARSS: No data (y) passed in.",call.=FALSE) }
+  if(is.ts(y)){ 
+    stop("MARSS: Please convert the ts object to a matrix with time going across columns.\nThis command will work to convert the data: t(as.data.frame.ts(y)).\nThis command will make a row of the frequency info (if you need this as a covariate): t(as.data.frame.ts(stats:::cycle.ts(y))).\nType MARSSinfo(\"ts\") for more info.",call.=FALSE)
+  }
+  if(!(is.vector(y) | is.matrix(y))) stop("MARSS: Data (y) must be a vector or matrix (time going across columns).",call.=FALSE)
+  if(length(y)==0) stop("MARSS: Data (y) is length 0.",call.=FALSE)
+  if(is.vector(y)) y=matrix(y,nrow=1)
+  if(any(is.nan(y))) cat("MARSS: NaNs in data are being replaced with NAs.  There might be a problem is NaNs shouldn't be in the data.\nNA is the normal missing value designation.\n")
+  y[is.na(y)]=as.numeric(NA)
+  
+  MARSS.call = list(data=y, inits=inits, MCbounds=MCbounds, model=model, control=control, method=method, form=form, silent=silent, fit=fit, fun.kf=fun.kf, ...)
+  
+  #First make sure specified equation form has a corresponding function to do the conversion to marssMODEL (form=marss) object
+  as.marss.fun = paste("MARSS.",form[1],sep="")
+  tmp=try(exists(as.marss.fun,mode="function"),silent=TRUE)
   if(!isTRUE(tmp)){
-    msg=paste(" MARSS.", form, "() function to convert form to marss object does not exist.\n",sep="")
+    msg=paste(" MARSS.", form[1], "() function to construct a marssMODEL (form=marss) object does not exist.\n",sep="")
     cat("\n","Errors were caught in MARSS \n", msg, sep="") 
     stop("Stopped in MARSS() due to problem(s) with required arguments.\n", call.=FALSE)
   }
-
-#Build the marssm object from the model argument to MARSS()
-  ## The as.marssm.fun() call does the following: 
-  ## Translate model strucuture names (shortcuts) into a marssm object
-  ## which is added to the MARSS.inputs list
-  ## is is a list(data, fixed, free, miss.value, X.names, tinitx, diffuse)
+  
+  #Build the marssMODEL object from the model argument to MARSS()
+  ## The as.marss.fun() call adds the following to MARSS.inputs list:
+  ## $marss Translate model strucuture names (shortcuts) into a marssMODEL (form=marss) object put in $marss
+  ## $alt.forms with any alternate marssMODEL objects in other forms that might be needed later
+  ## a marssMODEL object is a list(data, fixed, free, tinitx, diffuse) 
+  ## with attributes model.dims, X.names, form, equation
   ## error checking within the function is a good idea though not required
   ## if changes to the control values are wanted these can be set by changing MARSS.inputs$control
-  ## Add list element form.info if there in information about the form (say for printing) that you want access to later
-  as.marssm.fun = paste("MARSS.",form,sep="")
-  MARSS.inputs = eval(call(as.marssm.fun, MARSS.call))
-  modelObj=MARSS.inputs$marssm
+  MARSS.inputs = eval(call(as.marss.fun, MARSS.call))
+  marss.object=MARSS.inputs$marss
   
-  ## Check that the marssm object output by MARSS.form() is ok
+  ## Check that the marssMODEL object output by MARSS.form() is ok
   ## More checking on the control list is done by is.marssMLE() to make sure the MLEobj is ready for fitting
-  tmp = is.marssm(modelObj)
-    if(!isTRUE(tmp)) {
-      if( !silent || silent==2 ) { cat(tmp); return(modelObj) } 
-      stop("Stopped in MARSS() due to problem(s) with model specification. If silent=FALSE, modelObj will be returned.\n", call.=FALSE)
-    }
-
-  #apply some generic row and col naming to fixed and free matrices in modelObj
-  modelObj = MARSSapplynames(modelObj, X.names=modelObj$X.names)
-
+  tmp = is.marssMODEL(marss.object)
+  if(!isTRUE(tmp)) {
+    if( !silent || silent==2 ) { cat(tmp); return(marss.object) } 
+    stop("Stopped in MARSS() due to problem(s) with model specification. If silent=FALSE, marssMODEL object (in marss form) will be returned.\n", call.=FALSE)
+  }
+  
   ## checkMARSSInputs() call does the following:  
   ## Check that the user didn't pass in any illegal arguments
   ## and fill in defaults if some params left off
-  ## This does not check model since the marssm object is constructed
+  ## This does not check model since the marssMODEL object is constructed
   ## via the MARSS.form() function above
   MARSS.inputs=checkMARSSInputs(MARSS.inputs, silent=FALSE)
-
-
-###########################################################################################################
-##  MODEL FITTING
-###########################################################################################################
-
+  
+  
+  ###########################################################################################################
+  ##  MODEL FITTING
+  ###########################################################################################################
+  
   ## MLE estimation
   if(method %in% c(kem.methods, optim.methods)) {
     
     ## Create the marssMLE object
-
-    MLEobj = list(model=modelObj, control=c(MARSS.inputs$control, list(MCbounds=MARSS.inputs$MCbounds), silent=silent), method=method, fun.kf=fun.kf, form=form)
-    MLEobj$form.info=MARSS.inputs$form.info
+    
+    MLEobj = list(marss=marss.object, model=MARSS.inputs$model, control=c(MARSS.inputs$control, list(MCbounds=MARSS.inputs$MCbounds), silent=silent), method=method, fun.kf=fun.kf)
+    #Set the call form since that info needed for MARSSinits
+    if(MLEobj$control$trace != -1){ MLEobj$call=MARSS.call } 
+    
     # This is a helper function to set simple inits for a marss MLE model object
     MLEobj$start = MARSSinits(MLEobj, MARSS.inputs$inits)
-
+    
     class(MLEobj) = "marssMLE"
-
+    
     ## Check the marssMLE object
-    ## is.marssMLE() calls is.marssm() to check the model,
+    ## is.marssMLE() calls is.marssMODEL() to check the model,
     ## then checks dimensions of initial value matrices.
     ## it also checks the control list and add defaults if some values are NULL
     tmp = is.marssMLE(MLEobj)
+    
+    #if errors, tmp will not be true, it will be error messages
     if(!isTRUE(tmp)) {
       if( !silent ) {
         cat(tmp)
         cat(" The incomplete/inconsistent MLE object is being returned.\n")
-        }
+      }
       cat("Error: Stopped in MARSS() due to marssMLE object incomplete or inconsistent. \nPass in silent=FALSE to see the errors.\n\n")
       MLEobj$convergence=2
       return(MLEobj)
@@ -132,57 +145,78 @@ MARSS.call = list(data=y, inits=inits, MCbounds=MCbounds, model=model, miss.valu
     if(!fit) MLEobj$convergence=3
     
     if(fit) {
-      ## If not parameters are estimated, then get the states
-      if(all(unlist(lapply(MLEobj$model$free,is.fixed)))){
+      ## If not parameters are estimated, then set par element and get the states
+      if(all(unlist(lapply(MLEobj$marss$free,is.fixed)))){
         MLEobj$convergence=3
-        MLEobj$par=list(); for(el in names(MLEobj$model$free)) MLEobj$par[[el]]=matrix(0,0,1)
-        kf=MARSSkf(MLEobj) 
+        MLEobj$par=list(); for(el in attr(MLEobj$marss,"par.names")) MLEobj$par[[el]]=matrix(0,0,1)
+        kf=MARSSkfss(MLEobj) #kfss is better here
         MLEobj$states=kf$xtT
         MLEobj$logLik=kf$logLik
         if(!is.null(kf[["VtT"]])){
-          m = dim(MLEobj$model$fixed$x0)[1]
-          TT = dim(MLEobj$model$data)[2]
+          m = attr(MLEobj$marss,"model.dims")[["x"]][1]
+          TT = attr(MLEobj$marss,"model.dims")[["data"]][2]
           if(m == 1) states.se = sqrt(matrix(kf$VtT[,,1:TT], nrow=1))
           if(m > 1) {
-          states.se = matrix(0, nrow=m, ncol=TT)
-          for(i in 1:TT) 
-            states.se[,i] = t(sqrt(takediag(kf$VtT[,,i])))
+            states.se = matrix(0, nrow=m, ncol=TT)
+            for(i in 1:TT) 
+              states.se[,i] = t(sqrt(takediag(kf$VtT[,,i])))
           }
-        }else  states.se=NULL
-        MLEobj$states.se = states.se
-        MLEobj$ytT=MARSShatyt(MLEobj)$ytT
+        }else{  states.se=NULL }
+        MLEobj[["states.se"]] = states.se
+        Ey=MARSShatyt(MLEobj)
+        MLEobj$ytT=Ey[["ytT"]]
+        if(!is.null(Ey[["OtT"]])){
+          n = attr(MLEobj$marss,"model.dims")[["y"]][1]
+          TT = attr(MLEobj$marss,"model.dims")[["data"]][2]
+          if(n == 1) y.se = sqrt(matrix(Ey[["OtT"]][,,1:TT], nrow=1))
+          if(n > 1) {
+            y.se = matrix(0, nrow=n, ncol=TT)
+            for(i in 1:TT) 
+              y.se[,i] = t(sqrt(takediag(Ey[["OtT"]][,,i])))
+          }
+        }else{  y.se=NULL }
+        MLEobj$y.se=y.se
         if(MLEobj$control$trace>0){ 
           MLEobj$kf=MARSSkf(MLEobj)
           MLEobj$Ey=MARSShatyt(MLEobj)
         }
       }else{ #there is something to estimate
-      ## Fit and add param estimates to the object
+        ## Fit and add param estimates to the object
         if(method %in% kem.methods) MLEobj = MARSSkem(MLEobj)
         if(method %in% optim.methods) MLEobj = MARSSoptim(MLEobj)
       }
       
       #apply X and Y names various X and Y related elements
       MLEobj = MARSSapplynames(MLEobj)
-
+      
       ## Add AIC and AICc and coef to the object
       ## Return as long as there are no errors, but might not be converged
       if((MLEobj$convergence%in%c(0,1)) | (MLEobj$convergence%in%c(10,11) && method %in% kem.methods) ){
         MLEobj = MARSSaic(MLEobj)
         MLEobj$coef = coef(MLEobj,type="vector")
-      }
-      } # fit the model
-  
-   if(MLEobj$control$trace == -1){ # just save the form information from $call
-     MLEobj$call$form = MARSS.call$form
-   }else{ MLEobj$call=MARSS.call } 
-      
-   if(!silent & MLEobj$convergence %in% c(0,1,3,10,11)){ print(MLEobj) }
-   if(!silent & !(MLEobj$convergence %in% c(0,1,3,10,11))){ cat(MLEobj$errors) } # 3 added since don't print if fit=FALSE
-   if(!silent & !fit) print(modelObj)
-
-   return(MLEobj)
+        #add on the states.se's
+        kf=MARSSkfss(MLEobj) #kfss is better here
+        if(!is.null(kf[["VtT"]])){
+          m = attr(MLEobj$marss,"model.dims")[["x"]][1]
+          TT = attr(MLEobj$marss,"model.dims")[["data"]][2]
+          if(m == 1) states.se = sqrt(matrix(kf$VtT[,,1:TT], nrow=1))
+          if(m > 1) {
+            states.se = matrix(0, nrow=m, ncol=TT)
+            for(i in 1:TT) 
+              states.se[,i] = t(sqrt(takediag(kf$VtT[,,i])))
+          }
+        }else{  states.se=NULL }
+         MLEobj[["states.se"]] = states.se
+        }
+    } # fit the model
+    
+    if(!silent & MLEobj$convergence %in% c(0,1,3,10,11)){ print(MLEobj) }
+    if(!silent & !(MLEobj$convergence %in% c(0,1,3,10,11))){ cat(MLEobj$errors) } # 3 added since don't print if fit=FALSE
+    if(!silent & !fit) print(MLEobj$model)
+    
+    return(MLEobj)
   } # end MLE methods
-
+  
   return("method allowed but it's not in kem.methods or optim.methods so marssMLE object was not created")
 }  
 

@@ -5,27 +5,28 @@
 #   In the MARSS code, this is referred to as the nonparametric bootstrap.  Strictly speaking, it is not nonparametric.
 ########################################################################################################################
 MARSSinnovationsboot = function(MLEobj, nboot=1000, minIndx=3 ) {
-   if(MLEobj$model$miss.value %in% MLEobj$model$data) 
+   if(any(is.na(MLEobj$marss$data))) 
       stop("Stopped in MARSSinnovationsboot() because this algorithm resamples from the innovations and doesn't allow missing values.\n", call.=FALSE)
 
    # The following need to be present in model: parameter estimates + Sigma, Kt, Innov; the latter 3 are part of $kf
-   if(any(is.null(MLEobj[["par"]]), is.null(MLEobj[["model"]][["data"]])))
+   if(any(is.null(MLEobj[["par"]]), is.null(MLEobj[["marss"]][["data"]])))
       stop("Stopped in MARSSinnovationsboot(). The passed in marssMLE object is missing par or model$data elements.\n", call.=FALSE)
    if(is.null(MLEobj[["kf"]]) | is.null(MLEobj[["kf"]][["Innov"]]) | is.null(MLEobj[["kf"]][["Sigma"]])){ kf=MARSSkfss(MLEobj)
-   }else{ kf=MLEobj$kf } 
+   }else{ kf=MLEobj[["kf"]] } 
    
    ## Rename things for code readability
-   model=MLEobj$model
-   TT = dim(MLEobj$model$data)[2]
-   m = dim(MLEobj$model$fixed$x0)[1]   
-   n = dim(MLEobj$model$data)[1]
-   f=MLEobj$model$fixed
-   d=MLEobj$model$free
+   modelObj=MLEobj[["marss"]]
+   par.dims=attr(modelObj,"model.dims")
+   TT = par.dims[["data"]][2]
+   m = par.dims[["x"]][1]   
+   n = par.dims[["y"]][1]
+   f=modelObj[["fixed"]]
+   d=modelObj[["free"]]
    pari=parmat(MLEobj,t=1)
 
    #### make a list of time-varying parameters
    time.varying = list()
-   for(elem in names(MLEobj$model$free)) {
+   for(elem in attr(modelObj,"par.names")) {
     if( (dim(d[[elem]])[3] == 1) & (dim(f[[elem]])[3] == 1)){
         time.varying[[elem]] = FALSE
       }else{ time.varying[[elem]] = TRUE }  #not time-varying
@@ -34,8 +35,8 @@ MARSSinnovationsboot = function(MLEobj, nboot=1000, minIndx=3 ) {
    ##### Set holders for output
    newData = matrix(NA, n, TT)    #store as written for state-space eqn with time across columns
    newStates = matrix(NA, m, TT+1) #store as written for state-space eqn with time across columns  
-   boot.data = array(NA, dim=c(dim(model$data), nboot))  
-   boot.states = array(NA, dim=c(m, TT, nboot))  
+   boot.data = array(NA, dim=c(par.dims[["data"]], nboot))  
+   boot.states = array(NA, dim=c(par.dims[["x"]], nboot))  
 
     # Calculate the sqrt of sigma matrices, so they don't have to be computed 5000+ times
     sigma.Sqrt = array(0, dim=c(n, n, TT))
@@ -74,7 +75,7 @@ MARSSinnovationsboot = function(MLEobj, nboot=1000, minIndx=3 ) {
       # reset newStates to its original dim
       newStates = matrix(NA, m, TT+1)
    }
-     return(list(boot.states=boot.states, boot.data=boot.data, model=model, nboot=nboot))
+     return(list(boot.states=boot.states, boot.data=boot.data, marss=modelObj, nboot=nboot))
 }
 
 ######################################################################################################################

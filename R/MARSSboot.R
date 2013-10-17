@@ -16,12 +16,13 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
   #      data : returns the simulated (or bootstrapped) data.
   #      parameters : return the ML parameter estimates from the bootstrapped data
   #      all : return both
-  # sim = the type of bootstrapping to do to create boot.data.  Choices are
+  # sim = the type of bootstrapping to do to create boot.data (if output included "data").
+  #      Choices are
   #      parametric uses parametric bootstrapping
   #      innovations uses Stoffer and Walls method
   # param.gen = how to generate the parameters.
-  #      MLE
-  #      hessian
+  #      MLE --- generate sim data and estimate params via MLE
+  #      hessian  -- get params from estimated hessian matrix
   # control is a list which holds options for the estimation function (see help file)
   # silent controls whether a progress bar is shown
   
@@ -77,7 +78,7 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
     MLEobj$control$silent = TRUE  #prevent output from the estimation function
   }
 
-  # Check for marssMLE properness; check that MLEobj$model$data exists and MLEobj$model$miss.value exists
+  # Check for marssMLE properness; check that MLEobj$marss$data exists
   tmp = is.marssMLE(MLEobj)
   if(!isTRUE(tmp)) {
     if(!silent) cat(tmp)
@@ -105,9 +106,9 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
   if(param.gen=="hessian") sim = "none"
 
   #A little renamimg for code readability
-  model=MLEobj$model 
+  marss.model=MLEobj[["marss"]]
   ##### Now check for any inconsistency in the passed in arguments
-  if( (model$miss.value %in% model$data) & sim=="innovations"){ 
+  if( any(is.na(marss.model$data)) & sim=="innovations" ){ 
       msg="  Innovations bootstrapping uses the innovations resampling and can only be done if there are no missing values in the data.\n"
       cat("\n","Errors were caught in MARSSboot \n", msg, sep="") 
       stop("Stopped in MARSSboot() due to problem(s) with function arguments.\n", call.=FALSE)
@@ -115,20 +116,29 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
   ##### Set holders for output
   boot.params=NA; boot.data=NA  #dummy values 
   # these are the arrays for output
-  if("data" %in% output) boot.data = array(NA,dim=c(dim(as.matrix(model$data)),nboot))
-  if("parameters" %in% output) boot.params=array(NA,dim=c(length(MARSSvectorizeparam(MLEobj)),nboot))  
+  if("data" %in% output){
+    boot.data = array(NA,dim=c(dim(as.matrix(marss.model$data)),nboot))
+    rownames(boot.data) = attr(marss.model[["data"]],"Y.names")
+  }
+  if("parameters" %in% output){
+    boot.params=array(NA,dim=c(length(MARSSvectorizeparam(MLEobj)),nboot))
+    rownames(boot.params) = names(MARSSvectorizeparam(MLEobj))
+  }
  
   ##### Read in model parameters
-  m = dim(MLEobj$model$fixed$x0)[1]
-  TT = dim(MLEobj$model$data)[2]  # length of time series
-  n = dim(MLEobj$model$data)[1]   
+  marss.model=MLEobj[["marss"]]
+  par.dims=attr(marss.model,"model.dims")
+  m = par.dims[["x"]][1]
+  TT = par.dims[["data"]][2]  # length of time series
+  n = par.dims[["y"]][1]   
 
   ##### If using hessian to generate boot parameters, check if parSigma is already set
-  if(param.gen=="hessian" & (is.null(MLEobj[["parSigma"]]) | is.null(MLEobj[["parMean"]]))){
+  if( param.gen=="hessian" & (is.null(MLEobj[["parSigma"]]) | is.null(MLEobj[["parMean"]]) )){
     if(!silent) cat("MARSSboot: Computing the Hessian.  This might take awhile.\n")
-    MLEobj = MARSShessian(MLEobj)  #adds the hessian; parSigma; and parMean matrix onto the mle.model object
-    if(is.null(MLEobj[["parSigma"]]))  #if solve(hessian) didn't work in emHessian() then it sets parSigma to NULL
+    MLEobj.hessian = MARSShessian(MLEobj)  #returns a transformed MLEobj with hessian; parSigma; and parMean matrix onto the mle.model object
+    if( is.null(MLEobj.hessian[["parSigma"]] )) { #parSigma is not set if hessian cannot be inverted
       stop("Stopped in MARSSboot() because Hessian could not be inverted to estimate the parameter var-cov matrix", call.=FALSE)
+    }
   }
 		 
   ##### Set up the progress bar
@@ -140,7 +150,7 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
 
   #####This part creates and stores the bootstrap data (not parameters yet just data)
   if(sim == "parametric")
-    boot.data = MARSSsimulate(MLEobj, miss.loc=model$data, tSteps=TT, nsim=nboot )$sim.data  # make new data
+    boot.data = MARSSsimulate(MLEobj, miss.loc=marss.model$data, tSteps=TT, nsim=nboot )$sim.data  # make new data
 
   if(sim == "innovations")
     boot.data = MARSSinnovationsboot(MLEobj, nboot=nboot )$boot.data
@@ -152,21 +162,20 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
     mle.object$control = boot.control
     for(i in 1:nboot) {
       if( param.gen == "MLE" ) {
-	        newmod = MLEobj$model	        
-	        newmod$data = array(boot.data[,,i], dim=dim(boot.data)[1:2])  
-          mle.object$model=newmod
-	        if(mle.object$method %in% kem.methods) boot.model = MARSSkem(mle.object) 
-	        if(mle.object$method %in% optim.methods) boot.model = MARSSoptim(mle.object) 
+	        newmod = marss.model #marss form     
+	        newmod[["data"]] = array(boot.data[,,i], dim=dim(boot.data)[1:2])  
+          mle.object[["marss"]]=newmod #we are resetting the marss object
+	        if(mle.object[["method"]] %in% kem.methods) boot.model = MARSSkem(mle.object) 
+	        if(mle.object[["method"]] %in% optim.methods) boot.model = MARSSoptim(mle.object) 
 	        boot.params[,i] = MARSSvectorizeparam(boot.model)
-	# b495
-	if (i == 1) rownames(boot.params) = names(MARSSvectorizeparam(boot.model))
       } #if MLE
 
       if( param.gen == "hessian" ) {
-	# b495
-	if (i == 1) rownames(boot.params) = names(MLEobj$parMean)
-        hess.params = rmvnorm(1, mean=MLEobj$parMean, sigma=MLEobj$parSigma, method="chol")
-        boot.params[,i] = hess.params
+        #any variances will be in the chol transformation
+        hess.params = rmvnorm(1, mean=MLEobj.hessian$parMean, sigma=MLEobj.hessian$parSigma, method="chol")
+        
+        #back transform to non-chol form
+        boot.params[,i] = MARSShessian.backtrans(MLEobj.hessian, hess.params)        
       }   #if hessian   
     
       # Draw the progress bar if silent=F and time library is installed
@@ -174,5 +183,5 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
       }    #end nboot loop
     } # end if parameters in output
       
-  return(list(boot.params=boot.params, boot.data=boot.data, model=MLEobj$model, nboot=nboot, output=output, sim=sim, param.gen=param.gen))
+  return(list(boot.params=boot.params, boot.data=boot.data, marss=marss.model, nboot=nboot, output=output, sim=sim, param.gen=param.gen))
 }

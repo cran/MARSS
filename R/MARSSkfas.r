@@ -5,10 +5,9 @@
 #   Note the different time indexing for transition equation
 #   The y_t,y_{t-1} stacked vector with parameters vectors reconfigured to output the
 #     smoothed lag-1 covariances needed by the EM algorithm
-#   The computation for the lag-one cov smoother comes from S&S 2000; pg 321
 #######################################################################################################
 MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfas.model=FALSE ) {
-    modelObj = MLEobj$model
+    modelObj = MLEobj$marss
     control = MLEobj$control
     diffuse=modelObj$diffuse
     
@@ -16,12 +15,11 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
     par.1=parmat(MLEobj, t=1)
     t.B=matrix(par.1$B,m,m,byrow=TRUE)
     #create the YM matrix
-    if(is.na(modelObj$miss.value)){ YM=matrix(as.numeric(!is.na(modelObj$data)),n,TT)
-      }else{ YM=matrix(as.numeric(!(modelObj$data==modelObj$miss.value)),n,TT) } 
+    YM=matrix(as.numeric(!is.na(modelObj$data)),n,TT)
       
     #Make sure the missing vals in yt are NAs if there are any
     yt=modelObj$data
-    yt[!YM]=NA
+    yt[!YM]=as.numeric(NA)
     
     #Stack the y so that we can get the lag-1 covariance smoother from the Kalman filter output
     stack.yt=rbind(yt[,1:TT,drop=FALSE],cbind(NA,yt[,1:(TT-1),drop=FALSE]))
@@ -58,12 +56,16 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
       stack.Tt=array(0,dim=c(2*(m+1),2*(m+1),TT))
       pars=parmat(MLEobj,c("B","U"),t=1:TT)
       #pars uses i+1 because in KFAS x(t)=B(t-1)x(t-1) versus MARSS where x(t)=B(t)x(t-1)
+      #KFAS sets prior on x(1) so recursions start at x(2); thus B(0) never appears in the KFAS recursions
       Tt[1:m,1:m,1:(TT-1)]=pars$B[,,2:TT]
       Tt[1:m,m+1,1:(TT-1)]=pars$U[,,2:TT]
-      Tt[m+1,m+1,]=1; Tt[,,TT]=NA
+      Tt[m+1,m+1,]=1; 
+      #in KFAS T[,,TT] is not used since x(T)=B(t-1)x(t-1) is the last computation
+      #Set to 0 since is.SSModel does like NA in any parameters
+      Tt[,,TT]=0
       stack.Tt[(m+2):(2*m+2),1:(m+1),]=diag(1,m+1)
       stack.Tt[1:(m+1),1:(m+1),]=Tt
-      stack.Tt[,,TT]=NA
+      stack.Tt[,,TT]=0 #see comment above re setting TT value
     }
     
     #Build the Ht (R) matrix which is n x n or n x n x T
@@ -92,10 +94,12 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
         Qt[,,i]=matrix(0,m+1,m+1); Qt[1:m,1:m,i]=parmat(MLEobj,"Q",t=i+1)$Q
         stack.Qt[1:(m+1),1:(m+1),i]=Qt[,,i]
       }
-      Qt[,,TT]=NA; stack.Qt[,,TT]=NA
+      #see comments on setting of T re TT value; TT value never appears in the KFAS recursions
+      #but is.SSModel check does like any NAs in the parameters
+      Qt[,,TT]=0; stack.Qt[,,TT]=0
     }
 
-    #Build the a1, Rt and P1 (V0) matrices
+    #Build the a1, Rt and P1 matrices
     #First compute x10 and V10 if tinitx=0
     if(modelObj$tinitx==0){ # Compute needed x_1 | x_0
        #B(1),U(1), and Q(1) correct here since equivalent to B(0), etc in KFAS terminology
@@ -129,13 +133,23 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
       stack.P1[(m+2):(2*m+1),1:m]=V00%*%t(par.1$B)
     }
 
-    if(!return.lag.one)
-      kfas.model=SSModel(y=yt, Z=Zt, T=Tt, R=Rt, H=Ht, Q=Qt, a1=a1, P1=P1, P1inf=P1inf)
-    else
-      kfas.model=SSModel(y=yt, Z=stack.Zt, T=stack.Tt, R=stack.Rt, H=Ht, Q=stack.Qt, a1=stack.a1, P1=stack.P1, P1inf=stack.P1inf)
+    if(!return.lag.one){
+      if(packageVersion("KFAS")=="0.9.11") kfas.model=SSModel(y=yt, Z=Zt, T=Tt, R=Rt, H=Ht, Q=Qt, a1=a1, P1=P1, P1inf=P1inf)
+      else kfas.model=SSModel(yt ~ -1+SSMcustom( Z=Zt, T=Tt, R=Rt, Q=Qt, a1=a1, P1=P1, P1inf=P1inf), H=Ht)
+    }else{
+      if(packageVersion("KFAS")=="0.9.11") kfas.model=SSModel(y=yt, Z=stack.Zt, T=stack.Tt, R=stack.Rt, H=Ht, Q=stack.Qt, a1=stack.a1, P1=stack.P1, P1inf=stack.P1inf)
+      else kfas.model=SSModel(yt ~ -1+SSMcustom( Z=stack.Zt, T=stack.Tt, R=stack.Rt, Q=stack.Qt, a1=stack.a1, P1=stack.P1, P1inf=stack.P1inf), H=Ht)
+    }
     
-    if(only.logLik) return( list(logLik=KFAS:::logLik.SSModel(kfas.model)) ) #referenced like this since logLik.SSmodel is not exported in KFAS Namespace
-    ks.out=KFS(kfas.model)
+    if(only.logLik){
+      return( list(logLik=logLik(kfas.model)) )
+    }
+    ks.out=KFS(kfas.model, simplify=FALSE) #simplify=FALSE so 1.0.0 returns LL
+    #because 1.0.0 has time down columns instead of across rows
+    if(packageVersion("KFAS")!="0.9.11"){
+      ks.out$a=t(ks.out$a)
+      ks.out$alphahat=t(ks.out$alphahat)
+    }
 
     VtT = ks.out$V[1:m,1:m,,drop=FALSE]
     Vtt1 = ks.out$P[1:m,1:m,1:TT,drop=FALSE]
@@ -143,6 +157,7 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
     }else{ Vtt1T = ks.out$V[1:m,(m+2):(2*m+1),,drop=FALSE] }
     #zero out rows cols as needed when R diag = 0
     #Check that if any R are 0 then model is solveable
+    #This works because I do not allow the location of 0s on the diagonal of R or Q to be time-varying
     if(n==1){ diag.R=unname(par.1$R) }else{ diag.R = unname(par.1$R)[1 + 0:(n - 1)*(n + 1)] }
     if( any(diag.R==0) ){
       VtT[abs(VtT)<.Machine$double.eps]=0
@@ -150,7 +165,7 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
       if(return.lag.one) Vtt1T[abs(Vtt1T)<.Machine$double.eps]=0
     }
 
-    x10T = ks.out$alphahat[1:m,1,drop=FALSE]
+    x10T = ks.out$alphahat[1:m,1,drop=FALSE] 
     V10T = matrix(VtT[,,1],m,m)
     if(modelObj$tinitx==1){ 
       x00=matrix(NA,m,1); V00=matrix(NA,m,m)
@@ -160,15 +175,23 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
       Vinv=pcholinv(Vtt1.1)
       if(m!=1) Vinv = symm(Vinv)  #to enforce symmetry after chol2inv call
       J0 = V00%*%t.B%*%Vinv  # eqn 6.49 and 1s on diag when Q=0; Here it is t.B[1]
-      xtT.1=ks.out$alphahat[1:m,1,drop=FALSE]
+      xtT.1=ks.out$alphahat[1:m,1,drop=FALSE] 
       x0T = x00 + J0%*%(ks.out$alphahat[1:m,1,drop=FALSE]-ks.out$a[1:m,1,drop=FALSE]);          # eqn 6.47
-      V0T = V00 + J0%*%(VtT[,,1]-Vtt1[,,1])%*%t(J0)   # eqn 6.48
+      V0T = V00 + J0%*%(VtT[,,1]-Vtt1[,,1])*t(J0)   # eqn 6.48
     }
    
     if(!return.kfas.model) kfas.model=NULL
     
-#not using ks.out$v and ks.out$F since I think there might be a bug when R is not diagonal.
-  rtn.list = list(
+#not using ks.out$v (Innov) and ks.out$F (Sigma) since I think there might be a bug when R is not diagonal.
+par.R=parmat(MLEobj,"R",t=1:TT)$R
+if(all(apply(par.R,3,is.diagonal))){
+  innov.rtn=ks.out$v
+  sigma.rtn=ks.out$F
+}else{
+  innov.rtn="R is not diagonal; use MARSSkfss to get innovations in this case"
+  sigma.rtn="R is not diagonal; use MARSSkfss to get sigma in this case"
+}
+    rtn.list = list(
     xtT = ks.out$alphahat[1:m,,drop=FALSE],
     VtT = VtT, 
     Vtt1T = Vtt1T,
@@ -178,14 +201,14 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
     V10T = V10T,
     x00T = x00,
     V00T = V00,
-    Vtt = NULL,
+    Vtt = "Use MARSSkfss to get Vtt",
     Vtt1 = Vtt1,
-    J=NULL, 
-    J0=NULL,
-    Kt=NULL, 
+    J="Use MARSSkfss to get J", 
+    J0="Use MARSSkfss to get J0",
+    Kt="Use MARSSkfss to get Kt", 
     xtt1 = ks.out$a[1:m,1:TT,drop=FALSE], 
-    xtt= NULL,
-    Innov=NULL, Sigma=NULL,
+    xtt= "Use MARSSkfss to get xtt",
+    Innov=innov.rtn, Sigma=sigma.rtn,
     kfas.model=kfas.model,
     logLik=ks.out$logLik,
     ok=TRUE,

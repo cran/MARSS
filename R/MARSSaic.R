@@ -35,7 +35,7 @@ MARSSaic = function(MLEobj, output=c("AIC","AICc"), Options=list(nboot=1000, ret
   return.list=list()
 
   ## Some renaming for readability
-  model = MLEobj$model
+  model = MLEobj$marss
   #kf = MLEobj$kf
   loglike = MLEobj$logLik
   
@@ -47,7 +47,7 @@ MARSSaic = function(MLEobj, output=c("AIC","AICc"), Options=list(nboot=1000, ret
       K = K + pars
     }
     MLEobj$AIC = -2*loglike + 2*K
-    samp.size = ifelse(is.na(model$miss.value), sum(!is.na(model$data)), sum(model$data != model$miss.value) )
+    samp.size = sum(!is.na(model$data))
     MLEobj$AICc = ifelse(samp.size > (K+1),-2*loglike + 2*K*(samp.size/(samp.size-K-1)),"NA, number of data points less than K+1")
     MLEobj$samp.size = samp.size 
     MLEobj$num.params = K

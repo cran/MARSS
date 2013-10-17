@@ -22,7 +22,7 @@ MARSSmcinit(MLEobj)
   The default values for these are given in \code{MARSSsettings.R} and listed in \code{\link{MARSS}}.
 }
 \value{
-  A list with 8 matrices Z, A, R, B, U, Q, x0, V0, specifying initial values for parameters for iteration 1 of the EM algorithm.
+  A list with 8 matrices Z, A, R, B, U, Q, x0, V0, specifying initial values for parameters for iteration 1 of the EM algorithm.  Note the output is the initial values for a marssMODEL in marss form.
 }
 \references{ 
   The user guide:  Holmes, E. E., E. J. Ward, and M. D. Scheuerell (2012) Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
@@ -45,8 +45,12 @@ Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuid
   fit1
   #Show the inits that were used
   fit1$start
-  #Try fewer initial start locations and different mean variance (0.1 instead of 1) for R and Q
-  fit2=MARSS(dat, control=list(MCInit=TRUE, numInits=10, numInitSteps = 10, boundsInits=list(Q=c(1,0.1),R=c(1,0.1))))
+  #Try fewer initial start locations 
+  #and different mean variance (0.1 instead of 1) for R and Q
+  cntl.list = list(MCInit=TRUE, numInits=10, 
+                   numInitSteps = 10, 
+                   boundsInits=list(Q=c(1,0.1),R=c(1,0.1)))
+  fit2=MARSS(dat, control=cntl.list)
   fit2
   #Show the inits that were used
   fit2$start

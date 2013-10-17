@@ -4,7 +4,7 @@
 \docType{data}
 \title{ Loggerhead Turtle Tracking Data }
 \description{
-  Data used in MARSS vignettes in the \code{\link{MARSS-package}}.  Tracking data from ARGOS tags on eight individual loggerhead turtles, 1997-2006.
+Data used in MARSS vignettes in the \code{\link{MARSS-package}}.  Tracking data from ARGOS tags on eight individual loggerhead turtles, 1997-2006.
 }
 \usage{
 data(loggerhead)

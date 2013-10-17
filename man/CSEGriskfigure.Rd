@@ -2,12 +2,12 @@
 \alias{CSEGriskfigure}
 \title{ Plot Extinction Risk Metrics }
 \description{
-  Generates a six-panel plot of extinction risk metrics used in Population Viability Analysis (PVA).    This is a function used by one of the vignettes in the \code{\link{MARSS-package}}. 
+  Generates a six-panel plot of extinction risk metrics used in Population Viability Analysis (PVA). This is a function used by one of the vignettes in the \code{\link{MARSS-package}}. 
 }
 \usage{
 CSEGriskfigure(data, te = 100, absolutethresh = FALSE, threshold = 0.1, 
   datalogged = FALSE, silent = FALSE, return.model = FALSE, 
-  CI.method = "hessian", CI.sim = 1000, miss.value=NA)
+  CI.method = "hessian", CI.sim = 1000)
 }
 \arguments{
   \item{data}{ A data matrix with 2 columns; time in first column and counts in second column. Note time is down rows, which is different than the base \code{\link{MARSS-package}} functions.}
@@ -19,7 +19,6 @@ CSEGriskfigure(data, te = 100, absolutethresh = FALSE, threshold = 0.1,
   \item{return.model}{ Return state-space model as \code{\link{marssMLE}} object? (T/F)}
   \item{CI.method}{ Confidence interval method: "hessian", "parametrc", "innovations", or "none". See \code{\link{MARSSparamCIs}}. }
   \item{CI.sim}{ Number of simulations for bootstrap confidence intervals (positive integer). }
-  \item{miss.value}{ missing value (default is NA) }
 }
 \details{
   Panel 1: Time-series plot of the data.

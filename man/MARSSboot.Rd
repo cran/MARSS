@@ -2,7 +2,7 @@
 \alias{MARSSboot}
 \title{ Bootstrap MARSS Parameter Estimates }
 \description{
-  Creates bootstrap parameter estimates and simulated (or bootstrapped) data (if appropriate).  This is a base function in the \code{\link{MARSS-package}}.
+Creates bootstrap parameter estimates and simulated (or bootstrapped) data (if appropriate).  This is a base function in the \code{\link{MARSS-package}}.
 }
 \usage{
 MARSSboot(MLEobj, nboot = 1000, 
@@ -35,7 +35,7 @@ Stoffer and Wall (1991) present an algorithm for generating CIs via a non-parame
   A list with the following components:
   \item{boot.params}{ Matrix (number of params x nboot) of parameter estimates from the bootstrap. }
   \item{boot.data}{ Array (n x t x nboot) of simulated (or bootstrapped) data (if requested and appropriate). }
-  \item{model}{ The \code{\link{marssm}} object that was passed in via \code{MLEobj$model}. }
+  \item{marss}{ The \code{\link{marssMODEL}} object (form="marss") that was passed in via \code{MLEobj$marss}. }
   \item{nboot}{ Number of bootstraps performed. }
   \item{output}{ Type of output returned.} 
   \item{sim}{ Type of bootstrap. }
@@ -55,7 +55,7 @@ Cavanaugh, J. E., and R. H. Shumway. 1997. A bootstrap variant of AIC for state-
   eli(dot)holmes(at)noaa(dot)gov, eric(dot)ward(at)noaa(dot)gov
 }
 \seealso{ 
-  \code{\link{marssMLE}}  \code{\link{marssm}}  \code{\link{MARSSaic}}  
+  \code{\link{marssMLE}}  \code{\link{marssMODEL}}  \code{\link{MARSSaic}}  
 }
 \examples{
   #nboot is set low in these examples in order to run quickly

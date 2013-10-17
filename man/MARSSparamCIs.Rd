@@ -1,8 +1,8 @@
 \name{MARSSparamCIs}
 \alias{MARSSparamCIs}
-\title{ Standard Errors and Confidence Intervals for MARSS Parameters }
+\title{ Standard Errors, Confidence Intervals and Bias for MARSS Parameters }
 \description{
-  Computes confidence intervals for the maximum-likelihood estimates of MARSS model parameters.  This is a base function in the \code{\link{MARSS-package}}.
+Computes standard errors, confidence intervals and bias for the maximum-likelihood estimates of MARSS model parameters.  If you what confidence intervals on the estimated hidden states, see \code{\link{print.marssMLE}} and look for "states.cis".
 }
 \usage{
 MARSSparamCIs(MLEobj, method = "hessian", alpha = 0.05, nboot=1000)
@@ -15,10 +15,12 @@ MARSSparamCIs(MLEobj, method = "hessian", alpha = 0.05, nboot=1000)
   \item{nboot}{ Number of bootstraps to use for "parametric" and "innovations" methods. }
 }
 \details{
-  Approximate confidence intervals (CIs) on the model parameters may be calculated from the Hessian matrix (the matrix of partial 2nd derivatives of the parameter estimates) or parametric or non-parametric (innovations) bootstrapping using \code{nboot} bootstraps.  The Hessian CIs are based on the asymptotic normality of MLE parameters under a large-sample approximation.  Bootstrap estimates of parameter bias are reported if method "parametric" or "innovations" is specified.
+  Approximate confidence intervals (CIs) on the model parameters may be calculated from the Hessian matrix (the matrix of partial 2nd derivatives of the parameter estimates) or parametric or non-parametric (innovations) bootstrapping using \code{nboot} bootstraps.  The Hessian CIs are based on the asymptotic normality of MLE parameters under a large-sample approximation.  The Hessian computation for variance-covariance matrices is done on these matrices in their equivalent Cholesky decomposition form (see \code{\link{MARSShessian}}. Bootstrap estimates of parameter bias are reported if method "parametric" or "innovations" is specified.
+  
+Note, these are added to the par (etc) elements of a marssMLE object but are in marss form not marxss form. Thus the MLEobj$par.upCI and related elements that are added to the marssMLE object may not look familiar to the user.  Instead the user should extract these elements using \code{print(MLEobj)} and passing in the argument \code{what} set to "par.se","par.bias","par.lowCIs", or "par.upCIs".  See \code{\link{print.marssMLE}}.
 }
 \value{
-  \code{MARSSparamCIs} returns the \code{\link{marssMLE}} object passed in, with additional components \code{par.se, par.upCI, par.lowCI, par.CI.alpha, par.CI.method, par.CI.nboot} and \code{par.bias} (if method is "parametric" or "innovations").
+  \code{MARSSparamCIs} returns the \code{\link{marssMLE}} object passed in, with additional components \code{par.se}, \code{par.upCI}, \code{par.lowCI}, \code{par.CI.alpha}, \code{par.CI.method}, \code{par.CI.nboot} and \code{par.bias} (if method is "parametric" or "innovations").
 }
 \references{ 
 Holmes, E. E., E. J. Ward, and M. D. Scheuerell (2012) Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
@@ -34,7 +36,7 @@ Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuid
 \examples{
   dat = t(harborSealWA)
   dat = dat[2:4,]
-  kem = MARSS(dat, model=list(Z=factor(c(1,1,1)), 
+  kem = MARSS(dat, model=list(Z=matrix(1,3,1), 
      R="diagonal and unequal"))
   kem.with.CIs.from.hessian = MARSSparamCIs(kem)
   kem.with.CIs.from.hessian

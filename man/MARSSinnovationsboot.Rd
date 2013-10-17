@@ -2,7 +2,7 @@
 \alias{MARSSinnovationsboot}
 \title{ Bootstrapped Data using Stoffer and Wall's Algorithm }
 \description{
-  Creates bootstrap data via sampling from the standardized innovations matrix.   This is a base function in the \code{\link{MARSS-package}}.
+  Creates bootstrap data via sampling from the standardized innovations matrix.   This is a base function in the \code{\link{MARSS-package}}. Users should access this with \code{\link{MARSSboot}}.
 }
 \usage{
 MARSSinnovationsboot(MLEobj, nboot = 1000, minIndx = 3)
@@ -19,7 +19,7 @@ MARSSinnovationsboot(MLEobj, nboot = 1000, minIndx = 3)
   A list containing the following components:
   \item{boot.states}{ Array (dim is m x tSteps x nboot) of simulated state processes. }
   \item{boot.data}{ Array (dim is n x tSteps x nboot) of simulated data. }
-  \item{model}{ MARSS model (\code{$model} element of the \code{\link{marssMLE}} object. }
+  \item{marss}{ marssMODEL object element of the \code{\link{marssMLE}} object (\code{marssMLE$marss}). }
   \item{nboot}{ Number of bootstraps performed. }
   m is the number state processes (x in the MARSS model) and n is the number of observation time series (y in the MARSS model).
 }

@@ -9,7 +9,7 @@
 \docType{data}
 \title{ Population Data Sets }
 \description{
-  Example data sets for use in case studies in the \code{\link{MARSS-package}} user guide. All are UNLOGGED population counts.
+Example data sets for use in case studies in the \code{\link{MARSS-package}} user guide. All are UNLOGGED population counts.
   The data sets are matrices with year in the first column and counts in other columns.  Since MARSS functions require time to be across columns, these data matrices must be transposed before passing into MARSS functions.
 }
 \usage{

@@ -2,7 +2,7 @@
 \alias{checkMARSSInputs}
 \title{ Check inputs to MARSS call }
 \description{
-  This is a helper function to check the inputs to a MARSS() call for any errors
+  This is a helper function to check the inputs to a MARSS() call for any errors. Not exported.
 }
 \usage{
 checkMARSSInputs( MARSS.inputs, silent=FALSE )
@@ -13,7 +13,6 @@ checkMARSSInputs( MARSS.inputs, silent=FALSE )
     inits, 
     MCbounds,
     model,
-    miss.value,  
     control,
     method,
     form) }
@@ -30,9 +29,8 @@ If arguments \code{inits}, \code{MCbounds}, or \code{control} are not provided b
   \item{model}{ Not changed.  Will be updated by the \code{MARSS.form} function (e.g. \code{\link{MARSS.marxss}}). }
   \item{inits}{ A list specifying initial values for parameters to be used at iteration 1 in iterative maximum-likelihood algorithms. }
   \item{MCbounds}{ A list of the bounds for the Monte Carlo initialization routine. }
-  \item{miss.value}{ Specifies missing value representation. }
   \item{method}{ The method used for estimation. }
-  \item{form}{ The equation form used to convert wrapper object to a marssm model object. }
+  \item{form}{ The equation form used to convert wrapper object to a marssMODEL object. }
   \item{control}{ See Arguments. }
 }
 
@@ -42,7 +40,7 @@ If arguments \code{inits}, \code{MCbounds}, or \code{control} are not provided b
   kellie(dot)wills(at)noaa(dot)gov   
 }
 \seealso{ 
-  \code{\link{MARSS}} \code{\link{marssm}} \code{\link{checkModelList}} \code{\link{as.marssm}} 
+  \code{\link{MARSS}} \code{\link{marssMODEL}} \code{\link{checkModelList}} 
 }
 
 

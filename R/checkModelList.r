@@ -2,7 +2,7 @@
 #   checkModelList()
 #   This checks user model list passed to MARSS().
 #   The main purpose is to make sure that MARSS.form functions will work not to make sure model is valid
-#   Dim checks on matrices are carried out in the MARSS.form functions that translate a model list to marssm object
+#   Dim checks on matrices are carried out in the MARSS.form functions that translate a model list to marssMODEL object
 #   No error checking is done on controls and inits besides checking that it is present (NULL is ok); 
 #   is.marssMLE() will error-check controls and inits
 ##########################################################################################################################
@@ -26,20 +26,23 @@ for(el in model.elem[passed.in] ){
     if(is.null(model[[el]])) model[[el]] = defaults[[el]]
 }
 #Check model structures (b497)
-if( !all(names(model) %in% model.elem ) ){  
-      msg=" Incorrect element name(s) in model list (something misspelled?).\n"
+if( !all(names(model) %in% model.elem ) ){ 
+      bad.name = names(model)[!(names(model) %in% model.elem )]
+      msg=paste(" Elements ", bad.name," not allowed in model list for this form.\n",sep="")
       cat("\n","Errors were caught in checkModelList \n", msg, sep="")
       stop("Stopped in checkModelList() due to specification problem(s).\n", call.=FALSE)
       }
 if( !all(model.elem %in% names(model)) ){ 
-      msg=" A model name is missing in the model list passed into MARSS().\n"
+  bad.name = model.elem[!(model.elem %in% names(model))]
+  msg=paste(" Element ", bad.name, " is missing in the model list passed into MARSS().\n", sep="")
       cat("\n","Errors were caught in checkModelList \n", msg, sep="")
       stop("Stopped in checkModelList() due to specification problem(s).\n", call.=FALSE)
       }
 
 #check that model list doesn't have any duplicate names
   if(any(duplicated(names(model)))){
-      msg=" Some of the model names are duplicated.\n"
+    bad.name = names(model)[duplicated(names(model))]
+      msg=paste(" The elements ", bad.name, " are duplicated in the model list passed into MARSS().\n", sep="")
       cat("\n","Errors were caught in checkModelList \n", msg, sep="")
       stop("Stopped in checkModelList() due to specification problem(s).\n", call.=FALSE)
    }
@@ -54,7 +57,11 @@ msg=NULL
 
     if(!is.factor(model[[el]]) && !is.array(model[[el]])) {
         if(length(model[[el]])!=1) bad.str=TRUE
-        else if(!(model[[el]] %in% this.form.allows[[el]]) ) bad.str=TRUE
+        if(!bad.str){
+          testit = try(model[[el]] %in% this.form.allows[[el]])
+          if(class(testit)=="try-error" ){ bad.str=TRUE
+          }else{ if(!testit ) bad.str=TRUE }
+        }
     }
     if(bad.str) {
       problem=TRUE
@@ -70,7 +77,7 @@ msg=NULL
       problem=TRUE
       msg = c(msg, paste(" model$",el," is not allowed to be a matrix.\n", sep=""))
       }     
-    #if matrix then no NAs if character or list; this would be caught in is.marssm but would be hard for user to understand problem
+    #if matrix then no NAs if character or list; this would be caught in is.marssMODEL but would be hard for user to understand problem
     if(is.array(model[[el]]) && (el %in% this.form.allows$matrices)){
       if( any(is.na(model[[el]])) | any(unlist(lapply(model[[el]],is.infinite))) ){
         problem=TRUE

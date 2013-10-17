@@ -1,8 +1,8 @@
 ###############################################################################################################################################
-#  Summary method for class marssm. 
+#  Summary method for class marssMODEL form = marss
 ###############################################################################################################################################
 
-summary.marssm <- function (object, ...) 
+summary.marssMODEL <- function (object, ...) 
 {
 
    n = dim(object$data)[1]; m = dim(object$fixed$x0)[1]
@@ -12,11 +12,11 @@ summary.marssm <- function (object, ...)
       en = c("Z", "A", "R", "B", "U", "Q", "x0", "V0")
       dim.tmp = list(Z=c(n,m), A=c(n,1), R=c(n,n), B=c(m,m), U=c(m,1), Q=c(m,m), x0=c(m,1), V0=c(m,m))
 
-	xnames = paste("X",1:m,sep="")
-	if( !is.null(object[["X.names"]]) ) xnames = object$X.names
-	ynames = paste("Y",1:n,sep="")
-	if( !is.null(rownames(object[["data"]])) ) ynames = rownames(object$data)
-      
+   xnames = attr(object,"X.names")
+	 if(is.null(xnames)) xnames = paste("X",1:m,sep="")
+   ynames = attr(object,"Y.names")
+   if(is.null(ynames)) ynames = paste("Y",1:m,sep="")
+   
   for (elem in en) {
     #list matrix version of the model    
     Tmax=max(dim(object$fixed[[elem]])[3],dim(object$free[[elem]])[3])

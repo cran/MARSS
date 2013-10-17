@@ -7,10 +7,12 @@ Multivariate Autoregressive State-Space Model Estimation
 \description{
 The MARSS package fits constrained and unconstrained multivariate autoregressive time-series models to multivariate time series data.  To open the user guide from the command line, type \code{RShowDoc("UserGuide",package="MARSS")}.  To open an overview page with package information, type \code{RShowDoc("index",package="MARSS")}.    
 
-The MARSS model is
+The main function is \code{\link{MARSS}} which is used to fit a specified model to data and estimate the model parameters.  MARSS model specification is based on "form" (an argument to a MARSS() call).  The form tells MARSS() what to expect in the model list (model is a MARSS argument) and how to translate that into the base model form used in the fitting algorithms.
+
+The default MARSS model form is "marxss", which is a model of the following form:
 \describe{
-\item{x(t+1) = B x(t) + U + w(t), where w(t) ~ MVN(0,Q)}{}
-\item{y(t) = Z x(t) + A + v(t), where v(t) ~ MVN(0,R)}{}
+\item{x(t+1) = B x(t) + U + C c(t) + w(t), where w(t) ~ MVN(0,Q)}{}
+\item{y(t) = Z x(t) + A + D d(t) + v(t), where v(t) ~ MVN(0,R)}{}
 \item{x(1) ~ MVN(x0, V0) or x(0) ~ MVN(x0, V0) }{} 
 }
 The parameters, hidden state processes (x), and observations (y) are matrices:
@@ -22,10 +24,16 @@ The parameters, hidden state processes (x), and observations (y) are matrices:
     \item U is m x 1 
     \item Q is m x m 
     \item A is n x 1 
-    \item R is n x n 
+    \item R is n x n
+    \item C is m x q
+    \item D is n x p
+    \item c(t) is q x 1
+    \item d(t) is q x 1
     \item x0 is m x 1 
     \item V0 is m x m 
   }
+  All parameters can be time-varying.
+  
 The package functions estimate the model parameters using an EM algorithm (primarily but see \code{\link{MARSSoptim}}).  Parameters may be constrained to have shared elements (elements which are constrained to have the same value) or fixed elements (with the other elements estimated).  The states and smoothed state estimates are provided via a Kalman filter and smoother.  Bootstrapping, confidence interval estimation, bias estimation, model selection and simulation functions are provided.   The main user interface to the package is the top-level function \code{\link{MARSS}}.  
 }
 \details{

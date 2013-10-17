@@ -2,9 +2,10 @@ residuals.marssMLE = function(object,...){
 MLEobj=object
 #Reference page 9 in Messy Time Series
 #By definition there are no residuals for t=1
-TT = dim(MLEobj$model$data)[2]
-m = dim(MLEobj$model$fixed$x0)[1]
-n = dim(MLEobj$model$data)[1]
+model.dims=attr(MLEobj$marss,"model.dims")
+TT = model.dims[["x"]][2]
+m = model.dims[["x"]][1]
+n = model.dims[["y"]][1]
 rt = matrix(0,m,TT)
 ut = matrix(0,n,TT)
 et = st.et = matrix(0,n+m,TT)

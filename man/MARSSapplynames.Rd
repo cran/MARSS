@@ -2,27 +2,25 @@
 \alias{MARSSapplynames}
 \title{ Names for marssMLE Object Components }
 \description{
-  Puts names on the matrix components of \code{\link{marssMLE}} and \code{\link{marssm}} objects.  This is a utility function in the \code{\link{MARSS-package}} and is not directly accessible.  Use \code{MARSS:::MARSSapplynames()} to access.
+Puts names on the par, start, par.se, init components of \code{\link{marssMLE}} objects.  This is a utility function in the \code{\link{MARSS-package}} and is not exported.
 }
 \usage{
-MARSSapplynames(obj, Y.names = NA, X.names = NA)
+MARSSapplynames(MLEobj)
 }
 \arguments{
-  \item{obj}{ An object of class \code{\link{marssMLE}} or \code{\link{marssm}}. }
-  \item{Y.names}{ Vector of names for observed time series. }
-  \item{X.names}{ Vector of names for the hidden state trajectories. }
+  \item{MLEobj}{ An object of class \code{\link{marssMLE}}. }
 }
 \details{
-Default behavior will use names rownames of data (if available, and if not Y1, Y2, ...) for the Ys and all matrices that are n x ... and use X1, X2, ... for the Xs and all matrices that are m x ... .
+The X.names and Y.names are attributes of marssMODEL objects (which would be in \code{$marss} and \code{$model} in the marssMLE object).  These names are applied to the par elements in the marssMLE object.
 }
 \value{
   The object passed in, with row and column names on matrices as specified.
 }
 \author{ 
-  Eli Holmes and Kellie Wills, NOAA, Seattle, USA.  
+  Eli Holmes, NOAA, Seattle, USA.  
 
-  eli(dot)holmes(at)noaa(dot)gov, kellie(dot)wills(at)noaa(dot)gov
+  eli(dot)holmes(at)noaa(dot)gov
 }
-\seealso{ \code{\link{marssMLE}} \code{\link{marssm}} }
+\seealso{ \code{\link{marssMLE}} \code{\link{marssMODEL}} }
 
 

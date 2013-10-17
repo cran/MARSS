@@ -80,7 +80,7 @@ params[nsim+2,]=c(sim.u,sim.u,sim.Q,sim.R,sim.Q)
 ###################################################
 ### code chunk number 20: Cs1_Exercise3
 ###################################################
-#Needs Exercise 2 to be run first
+#Needs Example 2 to be run first
 par(mfrow=c(3,3))
 pd = 0.1; xd = -log(pd)   # decline threshold
 te = 100; tyrs = 1:te   # extinction time horizon 
@@ -139,7 +139,7 @@ CSEGtmufigure(N=50, u=-0.05, s2p=0.02)
 #If you have your data in a tab delimited file with a header
 #This is how you would read it in using file.choose() 
 #to call up a directory browser.
-#However, the package has the datasets for the exercises
+#However, the package has the datasets for the examples
 #dat=read.table(file.choose(), skip=1)
 #dat=as.matrix(dat)
 dat = wilddogs

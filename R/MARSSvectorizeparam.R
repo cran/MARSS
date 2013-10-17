@@ -1,17 +1,17 @@
 #######################################################################################################
 #   MARSSvectorizeparam  function
-#   Returns a vector of the ESTIMATED parameters or if vector passed in, that is put into list form for MLEobj$model
+#   Returns a vector of the ESTIMATED parameters or if vector passed in, that is put into list form for MLEobj$marss
 #######################################################################################################
 MARSSvectorizeparam = function(MLEobj, parvec=NA, what="par") {
-#This helper function  ONLY FOR MARSSM!!
+#This helper function  ONLY FOR marssMODEL form=marss!!
   #if parvec=NA) returns a vector version of all the estimated parameters (for use in say optim) from a mssm  model
   #if parvec is passed in) returns a marssMLE object with par fixed by parvec
   #what says what are we replacing; needs to be like par list: par, par.se, par.lowCI, etc
-  
+  modelObj=MLEobj[["marss"]]
   #en = c("Z","A","R","B","U","Q","x0","V0") #sets order for paramvec
-  en = names(MLEobj[["model"]][["fixed"]])
-  free = MLEobj[["model"]][["free"]]
-  fixed = MLEobj[["model"]][["fixed"]]
+  en = attr(modelObj,"par.names")
+  free = modelObj[["free"]]
+  fixed = modelObj[["fixed"]]
   param = MLEobj[[what]]  #might be NULL if not set yet
   paramvector = NULL
   if(length(parvec)==1 && is.na(parvec[1])) {

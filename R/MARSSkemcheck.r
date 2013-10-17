@@ -1,13 +1,12 @@
 MARSSkemcheck = function( MLEobj ){
 #This checks that the model can be handled by the MARSSkem algorithm
 # Most of this is implementing the restrictions in Summary of Requirements for Degenerate Models in derivation
-modelObj=MLEobj$model
+modelObj=MLEobj$marss
 fixed = modelObj$fixed
 free = modelObj$free
-m=dim(fixed$x0)[1]; n=dim(modelObj$data)[1]
-TT=dim(modelObj$data)[2]
-correct.dim1 = c(Z=n,A=n,R=n,B=m, U=m, Q=m, x0=m, V0=m)
-correct.dim2 = c(Z=m,A=1,R=n,B=m, U=1, Q=m, x0=1, V0=m)
+par.dims=attr(modelObj,"model.dims")
+m=par.dims[["x"]][1]; n=par.dims[["y"]][1]
+TT=par.dims[["data"]][2]
 pseudolim=1E-8
 ok=TRUE
 msg=NULL
@@ -23,7 +22,7 @@ msg=NULL
     ifixed=min(t,dim(fixed$B)[3])
     if( is.fixed(free$B[,,ifixed,drop=FALSE]) ){  #works on 3D matrices
     #parmat needs modelObj and par list
-    tmp.MLEobj=list( model=modelObj,par=list(B=matrix(0,0,1)) ) #B is fixed so par is set to fixed value
+    tmp.MLEobj=list( marss=modelObj,par=list(B=matrix(0,0,1)) ) #B is fixed so par is set to fixed value
     parB = parmat(tmp.MLEobj,"B",t=t)$B
     if( !all(abs(eigen(parB,only.values=TRUE)$values)<=1)){ 
       msg=c(msg, " All the eigenvalues of B must be within the unit circle: all(abs(eigen(fixed$B)$values)<=1)\n")
@@ -35,7 +34,7 @@ msg=NULL
    # See Summary of Requirements for Degenenate Models in EMDerivations.pdf
    el="R"
    #extracts the r=0 rows (or cols)
-   diag.rows = 1 + 0:(correct.dim1[[el]] - 1)*(correct.dim1[[el]] + 1)
+   diag.rows = 1 + 0:(par.dims[[el]][1] - 1)*(par.dims[[el]][1] + 1)
    Tmax=0
    for(par.test in c("R","Z","A")){
      Tmax = max(Tmax, dim(fixed[[par.test]])[3],dim(free[[par.test]])[3])
@@ -54,7 +53,7 @@ msg=NULL
         II0 = makediag(as.numeric(zero.diags))
         if(i<=Tmax){
           for( par.test in c("Z","A")){
-            II = diag(1,correct.dim2[[par.test]])
+            II = diag(1,par.dims[[par.test]][2])
             ifree.par=min(i,dim(free[[par.test]])[3])
             dpart = sub3D(free[[par.test]],t=ifree.par)
             par.not.fixed = any( ((II %x% II0)%*%dpart)!=0 )
@@ -92,7 +91,7 @@ msg=NULL
    for(i in 1:Tmax){
       for(el in c("Q")){
         ifixed=min(i,dim(fixed[[el]])[3]); ifree=min(i,dim(free[[el]])[3]) 
-        diag.rows = 1 + 0:(correct.dim1[[el]] - 1)*(correct.dim1[[el]] + 1)
+        diag.rows = 1 + 0:(par.dims[[el]][1] - 1)*(par.dims[[el]][1] + 1)
         zero.diags=is.fixed(free[[el]][diag.rows,,ifree,drop=FALSE],by.row=TRUE) & apply(fixed[[el]][diag.rows,,ifixed,drop=FALSE]==0,1,all) #fixed rows
         II0Q = makediag(as.numeric(zero.diags))
         II0Q = unname(II0[[el]])
@@ -118,18 +117,18 @@ msg=NULL
    for(i in 1:Tmax){
       for(el in c("R","Q")){
         ifixed=min(i,dim(fixed[[el]])[3]); ifree=min(i,dim(free[[el]])[3]) 
-        diag.rows = 1 + 0:(correct.dim1[[el]] - 1)*(correct.dim1[[el]] + 1)
+        diag.rows = 1 + 0:(par.dims[[el]][1] - 1)*(par.dims[[el]][1] + 1)
         zero.diags=is.fixed(free[[el]][diag.rows,,ifree,drop=FALSE],by.row=TRUE) & apply(fixed[[el]][diag.rows,,ifixed,drop=FALSE]==0,1,all) #fixed rows
         II0[[el]] = makediag(as.numeric(zero.diags))
       }
       for( el in c("B","U")){
           ifree=min(i,dim(free[[el]])[3])
           #I don't know what par$Z will be.  I want to create a par$Z where there is a non-zero value for any potentially non-zero Z's
-          tmp.MLEobj=list(model=modelObj, par=list(Z=matrix(1,dim(free$Z)[2],1)))
-          tmp.MLEobj$model$fixed$Z[tmp.MLEobj$model$fixed$Z!=0]=1
-          tmp.MLEobj$model$free$Z[tmp.MLEobj$model$free$Z!=0]=1
+          tmp.MLEobj=list(marss=modelObj, par=list(Z=matrix(1,dim(free$Z)[2],1)))
+          tmp.MLEobj$marss$fixed$Z[tmp.MLEobj$marss$fixed$Z!=0]=1
+          tmp.MLEobj$marss$free$Z[tmp.MLEobj$marss$free$Z!=0]=1
           parZ=parmat(tmp.MLEobj,"Z",t=i)$Z
-          II = diag(1,correct.dim2[[el]])
+          II = diag(1,par.dims[[el]][2])
           
           dpart = sub3D(free[[el]],t=ifree)
           par.not.fixed = any( ((II %x% (II0$R%*%parZ%*%II0$Q))%*%dpart)!=0 )
@@ -151,13 +150,13 @@ msg=NULL
    for(i in 1:Tmax){
       for(el in c("Q")){
         ifixed=min(i,dim(fixed[[el]])[3]); ifree=min(i,dim(free[[el]])[3]) 
-        diag.rows = 1 + 0:(correct.dim1[[el]] - 1)*(correct.dim1[[el]] + 1)
+        diag.rows = 1 + 0:(par.dims[[el]][1] - 1)*(par.dims[[el]][1] + 1)
         zero.diags = is.fixed(free[[el]][diag.rows,,ifree,drop=FALSE],by.row=TRUE) & apply(fixed[[el]][diag.rows,,ifixed,drop=FALSE]==0,1,all) #fixed rows
         II0[[el]] = makediag(as.numeric(zero.diags))
       }
       for( el in c("B")){
           ifree=min(i,dim(free[[el]])[3])
-          II = diag(1,correct.dim2[[el]])
+          II = diag(1,par.dims[[el]][2])
           dpart = sub3D(free[[el]],t=ifree)
           par.not.fixed = any( ((II %x% II0$Q)%*%dpart)!=0 )
       
@@ -176,8 +175,9 @@ msg=NULL
      Tmax = max(Tmax, dim(fixed[[par.test]])[3],dim(free[[par.test]])[3])
    }
    II0=list()
-   el="Q"       
-   diag.rows = 1 + 0:(correct.dim1[[el]] - 1)*(correct.dim1[[el]] + 1)
+   el="Q"
+   ifixed=min(i,dim(fixed[[el]])[3]); ifree=min(i,dim(free[[el]])[3])
+   diag.rows = 1 + 0:(par.dims[[el]][1] - 1)*(par.dims[[el]][1] + 1)
    zero.diags = is.fixed(free[[el]][diag.rows,,ifree,drop=FALSE],by.row=TRUE) & apply(fixed[[el]][diag.rows,,1,drop=FALSE]==0,1,all) #fixed rows
    II0[[el]] = makediag(as.numeric(zero.diags))
 
@@ -197,9 +197,9 @@ msg=NULL
       el="B"
       ifree=min(i,dim(free[[el]])[3])
       #I don't know what par$B will be.  I want to create a par$B where there is a non-zero value for any potentially non-zero B's
-      tmp.MLEobj=list(model=modelObj, par=list(B=matrix(1,dim(free$B)[2],1)))
-      tmp.MLEobj$model$fixed[[el]][tmp.MLEobj$model$fixed[[el]]!=0]=1
-      tmp.MLEobj$model$free[[el]][tmp.MLEobj$model$free[[el]]!=0]=1
+      tmp.MLEobj=list(marss=modelObj, par=list(B=matrix(1,dim(free$B)[2],1)))
+      tmp.MLEobj$marss$fixed[[el]][tmp.MLEobj$marss$fixed[[el]]!=0]=1
+      tmp.MLEobj$marss$free[[el]][tmp.MLEobj$marss$free[[el]]!=0]=1
       adjB=parmat(tmp.MLEobj,el,t=i)[[el]]
       adjB[adjB!=0]=1; adjB=unname(adjB)
       if(i==1){
@@ -223,17 +223,17 @@ msg=NULL
    for(i in 1:Tmax){
       el="Q"
         ifixed=min(i,dim(fixed[[el]])[3]); ifree=min(i,dim(free[[el]])[3]) 
-        diag.rows = 1 + 0:(correct.dim1[[el]] - 1)*(correct.dim1[[el]] + 1)
+        diag.rows = 1 + 0:(par.dims[[el]][1] - 1)*(par.dims[[el]][1] + 1)
         zero.diags=is.fixed(free[[el]][diag.rows,,ifree,drop=FALSE],by.row=TRUE) & apply(fixed[[el]][diag.rows,,ifixed,drop=FALSE]==0,1,all) #fixed rows
         IIz[[el]] = makediag(as.numeric(zero.diags))
-        IIp[[el]] = diag(1,correct.dim1[[el]])-IIz[[el]]
-        OMGz[[el]] = diag(1,correct.dim1[[el]])[diag(IIz[[el]])==1,,drop=FALSE]
-        OMGp[[el]] = diag(1,correct.dim1[[el]])[diag(IIp[[el]])==1,,drop=FALSE]
+        IIp[[el]] = diag(1,par.dims[[el]][1])-IIz[[el]]
+        OMGz[[el]] = diag(1,par.dims[[el]][1])[diag(IIz[[el]])==1,,drop=FALSE]
+        OMGp[[el]] = diag(1,par.dims[[el]][1])[diag(IIp[[el]])==1,,drop=FALSE]
         
         #I don't know what par$B will be.  I want to create a par$B where there is a non-zero value for any potentially non-zero B's
-        tmp.MLEobj=list(model=modelObj, par=list(B=matrix(1,dim(free$B)[2],1)))
-        tmp.MLEobj$model$fixed$B[tmp.MLEobj$model$fixed$B!=0]=1
-        tmp.MLEobj$model$free$B[tmp.MLEobj$model$free$B!=0]=1
+        tmp.MLEobj=list(marss=modelObj, par=list(B=matrix(1,dim(free$B)[2],1)))
+        tmp.MLEobj$marss$fixed$B[tmp.MLEobj$marss$fixed$B!=0]=1
+        tmp.MLEobj$marss$free$B[tmp.MLEobj$marss$free$B!=0]=1
         Adj.mat=parmat(tmp.MLEobj,"B",t=i)$B
         Adj.mat[Adj.mat!=0]=1; Adj.mat=unname(Adj.mat)
         Adj.mat.pow.m = matrix.power(Adj.mat, m) #to find all the linkages
@@ -248,8 +248,8 @@ msg=NULL
         IId[[el]]=makediag(tmp); IId[[el]]=unname(IId[[el]])
         IIis[[el]]=diag(1,m)-IId[[el]]-IIp[[el]]; IIis[[el]]=unname(IIis[[el]])
         }else{ #Q all 0
-         IId[[el]]=diag(1,correct.dim1[[el]])
-         IIis[[el]]=diag(0,correct.dim1[[el]])
+         IId[[el]]=diag(1,par.dims[[el]][1])
+         IIis[[el]]=diag(0,par.dims[[el]][1])
         }
         if(i==1){
           IId.1=IId[[el]]

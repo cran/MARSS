@@ -2,7 +2,7 @@
 \alias{MARSShatyt}
 \title{ Compute Expected Value of Y,YY, and YX}
 \description{
-  Computes the expected value of random variables involving Y for the EM algorithm. This is a base function in the \code{\link{MARSS-package}}.
+Computes the expected value of random variables involving Y for the EM algorithm.  This function is not exported.  Users should use \code{print( MLEobj, what="Ey")} to access this output.  See \code{\link{print.marssMLE}}.
 }
 \usage{
 MARSShatyt( MLEobj )
@@ -15,16 +15,17 @@ For state space models, \code{MARSShatyt()} computes the expectations involving 
  
 }
 \value{ 
-A list with the following components (n is the number of state processes). Names ending in "T" are estimates from the Kalman smoother; J is also smoother output. Other components are output from the Kalman filter.   
-  \item{ytT}{ Estimates E[Y(t) | Y(1)=y(1)] (n x T matrix). }
-  \item{OtT}{ Estimates E[Y(t)t(Y(t) | Y(1)=y(1)] (n x n x T array). }
-  \item{yxtT}{ Estimates E[Y(t)t(X(t) | Y(1)=y(1)] (n x m x T array). }
+A list with the following components (n is the number of state processes). Following the notation in Holmes (2012), y(1) is the observed data (for t=1:TT) while y(2) is the unobserved data.  y(1,1:t) is the observed data from time 1 to t.
+  \item{ytT}{ Estimates E[Y(t) | Y(1,1:TT)=y(1,1:TT)] (n x T matrix). }
+  \item{ytt1}{ Estimates E[Y(t) | Y(1,1:t-1)=y(1,1:t-1)] (n x T matrix). }
+  \item{OtT}{ Estimates E[Y(t) t(Y(t) | Y(1)=y(1)] (n x n x T array). }
+  \item{yxtT}{ Estimates E[Y(t) t(X(t) | Y(1)=y(1)] (n x m x T array). }
+  \item{yxt1T}{ Estimates E[Y(t) t(X(t-1) | Y(1)=y(1)] (n x m x T array). }
   \item{errors}{ Any error messages due to ill-conditioned matrices. }
   \item{ok}{ (T/F) Whether errors were generated. }
 }
 \references{
-Holmes, E. E. (2012) Derivation of the EM algorithm for constrained and unconstrained multivariate autoregressive state-space (MARSS) models. Technical report. NOAA Fisheries, Northwest Fisheries Science
-Center, 2725 Montlake Blvd E., Seattle, WA 98112. Type \code{RShowDoc("EMDerivation",package="MARSS")} to open a copy.
+Holmes, E. E. (2012) Derivation of the EM algorithm for constrained and unconstrained multivariate autoregressive state-space (MARSS) models. Technical report. arXiv:1302.3919 [stat.ME] Type \code{RShowDoc("EMDerivation",package="MARSS")} to open a copy.
 }
 \author{ 
   Eli Holmes, NOAA, Seattle, USA.  
@@ -32,7 +33,7 @@ Center, 2725 Montlake Blvd E., Seattle, WA 98112. Type \code{RShowDoc("EMDerivat
   eli(dot)holmes(at)noaa(dot)gov
 }
 \seealso{ 
-\code{\link{MARSS}} \code{\link{marssm}} \code{\link{MARSSkem}}
+\code{\link{MARSS}} \code{\link{marssMODEL}} \code{\link{MARSSkem}}
 }
 
 

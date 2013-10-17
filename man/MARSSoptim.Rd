@@ -3,7 +3,7 @@
 \alias{neglogLik}
 \title{Parameter estimation for MARSS models using optim}
 \description{
-  Parameter estimation for MARSS models using R's \code{\link{optim}} function.   This allows access to R's quasi-Newton algorithms available via the \code{\link{optim}} function.  The \code{MARSSoptim} is called when \code{\link{MARSS}} is called with \code{method="BFGS"}.  This is a base function in the \code{\link{MARSS-package}}.  \code{neglogLik} is a helper function for \code{MARSSoptim} that returns the negative log-likelihood given a vector of the estimated parameters and a \code{\link{marssMLE}} object.  When possible, the Kalman filter and smoother functions from the KFAS R package are used.
+  Parameter estimation for MARSS models using R's \code{\link{optim}} function.   This allows access to R's quasi-Newton algorithms available via the \code{\link{optim}} function.  The \code{MARSSoptim} function is called when \code{\link{MARSS}} is called with \code{method="BFGS"}.  This is a base function in the \code{\link{MARSS-package}}.  \code{neglogLik} is a helper function for \code{MARSSoptim} that returns the negative log-likelihood given a vector of the estimated parameters and a \code{\link{marssMLE}} object.  When possible, the Kalman filter and smoother functions from the KFAS R package are used.
 }
 \usage{
 MARSSoptim(MLEobj)
@@ -11,7 +11,7 @@ neglogLik(x, MLEobj)
 }
 \arguments{
   \item{MLEobj}{An object of class \code{\link{marssMLE}}.}
-  \item{x}{An vector of the estimated parameters as output by \code{\link{MARSSvectorizeparam}}.}
+  \item{x}{An vector of the estimated parameters as output by \code{coef(MLEobj,type="vector")}.}
 }
 \details{
 Objects of class \code{\link{marssMLE}} may be built from scratch but are easier to construct using \code{\link{MARSS}} with \code{MARSS(..., fit=FALSE, method="BFGS")}.
@@ -23,7 +23,7 @@ Objects of class \code{\link{marssMLE}} may be built from scratch but are easier
       \item{\code{MLEobj$control$numInitSteps}}{ Maximum number of EM iterations for each random initial value draw to be used with \code{\link{MARSSmcinit}}. Ignored if \code{control$MCInit=FALSE}. }
       \item{\code{MLEobj$control$boundsInits}}{ Length 6 list. Each component is a length 2 vector of bounds on the uniform distributions from which initial values will be drawn to be used with \code{MARSSmcinit()}. Ignored if \code{control$MCInit=FALSE}. See Examples.}
       \item{\code{MLEobj$control$kf.x0}}{ The initial condition is at $t=0$ if kf.x0="x00".  The initial condition is at $t=1$ if kf.x0="x10". }    
-      \item{\code{MLEobj$model$diffuse}}{ If diffuse=TRUE, a diffuse initial condition is used. MLEobj$par$V0 is then the scaling function for the diffuse part of the prior.  Thus the prior is V0*kappa where kappa-->Inf.  Note that setting a diffuse prior does not change the correlation structure within the prior. If diffuse=FALSE, a non-diffuse prior is used and MLEobj$par$V0 is the non-diffuse prior variance on the initial states. The the prior is V0.}      \item{\code{MLEobj$control$silent}}{ Suppresses printing of progress bars, error messages, warnings and convergence information. }    
+      \item{\code{MLEobj$marss$diffuse}}{ If diffuse=TRUE, a diffuse initial condition is used. MLEobj$par$V0 is then the scaling function for the diffuse part of the prior.  Thus the prior is V0*kappa where kappa-->Inf.  Note that setting a diffuse prior does not change the correlation structure within the prior. If diffuse=FALSE, a non-diffuse prior is used and MLEobj$par$V0 is the non-diffuse prior variance on the initial states. The the prior is V0.}      \item{\code{MLEobj$control$silent}}{ Suppresses printing of progress bars, error messages, warnings and convergence information. }    
     }
 }
 \value{
@@ -49,7 +49,7 @@ Objects of class \code{\link{marssMLE}} may be built from scratch but are easier
 \section{Discussion}{
  The function only returns parameter estimates.  To compute CIs, use \code{\link{MARSSparamCIs}} but if you use parametric or non-parametric bootstrapping with this function, it will use the EM algorithm to compute the bootstrap parameter estimates!  The quasi-Newton estimates are too fragile for the bootstrap routine since one often needs to search to find a set of initial conditions that work (i.e. don't lead to numerical errors).
  
- Estimates from \code{MARSSoptim} (which come from \code{\link{optim}}) should be checked against estimates from the EM algorithm.  If the quasi-Newton algorithm works, it will tend to find parameters with higher likelihood faster than the EM algorithm.  However, the MARSS likelihood surface can be multimodal with sharp peaks at degenerate solutions where a Q or R diagonal element equals 0.  The quasi-Newton algorithm sometimes gets stuck on these peaks even when they are not the maximum.  Neither an initial conditions search nor starting near the known maximum (or from the parameters estimates after the EM algorithm) will necessarily solve this problem.   Thus it is wise to check against EM estimates to ensure that the BFGS estimates are close to the MLE estimates (and vis-a-versa, it's wise to rerun with method="BFGS" after using method="kem").  
+ Estimates from \code{MARSSoptim} (which come from \code{\link{optim}}) should be checked against estimates from the EM algorithm.  If the quasi-Newton algorithm works, it will tend to find parameters with higher likelihood faster than the EM algorithm.  However, the MARSS likelihood surface can be multimodal with sharp peaks at degenerate solutions where a Q or R diagonal element equals 0.  The quasi-Newton algorithm sometimes gets stuck on these peaks even when they are not the maximum.  Neither an initial conditions search nor starting near the known maximum (or from the parameters estimates after the EM algorithm) will necessarily solve this problem.   Thus it is wise to check against EM estimates to ensure that the BFGS estimates are close to the MLE estimates (and vis-a-versa, it's wise to rerun with method="BFGS" after using method="kem").  Conversely, there is a strong flat ridge in your likelihood, the EM algorithm can report early convergence while the BFGS may continue much further along the ridge and find very different parameter values.  Of course a likelihood surface with strong flat ridges makes the MLEs less informative...
  
  Note this is mainly a problem if the time series are short or very gappy.  If the time series are long, then the likelihood surface should be nice with a single interior peak.  In this case, the quasi-Newton algorithm works well but it can still be sensitive (and slow) if not started with a good initial condition.  Thus starting it with the estimates from the EM algorithm is often desirable.
  
@@ -70,8 +70,7 @@ dat = dat[2:4,] #remove the year row
 #fit a model with 1 hidden state where obs errors are iid
 #R="diagonal and equal" is the default so not specified
 #Q is fixed
-kemfit = MARSS(dat, model=list(Z=factor(c(1,1,1)),Q=matrix(.01)))
-#start with the $par list from the EM algorithm
-bfgsfit = MARSS(dat, model=list(Z=factor(c(1,1,1)),Q=matrix(.01)), 
-   inits=kemfit$par, method="BFGS")
+kemfit = MARSS(dat, model=list(Z=matrix(1,3,1),Q=matrix(.01)))
+bfgsfit = MARSS(dat, model=list(Z=matrix(1,3,1),Q=matrix(.01)), 
+   inits=coef(kemfit,form="marss"), method="BFGS")
 }

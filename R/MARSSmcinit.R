@@ -10,19 +10,18 @@ MARSSmcinit = function(MLEobj) {
     prev = progressBar()
     drawProgressBar = TRUE
   }
-
-  y = MLEobj$model$data
-  miss.value = MLEobj$model$miss.value
-  m = dim(MLEobj$model$fixed$x0)[1]
-  n = dim(y)[1]
-  TT = dim(y)[2]
+  modelObj=MLEobj[["marss"]]
+  y = modelObj$data
+  par.dims=attr(modelObj,"model.dims")
+  m = par.dims[["x"]][1]
+  n = par.dims[["y"]][1]
+  TT = par.dims[["data"]][2]
   ## YM matrix for handling missing values
-  if(is.na(miss.value)){ YM=matrix(as.numeric(!is.na(y)),n,TT)
-  }else  YM=matrix(as.numeric(!(y==miss.value)),n,TT) 
+  YM=matrix(as.numeric(!is.na(y)),n,TT)
   #Make sure the missing vals in y are zeroed out
   y[YM==0]=0
 
-  free.tmp = MLEobj$model$free 
+  free.tmp = modelObj$free 
   dim.tmp = list(Z=c(n,m), A=c(n,1), R=c(n,n), B=c(m,m), U=c(m,1), Q=c(m,m), x0=c(m,1))
   bounds.tmp = MLEobj$control$MCbounds
   init = bestinits = MLEobj$start
@@ -39,7 +38,7 @@ MARSSmcinit = function(MLEobj) {
       if(!is.fixed(free.tmp[[el]])){
         bounds.param = bounds.tmp[[el]]
         #use the first fixed and free in a temporally varying model; arbitrary
-        tmp=list(f=sub3D(MLEobj$model$fixed[[el]],t=1),D=sub3D(MLEobj$model$free[[el]],t=1))
+        tmp=list(f=sub3D(modelObj$fixed[[el]],t=1),D=sub3D(modelObj$free[[el]],t=1))
         if(el %in% c("Q", "R")){   # random starts drawn from a wishart dist
 	        if( bounds.param[1] < dim.param[1]){ df=dim.param[1] }else{ df=bounds.param[1] }
 	        S=diag(bounds.param[2],dim.param[1])

@@ -8,13 +8,12 @@ MARSSkfss = function( MLEobj ) {
     condition.limit=1E10
     condition.limit.Ft=1E5 #because the Ft is used to compute LL and LL drop limit is about 2E-8
 
-    modelObj = MLEobj$model
+    modelObj = MLEobj$marss
     debugkf = MLEobj$control$trace
     n=dim(modelObj$data)[1]; TT=dim(modelObj$data)[2]; m=dim(modelObj$fixed$x0)[1]
 
     #create the YM matrix
-    if(is.na(modelObj$miss.value)){ YM=matrix(as.numeric(!is.na(modelObj$data)),n,TT)
-      }else{ YM=matrix(as.numeric(!(modelObj$data==modelObj$miss.value)),n,TT) } 
+    YM=matrix(as.numeric(!is.na(modelObj$data)),n,TT)
     #Make sure the missing vals in y are zeroed out if there are any
     y=modelObj$data
     y[YM==0]=0
@@ -195,9 +194,10 @@ MARSSkfss = function( MLEobj ) {
      }
      #Abandon if solution is so unstable that Vtt diagonal became negative
      if(m==1) diag.Vtt = unname(Vtt[,,t]) else diag.Vtt=unname(Vtt[,,t])[1 + 0:(m - 1)*(m + 1)]   #much faster way to get the diagonal
-     if( any(diag.Vtt<0) )
+     if( any(diag.Vtt<0) ){
           return(list(ok=FALSE, 
           errors=paste("Stopped in MARSSkfss: soln became unstable and negative values appeared on the diagonal of Vtt.\n") ) )
+     }
     ####### End Error-checking
 
     } #End of the Kalman filter recursion (for i to 1:TT)
@@ -275,7 +275,7 @@ MARSSkfss = function( MLEobj ) {
       }
       J0 = V0%*%t.B%*%Vinv  # eqn 6.49 and 1s on diag when Q=0; Here it is t.B[1]
       x0T = x0 + J0%*%(xtT[,1,drop=FALSE]-xtt1[,1,drop=FALSE]);          # eqn 6.47
-      V0T = V0 + J0%*%(VtT[,,1]-Vtt1[,,1])%*%t(J0)   # eqn 6.48
+      V0T = V0 + J0%*%(VtT[,,1]-Vtt1[,,1])*t(J0)   # eqn 6.48
       V0T = symm(V0T) #enforce symmetry
     }
     if(init.state=="x10") { #Ghahramani treatment of initial states; LAM and pi defined for x_1
@@ -309,7 +309,7 @@ MARSSkfss = function( MLEobj ) {
     #Innovations form of the likelihood
     rtn.list = list(xtT = xtT, VtT = VtT, Vtt1T = Vtt1T, x0T = x0T, V0T = V0T, Vtt = Vtt,
             Vtt1 = Vtt1, J=J, J0=J0, Kt=Kt, xtt1 = xtt1, xtt=xtt, Innov=vt, Sigma=Ft)
-    loglike = -sum(YM)/2*log(2*base:::pi)    #sum(M) is the number of data points
+    loglike = -sum(YM)/2*log(2*base::pi)    #sum(M) is the number of data points
     for (t in 1:TT) {
       if(n==1) diag.Ft=Ft[,,t] else diag.Ft=unname(Ft[,,t])[1 + 0:(n - 1)*(n + 1)]
       if( any(diag.Ft==0)){
@@ -318,7 +318,7 @@ MARSSkfss = function( MLEobj ) {
          errors = paste("One of the diagonal elements of Sigma[,,",t,"]=0. That should never happen when t>1 or t=1 and tinitx=0.  \n Are both Q[i,i] and R[i,i] being set to 0?\n",sep=""))))
         }else{ #t=1 so ok. get the det of Ft and deal with 0s that might appear on diag of Ft when t=1 and V0=0 and R=0 and tinitx=1
          if(any(abs(vt[diag.Ft==0,1])>1E-16)){ 
-             return(c(rtn.list,list(ok=FALSE, logLik = Inf, errors = "V0=0, tinitx=1, R=0 and y[1] does not match x0.\n You probably don't want to be estimating x0 when R=0.\n")))    }
+             return(c(rtn.list,list(ok=FALSE, logLik = Inf, errors = "V0=0, tinitx=1, R=0 and y[1] does not match x0. You shouldn't estimate x0 when R=0.\n")))    }
           OmgF1=makediag(1,n)[diag.Ft!=0,,drop=FALSE] #permutation matrix
           if(dim(OmgF1)[1]==0){ #no non-zero Ft[,,1]
             detFt=1 #means R and diag(Ft[,,1] all 0; will become 0 when logged

@@ -9,7 +9,7 @@ is.marssMLE <- function(MLEobj)
   
   msg = c()
  ## Check for required components
- el = c("model", "start", "control", "method")
+ el = c("marss","model", "start", "control", "method")
  if( !all(el %in% names(MLEobj)) ){
     msg = c(msg, paste("Element", el[!(el %in% names(MLEobj))], "is missing from object.\n"))
  }
@@ -19,13 +19,22 @@ is.marssMLE <- function(MLEobj)
     return(msg)
   }
   
-  msg = is.marssm(MLEobj$model)        #returns TRUE or a vector of msgs
+  #here form="marss" since $marss is of that form
+  msg = is.marssMODEL(MLEobj[["marss"]])        #returns TRUE or a vector of msgs
   ## Break out now if there was a problem with the model
   if(!isTRUE(msg)){ 
-    msg=c("\nErrors were caught in is.marssMLE()\n", msg)
+    msg=c("\nErrors were caught in is.marssMLE() in the call to is.marssMODEL().\n", msg)
     return(msg)
   }
 
+  #check that model object in the called form is ok too
+  msg = is.marssMODEL(MLEobj[["model"]])        #returns TRUE or a vector of msgs
+  ## Break out now if there was a problem with the model
+  if(!isTRUE(msg)){ 
+    msg=c("\nErrors were caught in is.marssMLE() in the call to is.marssMODEL().\n", msg)
+    return(msg)
+  }
+  
   ## is.wholenumber() borrowed from is.integer example
   is.wholenumber <-
     function(x, tol = .Machine$double.eps^0.5)  abs(x - round(x)) < tol
@@ -33,24 +42,23 @@ is.marssMLE <- function(MLEobj)
   msg = c()   #reset the messages
 
   ## If model is OK, check start
-  n = dim(MLEobj$model$data)[1]
-  m = dim(MLEobj$model$fixed$x0)[1]
-  dat = MLEobj$model$data
-  en = c("Z", "A", "R", "B", "U", "Q", "x0", "V0")
-  correct.dim1 = c(n,n,n,m,m,m,m,m)
-  correct.dim2 = c(m,1,n,m,1,m,1,m)
-  names(correct.dim1) = names(correct.dim2) = en
+  model=MLEobj[["marss"]]
+  free=model[["free"]]
+  fixed=model[["fixed"]]
+  par.dims=attr(model,"model.dims")
+  en=attr(model,"par.names")
+  dat = model[["data"]]
 
   init.null = dim.init = NULL
 
   #make sure each element of start is present and is numeric
   for (el in en) {   
-    init.null.flag <- ( is.null(MLEobj$start[[el]]) || !is.numeric(MLEobj$start[[el]]) )
+    init.null.flag <- ( is.null(MLEobj[["start"]][[el]]) || !is.numeric(MLEobj[["start"]][[el]]) )
 
     dim.init.flag = FALSE 
     if (!init.null.flag) {   #element is present so check it's dimensions
       #true means there is a problem
-      dim.init.flag = (dim(MLEobj$model$free[[el]])[2]!=dim(MLEobj$start[[el]])[1]) || dim(MLEobj$start[[el]])[2]!=1
+      dim.init.flag = (dim(free[[el]])[2]!=dim(MLEobj[["start"]][[el]])[1]) || dim(MLEobj[["start"]][[el]])[2]!=1
     }
  
     init.null <- c(init.null, init.null.flag)
@@ -68,21 +76,21 @@ is.marssMLE <- function(MLEobj)
 ## TEMPORARY UNTIL change Q and R to not allow 0s (with addition of G and H matrices)
   #make sure not 0s in par unless corresponding rows of D are all zero
   for(el in c("Q","R","V0")){
-  if(!is.fixed(MLEobj$model$free[[el]])){
+  if(!is.fixed(free[[el]])){
     bad.ts=c()
-    dvars=MLEobj$model$free[[el]][1 + 0:(correct.dim1[[el]] - 1)*(correct.dim1[[el]] + 1),,,drop=FALSE]
+    dvars=free[[el]][1 + 0:(par.dims[[el]][1] - 1)*(par.dims[[el]][1] + 1),,,drop=FALSE]
     dvars.cols=apply(dvars!=0,2,sum)!=0   #those var rows that have values, give use the var columns
-    Tmax=max(dim(MLEobj$model$fixed[[el]])[3],dim(MLEobj$model$free[[el]])[3])
+    Tmax=max(dim(fixed[[el]])[3],dim(free[[el]])[3])
     for(i in 1:Tmax){
-      d=sub3D(MLEobj$model$free[[el]],t=min(i,dim(MLEobj$model$free[[el]])[3]))
-      if(any(colSums(d[,dvars.cols,drop=FALSE])!=0 & MLEobj$start[[el]][dvars.cols]==0)){
+      d=sub3D(free[[el]],t=min(i,dim(free[[el]])[3]))
+      if(any(colSums(d[,dvars.cols,drop=FALSE])!=0 & MLEobj[["start"]][[el]][dvars.cols]==0)){
         bad.ts=c(bad.ts,i)
       }
     }
     if(length(bad.ts)!=0){
      if(length(bad.ts)<5){ ts.char=paste(bad.ts,collapse=", ") 
      }else{ ts.char=paste(paste(bad.ts[1:5], collapse=", "),",...") }
-     msg = c(msg, paste("At t=",ts.char,", one of the start$", el, " for a variance is 0,\n and the corresponding column of model$free$",el,"[,,t] matrix is not all zero.\n Type MARSSinfo(21) for more information.\n",sep=""))
+     msg = c(msg, paste("At t=",ts.char,", one of the start$", el, " for a variance is 0,\n and the corresponding column of model$free$",el,"[,,t] matrix is not all zero.\n",sep=""))
      }
   }
   }
@@ -93,8 +101,8 @@ is.marssMLE <- function(MLEobj)
     for (el in en) {
       dim.flag=FALSE
       if(!is.null(MLEobj[["par"]][[el]])) {
-         dim.flag = isTRUE(dim(MLEobj$par[[el]])[2]!=1)
-         dim.flag = dim.flag || isTRUE(dim(MLEobj$par[[el]])[1]!=dim(MLEobj$model$free[[el]])[2])
+         dim.flag = isTRUE(dim(MLEobj[["par"]][[el]])[2]!=1)
+         dim.flag = dim.flag || isTRUE(dim(MLEobj[["par"]][[el]])[1]!=dim(free[[el]])[2])
          dim.par=c(dim.par,dim.flag)
       }
     }
@@ -105,9 +113,9 @@ is.marssMLE <- function(MLEobj)
   
   ## Check controls
   if(!is.null(MLEobj[["control"]])){
-    if(!is.list(MLEobj$control)) stop("Stopped in is.marssMLE() because control must be passed in as a list.\n", call.=FALSE)
-  control = MLEobj$control
-  en = names(alldefaults[[MLEobj$method]]$control)
+    if(!is.list(MLEobj[["control"]])) stop("Stopped in is.marssMLE() because control must be passed in as a list.\n", call.=FALSE)
+  control = MLEobj[["control"]]
+  en = names(alldefaults[[MLEobj[["method"]]]][["control"]])
   ok.null=c("REPORT", "reltol", "fnscale", "parscale", "ndeps", "alpha", "beta", "gamma", "type", "lmm", "factr",
       "pgtol", "tmax", "temp", "lower", "upper")
   for (el in en) {
@@ -154,7 +162,7 @@ is.marssMLE <- function(MLEobj)
     en = c("B", "U", "Q", "R", "A", "Z")
 
     for (el in en) {
-      target = control$MCbounds
+      target = control[["MCbounds"]]
       null.flag <- ( is.null(target[[el]]) )
       if(null.flag) msg = c(msg, paste("control$MCbounds list element", el,"is missing\n"))
 
@@ -175,14 +183,14 @@ is.marssMLE <- function(MLEobj)
         }
       }      
     }
-  ## if model$diffuse, method="BFGS" and MLEobj$model$tinitx=1
-  if( identical(MLEobj$model$diffuse,TRUE) & !(MLEobj$method=="BFGS" & MLEobj$model$tinitx==1) ) 
+  ## if $diffuse, method="BFGS" and $tinitx=1
+  if( identical(MLEobj$marss$diffuse,TRUE) & !(MLEobj$method=="BFGS" & MLEobj$marss$tinitx==1) ) 
     msg = c(msg, "If you specify a diffuse prior, method must be BFGS and model$tinitx set to 1.\n")    
   } 
 
 if(length(msg) == 0){ return(TRUE)
 }else {
-  msg=c("\nErrors were caught in is.marssMLE(). Type MARSSinfo(5) for more information.\n", msg)
+  msg=c("\nErrors were caught in is.marssMLE(). Type MARSSinfo() for more information.\n", msg)
   return(msg)
 }
 }

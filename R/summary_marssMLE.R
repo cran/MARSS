@@ -4,7 +4,7 @@
 
 summary.marssMLE <- function (object, digits = max(3, getOption("digits")-3), ...) 
     {
-      # Call summary(marssm)
+      # Call summary(marssMODEL)
       summary(object$model)
 
       # Call print(marssMLE)

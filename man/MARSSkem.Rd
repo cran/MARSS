@@ -2,7 +2,7 @@
 \alias{MARSSkem}
 \title{ Maximum Likelihood Estimation for Multivariate Autoregressive State-Space Models }
 \description{
-  \code{MARSSkem()} performs maximum-likelihood estimation, using an EM algorithm for constrained and unconstrained MARSS models.  This is one of the base functions in the \code{\link{MARSS-package}}.
+  \code{MARSSkem()} performs maximum-likelihood estimation, using an EM algorithm for constrained and unconstrained MARSS models.  Users would not call this function directly normally.  The function \code{\link{MARSS}} calls MARsskem.  However users might want to used MARSSkem directly if they need to avoid some of the error-checking overhead associated with the \code{\link{MARSS}} function.
 }
 \usage{
 MARSSkem(MLEobj)
@@ -83,7 +83,7 @@ The user guide:  Holmes, E. E., E. J. Ward, and M. D. Scheuerell (2012) Analysis
 Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuide",package="MARSS")} to open a copy.      
 
 Holmes, E. E. (2012).  Derivation of the EM algorithm for constrained and unconstrained multivariate autoregressive
-state-space (MARSS) models.  \code{RShowDoc("EMDerivation",package="MARSS")} to open a copy.
+state-space (MARSS) models.  Technical Report. arXiv:1302.3919 [stat.ME]\code{RShowDoc("EMDerivation",package="MARSS")} to open a copy.
 }
 \author{ 
   Eli Holmes and Eric Ward, NOAA, Seattle, USA.  

@@ -20,14 +20,15 @@ MARSSoptim = function(MLEobj) {
 
   
   ## attach would be risky here since user might have one of these variables in their workspace    
-  y = MLEobj$model$data #must have time going across columns
-  model = MLEobj$model
-  free = MLEobj$model$free
-  fixed = MLEobj$model$fixed
+  modelObj=MLEobj[["marss"]]
+  y = modelObj$data #must have time going across columns
+  free = modelObj$free
+  fixed = modelObj$fixed
   tmp.inits = MLEobj$start
   control=MLEobj$control
-  m=dim(fixed$x0)[1]; n=dim(MLEobj$model$data)[1]
-  par.dims=list(Z=c(n,m),A=c(n,1),R=c(n,n),B=c(m,m),U=c(m,1),Q=c(m,m),x0=c(m,1),V0=c(m,m))
+  par.dims=attr(modelObj,"model.dims")
+  m=par.dims[["x"]][1]
+  n=par.dims[["y"]][1]
   
   ## Set up the control list for optim; only pass in optim control elements
   control.names=c("trace", "fnscale", "parscale", "ndeps", "maxit", "abstol", "reltol", "alpha", "beta", "gamma", "REPORT", "type", "lmm", "factr","pgtol", "temp", "tmax")
@@ -45,9 +46,9 @@ MARSSoptim = function(MLEobj) {
   tmp.MLEobj = MLEobj
   tmp.MLEobj$par = tmp.inits  #set initial conditions for estimated parameters
   for(elem in c("Q","R","V0")){ #need the chol for these
-        f=sub3D(MLEobj$model$fixed[[elem]],t=1) #initial conditions are based on t=1; arbitrary
-        d=sub3D(MLEobj$model$free[[elem]],t=1) #free[[elem]] is required to be time constant
-        the.par=orig.par=unvec(f+d%*%tmp.inits[[elem]], dim=par.dims[[elem]])
+        f=sub3D(modelObj$fixed[[elem]],t=1) #initial conditions are based on t=1; arbitrary
+        d=sub3D(modelObj$free[[elem]],t=1) #free[[elem]] is required to be time constant
+        the.par=orig.par=unvec(f+d%*%tmp.inits[[elem]], dim=par.dims[[elem]][1:2])
         is.zero=diag(orig.par)==0   #where the 0s on diagonal are
         if(any(is.zero)) diag(the.par)[is.zero]=1    #so the chol doesn't fail if there are zeros on the diagonal
         the.par=t(chol(the.par))  #transpose of chol
@@ -57,16 +58,16 @@ MARSSoptim = function(MLEobj) {
         }else{ tmp.MLEobj$par[[elem]] = matrix(0,0,1) }
         #when being passed to optim, pars for var-cov mat is the chol, so need to reset free and fixed
         #step 1, compute the D matrix corresponding to upper.tri=0 at in t(chol)
-        tmp.list.mat=fixed.free.to.formula(sub3D(tmp.MLEobj$model$fixed[[elem]],t=1),sub3D(tmp.MLEobj$model$free[[elem]],t=1),par.dims[[elem]])
+        tmp.list.mat=fixed.free.to.formula(sub3D(tmp.MLEobj$marss$fixed[[elem]],t=1),sub3D(tmp.MLEobj$marss$free[[elem]],t=1),par.dims[[elem]][1:2])
         tmp.list.mat[upper.tri(tmp.list.mat)]=0   #set upper tri to zero
-        tmp.MLEobj$model$free[[elem]]=convert.model.mat(tmp.list.mat)$free
+        tmp.MLEobj$marss$free[[elem]]=convert.model.mat(tmp.list.mat)$free
         #step 2, set the fixed part to the t(chol); need to take the chol of fixed elements; upper tri will be set to 0
-        tmp.fixed=unvec(f,dim=par.dims[[elem]])  #by definition the estimated elements will have f=0 since this is a varcov mat
+        tmp.fixed=unvec(f,dim=par.dims[[elem]][1:2])  #by definition the estimated elements will have f=0 since this is a varcov mat
         is.zero = diag(tmp.fixed)==0 #need to deal with zeros on diagonal
         if(any(is.zero)) diag(tmp.fixed)[is.zero]=1    #so the chol doesn't fail if there are zeros on the diagonal
         chol.fixed=t(chol(tmp.fixed)) #chol of the fixed part of var-cov matrix
         if(any(is.zero)) diag(chol.fixed)[is.zero]=0  #reset back to zero   
-        tmp.MLEobj$model$fixed[[elem]][,,1]=vec(chol.fixed) #above required that dim3 of fixed$Q and R is 1
+        tmp.MLEobj$marss$fixed[[elem]][,,1]=vec(chol.fixed) #above required that dim3 of fixed$Q and R is 1
     }
   # will return the inits only for the estimated parameters
   pars = MARSSvectorizeparam(tmp.MLEobj)
@@ -93,8 +94,8 @@ MARSSoptim = function(MLEobj) {
        
   MLEobj.return=MLEobj
   MLEobj.return$iter.record=optim.output$message
-  MLEobj.return$control=MLEobj$control
-  MLEobj.return$model=MLEobj$model
+#   MLEobj.return$control=MLEobj$control
+#   MLEobj.return$model=MLEobj$model
   MLEobj.return$start = tmp.inits #set to what was used here
   MLEobj.return$convergence = optim.output$convergence
   if(optim.output$convergence %in% c(1,0)) {
@@ -103,13 +104,14 @@ MARSSoptim = function(MLEobj) {
 
       tmp.MLEobj = MARSSvectorizeparam(tmp.MLEobj, optim.output$par)
       #par has the fixed and estimated values using t chol of Q and R
+      
+      #back transform Q, R and V0 if needed from chol form to usual form
   for(elem in c("Q","R","V0")){   #this works because by def fixed and free blocks of var-cov mats are independent
-     if(!is.fixed(MLEobj$model$free[[elem]])) #get a new par if needed
+     if(!is.fixed(modelObj$free[[elem]])) #get a new par if needed
         {
-        m=dim(MLEobj$model$fixed$x0)[1]; n=dim(MLEobj$model$data)[1]
-        d=sub3D(tmp.MLEobj$model$free[[elem]],t=1) #this will be the one with the upper tri zero-ed out but ok since symmetric
-        if(elem %in% c("Q","V0")){ par.dim=c(m,m) }else{ par.dim=c(n,n) }
-        L=unvec(tmp.MLEobj$model$free[[elem]][,,1]%*%tmp.MLEobj$par[[elem]],dim=par.dim) #this by def will have 0 row/col at the fixed values
+        d=sub3D(tmp.MLEobj$marss$free[[elem]],t=1) #this will be the one with the upper tri zero-ed out but ok since symmetric
+        par.dim=par.dims[[elem]][1:2]
+        L=unvec(tmp.MLEobj$marss$free[[elem]][,,1]%*%tmp.MLEobj$par[[elem]],dim=par.dim) #this by def will have 0 row/col at the fixed values
         the.par = tcrossprod(L)#L%*%t(L)
         tmp.MLEobj$par[[elem]]=solve(crossprod(d))%*%t(d)%*%vec(the.par)
         }
@@ -141,32 +143,36 @@ MARSSoptim = function(MLEobj) {
   ## Add AIC and AICc to the object
   if(!is.null(kf.out)) MLEobj.return = MARSSaic(MLEobj.return)
 
-  ## Calculate confidence intervals based on state std errors, see caption of Fig 6.3 (p337) Shumway and Stoffer
-  if(!is.null(kf.out)){
-    TT = dim(MLEobj.return$model$data)[2]; m = dim(MLEobj.return$model$fixed$x0)[1]
-    if(m == 1) states.se = sqrt(matrix(kf.out$VtT[,,1:TT], nrow=1))
-    if(m > 1) {
-      states.se = matrix(0, nrow=m, ncol=TT)
-      for(i in 1:TT) states.se[,i] = t(sqrt(takediag(kf.out$VtT[,,i])))
-    }
-    MLEobj.return$states.se = states.se
-    }
+# I don't want these added here
+#   ## Calculate confidence intervals based on state std errors, see caption of Fig 6.3 (p337) Shumway and Stoffer
+#   if(!is.null(kf.out)){
+#     TT = dim(MLEobj.return$marss$data)[2]; m = dim(MLEobj.return$marss$fixed$x0)[1]
+#     if(m == 1) states.se = sqrt(matrix(kf.out$VtT[,,1:TT], nrow=1))
+#     if(m > 1) {
+#       states.se = matrix(0, nrow=m, ncol=TT)
+#       for(i in 1:TT) states.se[,i] = t(sqrt(takediag(kf.out$VtT[,,i])))
+#     }
+#     MLEobj.return$states.se = states.se
+#     }
     
   return(MLEobj.return)
 }
 
 neglogLik = function(x, MLEobj=NULL){  #NULL assignment needed for optim call syntax
 #MLEobj is tmp.MLEobj so has altered free and fixed
+#x is the paramvector
     MLEobj = MARSSvectorizeparam(MLEobj, x)
-    free=MLEobj$model$free
-    fixed=MLEobj$model$fixed
+    free=MLEobj$marss$free
+    fixed=MLEobj$marss$fixed
     pars=MLEobj$par
-    m=dim(fixed$x0)[1]; n=dim(MLEobj$model$data)[1]
+    par.dims=attr(MLEobj[["marss"]],"model.dims")
+    m=par.dims[["x"]][1]
+    n=par.dims[["y"]][1]
   for(elem in c("Q","R","V0")){
      if(!is.fixed(free[[elem]])) #recompute par if needed since par in parlist is transformed
         {        
         d=sub3D(free[[elem]],t=1) #this will be the one with the upper tri zero-ed out but ok since symmetric
-        if(elem %in% c("Q","V0")){ par.dim=c(m,m) }else{ par.dim=c(n,n) }
+        par.dim=par.dims[[elem]][1:2]
         #t=1 since D not allowed to be time-varying?
         L=unvec(free[[elem]][,,1]%*%pars[[elem]],dim=par.dim) #this by def will have 0 row/col at the fixed values
         the.par = tcrossprod(L)#L%*%t(L)

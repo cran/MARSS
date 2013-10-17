@@ -3,29 +3,34 @@
 #   Parametrically simulates from a MARSS parameter list
 #   Only works for marss form.  marxss form needs to be converted to marss before this will work.
 #######################################################################################################
-MARSSsimulate = function(MLEobj, tSteps=100, nsim=1, silent=TRUE, miss.loc=NULL) {
-  #parList is a list of the parameters as would come out of passing in marssMLE$par
+simulate.marssMLE = function(MLEobj, tSteps=NULL, nsim=1, silent=TRUE, miss.loc=NULL) {
+  MARSSsimulate(MLEobj, tSteps=tSteps, nsim=nsim, silent=silent, miss.loc=miss.loc)
+}
+MARSSsimulate = function(MLEobj, tSteps=NULL, nsim=1, silent=TRUE, miss.loc=NULL) {
   # tSteps is the number of time steps to do in each bootstrap of the data
   # miss.loc is an optional (n x tSteps x nsim) matrix specifying where to put missing values
   # if miss.loc is the same for all nsim, can pass in dim=c(n, tSteps)
   if(!is.marssMLE(MLEobj) | is.null(MLEobj$par))     
     stop("Stopped in MARSSsimulate(). The function requires a marssMLE object with the par element.\n", call.=FALSE)
-  modelObj=MLEobj$model
+  modelObj=MLEobj[["marss"]]
   n = dim(modelObj$fixed$A)[1]
   m = dim(modelObj$fixed$x0)[1]
   
   ###### Error-checking on modelObj
-  tmp = is.marssm(modelObj)
+  tmp = is.marssMODEL(modelObj)
   if(!isTRUE(tmp)) {
     if(!silent) cat(tmp)
     stop("Stopped in MARSSsimulate() due to problem with modelObj.\n", call.=FALSE)
   }
-  miss.value=modelObj$miss.value
   
   ###### Error-checking on the arguments
   msg=NULL
-  if(!is.numeric(tSteps) || !is.numeric(nsim))
-    msg=c(msg,"Non-numeric tSteps or nsim argument(s).\n")
+  if(!is.numeric(nsim))
+    msg=c(msg,"Non-numeric nsim argument(s).\n")
+  if(!is.null(tSteps) & !is.numeric(tSteps))
+    msg=c(msg,"Non-numeric tSteps argument(s).\n")
+  if(length(tSteps)>1 || length(nsim)>1) 
+    msg=c(msg,"tSteps and nsim must be length 1.\n")
   if(is.numeric(tSteps) && (tSteps != trunc(tSteps) || tSteps <= 0)) 
     msg=c(msg,"tSteps must be a positive non-zero integer.\n")
   if(is.numeric(nsim) && (nsim != trunc(nsim) || nsim <= 0))
@@ -33,12 +38,6 @@ MARSSsimulate = function(MLEobj, tSteps=100, nsim=1, silent=TRUE, miss.loc=NULL)
   if(!is.null(miss.loc) && (!isTRUE( all.equal(dim(miss.loc), c(n,tSteps)) ) 
     && !isTRUE(all.equal( dim(miss.loc), c(n,tSteps,nsim)) ) )  )
     msg=c(msg,"Incorrect input arg: miss.loc dim must be n x tSteps or n x tSteps x nsim.\n")
-  if(!is.null(miss.loc) && is.null(miss.value)) 
-    msg=c(msg,"If miss.loc is passed in, you must specify miss.value.\n")
-  if(!is.null(miss.value) && !is.na(miss.value) && !is.numeric(miss.value)) 
-    msg=c(msg,"miss.value must be numeric (or NA).\n")
-  if(!is.null(miss.value) && length(miss.value)!=1) 
-    msg=c(msg,"miss.value must be length 1.\n")
     
   #Check that if any fixed or free are time-varying, TT = tSteps
   en=names(modelObj$fixed)
@@ -47,6 +46,7 @@ MARSSsimulate = function(MLEobj, tSteps=100, nsim=1, silent=TRUE, miss.loc=NULL)
     Tmax = max(Tmax,dim(modelObj$fixed[[elem]])[3])
     Tmax = max(Tmax,dim(modelObj$free[[elem]])[3])
   }
+  if(is.null(tSteps)) tSteps=Tmax
   if( !(Tmax==1 || Tmax==tSteps) ) 
     msg=c(msg,"If any fixed or free matrices are time-varying, the dim of time must equal tSteps.\n")
     
@@ -54,9 +54,8 @@ MARSSsimulate = function(MLEobj, tSteps=100, nsim=1, silent=TRUE, miss.loc=NULL)
     cat("\nErrors were caught in MARSSsimulate\n", msg) 
     stop("Stopped in MARSSsimulate() due to argument problem(s).\n", call.=FALSE)
   }
-  if( !is.null(miss.loc) && identical(as.numeric(NA),miss.value) ){ miss.loc.TF = (is.na(miss.loc) & !is.nan(miss.loc)) }
-  if( !is.null(miss.loc) && identical(NaN,miss.value) ){ miss.loc.TF = is.nan(miss.loc) }
-  if( !is.null(miss.loc) && !is.na(miss.value) ){ miss.loc.TF = (miss.loc==miss.value) }
+  if( !is.null(miss.loc) ){
+    miss.loc.TF = is.na(miss.loc) }
        
   ##### Set holders for output
   #if user passed in miss.loc dim=c(n,tSteps) assume they wanted that repeated for all nsim's
@@ -66,8 +65,8 @@ MARSSsimulate = function(MLEobj, tSteps=100, nsim=1, silent=TRUE, miss.loc=NULL)
   if(length(dim(miss.loc.TF))==2) miss.loc.TF = array(miss.loc.TF, dim=c(n,tSteps,nsim))
   #sim.data = array(NA,dim=c(tSteps,n,nsim))
   #sim.states = array(NA,dim=c(tSteps,m,nsim))
-  sim.data = array(NA,dim=c(n, tSteps, nsim))
-  sim.states = array(NA,dim=c(m, tSteps, nsim))
+  sim.data = array(as.numeric(NA),dim=c(n, tSteps, nsim))
+  sim.states = array(as.numeric(NA),dim=c(m, tSteps, nsim))
  		 
   ##### Set up the progress bar
   drawProgressBar = FALSE #If the time library is not installed, no prog bar
@@ -156,7 +155,7 @@ MARSSsimulate = function(MLEobj, tSteps=100, nsim=1, silent=TRUE, miss.loc=NULL)
       #to see it works, sub transform j back to t; say j=3, X(j) is X(2) and X(j-1) is X(1), so we have
       #X(2)=B(2)X(1)+U(2)+pro.error(2)
     }
-    if(!is.null(miss.value)) newData[miss.loc.TF[,,i]] = miss.value
+    newData[miss.loc.TF[,,i]] = as.numeric(NA)
     newStates=newStates[,2:(tSteps+1)]  #make indexing t=1:TT again
     newData=newData[,2:(tSteps+1)] 
     sim.data[,,i] = as.matrix(newData)
@@ -168,5 +167,5 @@ MARSSsimulate = function(MLEobj, tSteps=100, nsim=1, silent=TRUE, miss.loc=NULL)
     if(drawProgressBar){ prev <- progressBar(i/nsim,prev) }
   } # end of for loop for nsim 
        
-  return(list(sim.states=sim.states, sim.data=sim.data, model=modelObj, miss.loc=miss.loc, tSteps=tSteps, nsim=nsim))
+  return(list(sim.states=sim.states, sim.data=sim.data, MLEobj=MLEobj, miss.loc=miss.loc, tSteps=tSteps, nsim=nsim))
 }

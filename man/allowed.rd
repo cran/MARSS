@@ -1,11 +1,10 @@
 \name{allowed}
 \alias{allowed.methods}
-\alias{describe.marssm}
 \alias{kem.methods}
 \alias{optim.methods}
 \alias{alldefaults}
 
-\title{ MARSS function defaults and allowed methods }
+\title{ MARSS Function Defaults and Allowed Methods }
 \description{
   Defaults and allowed fitting methods for the \code{\link{MARSS}} function are specified in the file \code{MARSSsettings.R}. These are hidden thus to see them preface with \code{MARSS:::}.
 }

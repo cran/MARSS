@@ -2,7 +2,7 @@
 \alias{MARSSinfo}
 \title{ Information for MARSS Error Messages and Warnings }
 \description{
-  Prints out more information for MARSS error messages and warnings.   This is a utility function in the \code{\link{MARSS-package}}.
+  Prints out more information for MARSS error messages and warnings.
 }
 \usage{
 MARSSinfo(number)

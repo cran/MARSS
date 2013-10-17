@@ -1,6 +1,6 @@
 \name{MARSSkemcheck}
 \alias{MARSSkemcheck}
-\title{ Model Checking for MLE objects passed to MARSSkem }
+\title{ Model Checking for MLE objects Passed to MARSSkem }
 \description{
   This is a helper function in the \code{\link{MARSS-package}} that checks that the model can be handled by the \code{\link{MARSSkem}} algorithm. It also returns the structure of the model as a list of text strings.
 }
@@ -18,5 +18,5 @@ MARSSkemcheck( MLEobj )
 
   eli(dot)holmes(at)noaa(dot)gov
 }
-\seealso{ \code{\link{marssm}} \code{\link{MARSSkem}} }
+\seealso{ \code{\link{marssMODEL}} \code{\link{MARSSkem}} }
 
