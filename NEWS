@@ -2,6 +2,28 @@ MARSS Development site
 ------------------------------------
 New work on MARSS before posting to CRAN is at ``http://fishbox.iugo-cafe.org/user/e2holmes/MARSS Dev Site''.  Notes on known issues are also posted there.
 
+CHANGES IN MARSS 3.6
+------------------------------------
+3.6 is mainly concerned with speeding up MARSS() for problems with large number of time series (n > 100) and where many R elements are being estimated (e.g. R="diagonal and unequal").  This comes up in dynamic factor analyses often.  The changes also improve speed for small R problems by about 25%, but speed increase is 10 fold for problems with R matrices that are 100x100 with 100 estimated R elements.
+
+- changed MARSS.marxss to speed up conversion of "unconstrained" shortcut to a matrix.  Only matters if m or n is big.
+- speed up convert.model.matrix().  Old version was always using slow code to deal with * and + in character matrix.  This made formation of the free and fixed matrices very, very slow when the matrix got big (100x100, say).
+- added silent==2 which gives verbose output of progress
+- changed is.design to not use near equality for test of element==0.  This may break MARSS since R sometimes doesn't maintain "zeroness".
+- removed many inefficiencies in MARSSkem() code for working with large matrices.  Replaced all crossproducts with crossprod() and tcrossprod() which are significantly faster for large matrices.  This increases speed 2-10 fold when working with larger matrices.  Largest speed increases are when R is not diagonal and equal.
+- Hard coded a fast diagonal test into MARSSkfss() instead of using the very slow is.diagonal() function (which is really meant for list matrices)
+- added set.degen to degen.test() function so that it sets a flag to TRUE if any var-cov diagonals set to 0.  If so, do the updates otherwise skip.
+- Improved speed of parmat() by testing if d and f matrices are not time-varying.  In which case, don't subset the array, but rather rest the "dim" attribute.  Much, much faster for big d and f matrices.
+- Improved sub3D() to make it a bit faster by using x[,,t] when both nrow and ncol are >1
+- Improved vec() to make it 3x faster by setting dim attr instead of using matrix() when matrix is 2D
+- lakeWAplankton datasets were saved as data.frame.  Changed to matrix.
+- Created R files for all the 'application' chapters in the user guide.
+
+bugs
+- fixed bug in building A matrix for A="scaling" which would throw warning if zero columns were in Z.  No error but just unnecessary warnings.
+- MARSS() didn't print out marssMLE object when convergence=12 (maxit set below min for conv test).
+- If there were duplicated rownames in the data, R and U would use those to set shared values.  This was a bug.  Added a test for duplicated rownames, and add "-1", "-2" etc to duplicated name to distinguish them.
+
 CHANGES IN MARSS 3.5
 ------------------------------------
 

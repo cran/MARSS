@@ -91,7 +91,18 @@ MARSS.marxss=function(MARSS.call){
   if(is.null(rownames(dat))){
     Y.names = paste(seq(1, n), sep="") #paste("Y",seq(1, n),sep="")
     rownames(dat)=Y.names
-  }else{ Y.names = rownames(dat) }
+  }else{ 
+    Y.names = rownames(dat)
+    if(any(duplicated(Y.names))){
+      for(i in Y.names[duplicated(Y.names)]){
+        loc = (Y.names==i)
+        nn = sum(loc)
+        Y.names[loc]=paste(i,"-",1:nn,sep="")
+        rownames(dat)[loc] = Y.names[loc]
+        MARSS.call[["data"]] = dat
+      }
+    }
+  }
   
   ## Set m based on Z specification IF Z was specified; errors will be reported later if m conflicts with other parameters
   m = NA
@@ -163,20 +174,20 @@ MARSS.marxss=function(MARSS.call){
   
   #Check that if A is scaling, then Z spec must lead to a design matrix
   if(identical(model$A,"scaling")){
-    if((!is.array(model$Z) & !is.factor(model$Z))) #if it is a string
-      if(!(model$Z %in% c("onestate","identity"))){
-        problem=TRUE
-        msg = c(msg, " If A is scaling(the default), then Z must be a design matrix:(0,1) and rowsums=1.\n")
-      }
-    if(is.matrix(model$Z) && !is.design(model$Z, zero.cols.ok = TRUE)) { #if it is a matrix
-      problem=TRUE
-      msg = c(msg, " If A is scaling(the default), then Z must be a time-constant design matrix:(0,1) and rowsums=1.\n")
-    }
     if(is.array(model$Z) & length(dim(model$Z))==3)
       if(dim(model$Z)[3]!=1 && !is.design(model$Z, zero.cols.ok = TRUE)) { #if it is a matrix
         problem=TRUE
+        msg = c(msg, " If A is scaling(the default), then Z must be a time-constant design matrix:(0,1) and rowsums=1.\nYou can construct a scaling A matrix and pass that in.\n")
+      }
+    if((!is.array(model$Z) & !is.factor(model$Z))) #if it is a string
+      if(!(model$Z %in% c("onestate","identity"))){
+        problem=TRUE
         msg = c(msg, " If A is scaling(the default), then Z must be a time-constant design matrix:(0,1) and rowsums=1.\n")
       }
+    if(is.matrix(model$Z) && !is.design(model$Z, zero.cols.ok = TRUE)) { #if it is a matrix, won't be array due to first test
+      problem=TRUE
+      msg = c(msg, " If A is scaling(the default), then Z must be a time-constant design matrix:(0,1) and rowsums=1.\n")
+    }
   }  
   if(is.array(model$x0) & length(dim(model$x0))==3)
     if(dim(model$x0)[3]!=1){
@@ -244,6 +255,7 @@ MARSS.marxss=function(MARSS.call){
   
   tmp=list()
   for(el in model.elem) {
+    if(MARSS.call$silent==2) cat(paste("  Building fixed and free matrices for ",el,".\n",sep=""))
     tmp[[el]]="not assigned"
     if(el=="Z" & is.factor(model$Z)) { 
       tmp[[el]] = matrix(0,model.dims$Z[1], model.dims$Z[2])  
@@ -273,9 +285,11 @@ MARSS.marxss=function(MARSS.call){
       tmp[[el]]=array(NA,dim=c(model.dims[[el]][1],model.dims[[el]][2])) 
       if(el %in% c("Q","R","V0")){  #variance-covariance matrices
         dim.mat = model.dims[[el]][1]
-        for(i in 1:dim.mat){
-          for(j in 1:dim.mat) tmp[[el]][i,j]=tmp[[el]][j,i]=paste("(",i,",",j,")",sep="") #paste(el,"(",i,",",j,")",sep="")
-        }
+#         for(i in 1:dim.mat){
+#           for(j in 1:dim.mat) tmp[[el]][i,j]=tmp[[el]][j,i]=paste("(",i,",",j,")",sep="") #paste(el,"(",i,",",j,")",sep="")
+#         }
+          tmp[[el]]=matrix(paste("(",rep(1:dim.mat,dim.mat),",",rep(1:dim.mat,each=dim.mat),")",sep=""),dim.mat,dim.mat)
+          tmp[[el]][upper.tri(tmp[[el]])] = t(tmp[[el]])[upper.tri(t(tmp[[el]]))]  
       }else{ #not var-cov matrix
         row.name=1:model.dims[[el]][1]
         col.name=1:model.dims[[el]][2]
@@ -286,11 +300,16 @@ MARSS.marxss=function(MARSS.call){
           if(el=="D") row.name=Y.names
           if(!is.null(rownames(model[[tolower(el)]]))) col.name=rownames(model[[tolower(el)]])
         }
-        for(i in 1:model.dims[[el]][1]){
-          for(j in 1:model.dims[[el]][2]){
-            if(model.dims[[el]][2]>1) tmp[[el]][i,j]=paste("(",row.name[i],",",col.name[j],")",sep="") #paste(el,"(",row.name[i],",",col.name[j],")",sep="")
-            else tmp[[el]][i,j]=paste(row.name[i],sep=",") #paste(el,row.name[i],sep=",")
-          }
+#         for(i in 1:model.dims[[el]][1]){
+#           for(j in 1:model.dims[[el]][2]){
+#             if(model.dims[[el]][2]>1) tmp[[el]][i,j]=paste("(",row.name[i],",",col.name[j],")",sep="") #paste(el,"(",row.name[i],",",col.name[j],")",sep="")
+#             else tmp[[el]][i,j]=paste(row.name[i],sep=",") #paste(el,row.name[i],sep=",")
+#           }
+#         }
+        if(model.dims[[el]][2]>1){
+          tmp[[el]]=matrix(paste("(",rep(row.name,model.dims[[el]][2]),",",rep(col.name,each=model.dims[[el]][1]),")",sep=""),model.dims[[el]][1],model.dims[[el]][2])
+        }else{
+          tmp[[el]]=matrix(row.name,model.dims[[el]][1],1)
         }
       }
       if(length(tmp[[el]])==1) tmp[[el]][1,1]=el 
@@ -314,12 +333,14 @@ MARSS.marxss=function(MARSS.call){
       tmp[[el]] = matrix(list(),model.dims$A[1],model.dims$A[2])
       tmp[[el]][,1]=Y.names  
       for(i in 1:m) {
-        tmp[[el]][min(which(tmp$Z[,i]!=0)), 1] = 0
+        nonzeroZ=tmp$Z[,i]!=0
+        if(any(nonzeroZ)) tmp[[el]][min(which(nonzeroZ)), 1] = 0
       }
     }     
     if(identical(tmp[[el]],"not assigned")) stop(paste("MARSS.marxss: tmp was not assigned for ",el,".\n",sep=""))
-    free[[el]] = convert.model.mat(tmp[[el]])$free
-    fixed[[el]] = convert.model.mat(tmp[[el]])$fixed 
+    tmpconst=convert.model.mat(tmp[[el]])
+    free[[el]] = tmpconst$free
+    fixed[[el]] = tmpconst$fixed 
     
     #set the last dim of the model.dims since it was at a temp value to start
     model.dims[[el]][3]=max(dim(free[[el]])[3],dim(fixed[[el]])[3])
@@ -352,6 +373,7 @@ MARSS.marxss=function(MARSS.call){
   assign("alldefaults", alldefaults, pkg_globals)
   
   ## Check that the marssMODEL object output by MARSS.form() is ok since marxss_to_marss will go south otherwise
+  if(MARSS.call$silent==2) cat(paste("  Running is.marssMODEL on the marxss model.\n",sep=""))
   tmp = is.marssMODEL(marxss_object)
   if(!isTRUE(tmp)) {
     cat(tmp) 

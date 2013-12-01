@@ -10,8 +10,9 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
     modelObj = MLEobj$marss
     control = MLEobj$control
     diffuse=modelObj$diffuse
+    model.dims=attr(modelObj,"model.dims")
     
-    n=dim(modelObj$data)[1]; TT=dim(modelObj$data)[2]; m=dim(modelObj$fixed$x0)[1]
+    n=model.dims$data[1]; TT=model.dims$data[2]; m=model.dims$x[1]
     par.1=parmat(MLEobj, t=1)
     t.B=matrix(par.1$B,m,m,byrow=TRUE)
     #create the YM matrix
@@ -29,7 +30,7 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
     stack.yt=t(stack.yt)
     
     #Build the Zt matrix which is n x (m+1) or n x (m+1) x T; (m+1) because A is in Z
-    if( (dim(modelObj$free$Z)[3] == 1) & (dim(modelObj$fixed$Z)[3] == 1) &  (dim(modelObj$free$A)[3] == 1) & (dim(modelObj$fixed$A)[3] == 1)){  
+    if( model.dims$Z[3] == 1 & model.dims$A[3]==1 ){  
     #not time-varying
       Zt=cbind(par.1$Z,par.1$A)
       stack.Zt = matrix(0,n,2*(m+1))
@@ -45,7 +46,7 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
 
     #Build the Tt matrix which is (m+1) x (m+1) or (m+1) x (m+1) x T; (m+1) because x has extra row of 1s (for the A)
     #    Tt=cbind(rbind(parList$B,matrix(0,1,m)),matrix(c(parList$U,1),m+1,1))
-    if( (dim(modelObj$free$B)[3] == 1) & (dim(modelObj$fixed$B)[3] == 1) &  (dim(modelObj$free$U)[3] == 1) & (dim(modelObj$fixed$U)[3] == 1)){  
+    if( model.dims$B[3] == 1 & model.dims$U[3]==1 ){  
     #not time-varying
       Tt=cbind(rbind(par.1$B,matrix(0,1,m)),matrix(c(par.1$U,1),m+1,1))
       stack.Tt=matrix(0,2*(m+1),2*(m+1))
@@ -69,7 +70,7 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
     }
     
     #Build the Ht (R) matrix which is n x n or n x n x T
-    if( (dim(modelObj$free$R)[3] == 1) & (dim(modelObj$fixed$R)[3] == 1) ){  
+    if( model.dims$R[3] == 1 ){  
     #not time-varying
       Ht=par.1$R
     }else{
@@ -80,7 +81,7 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
     }
     
     #Build the Qt matrix which is m+1 x m+1 or m+1 x m+1 x T; m+1 since x includes extra row of 1 (for A)
-    if( (dim(modelObj$free$Q)[3] == 1) & (dim(modelObj$fixed$Q)[3] == 1) ){  
+    if( model.dims$Q[3] == 1 ){  
     #not time-varying
       Qt=matrix(0,m+1,m+1); Qt[1:m,1:m]=par.1$Q
       stack.Qt=matrix(0,2*(m+1),2*(m+1))
@@ -95,7 +96,7 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
         stack.Qt[1:(m+1),1:(m+1),i]=Qt[,,i]
       }
       #see comments on setting of T re TT value; TT value never appears in the KFAS recursions
-      #but is.SSModel check does like any NAs in the parameters
+      #but is.SSModel check does not like any NAs in the parameters
       Qt[,,TT]=0; stack.Qt[,,TT]=0
     }
 
@@ -183,8 +184,11 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
     if(!return.kfas.model) kfas.model=NULL
     
 #not using ks.out$v (Innov) and ks.out$F (Sigma) since I think there might be a bug when R is not diagonal.
-par.R=parmat(MLEobj,"R",t=1:TT)$R
-if(all(apply(par.R,3,is.diagonal))){
+par.R=parmat(MLEobj,"R",t=1:model.dims$R[3])$R
+    #expensive test and this is fast
+isDiag = function(x){ all(x[!diag(nrow(x))] == 0) }
+is.diag=ifelse( model.dims$R[3]==1,isDiag(par.R),all(apply(par.R,3,isDiag)) )
+if(is.diag){
   innov.rtn=ks.out$v
   sigma.rtn=ks.out$F
 }else{

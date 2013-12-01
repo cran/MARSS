@@ -57,7 +57,7 @@ The default settings for the optional arguments are set in \code{MARSSsettings.R
   \item{method}{ Estimation method. MARSS provides an EM algorithm (\code{method="kem"}) (see \code{\link{MARSSkem}}) and the BFGS algorithm (\code{method="BFGS"}) (see \code{\link{MARSSoptim}}). }
   \item{form}{ The equation form used in the \code{MARSS()} call.  The default is "marxss". See \code{\link{MARSS.marxss}} or \code{\link{MARSS.dfa}}. }
   \item{fit}{ TRUE/FALSE Whether to fit the model to the data. If FALSE, a marssMLE object with only the model is returned. }
-  \item{silent}{ TRUE/FALSE Suppresses printing of full error messages, warnings, progress bars and convergence information. }
+  \item{silent}{ TRUE/FALSE Suppresses printing of full error messages, warnings, progress bars and convergence information. Setting silent=2 will produce more verbose error messages and progress information.}
   \item{control}{ Estimation options for the maximization algorithm. The typically used control options for method="kem" are below but see  \code{\link{marssMLE}} for the full list of control options.  Note many of these are not allowed if method="BFGS"; see  \code{\link{MARSSoptim}} for the allowed control options for this method.
     \itemize{
       \item{\code{minit}}{   The minimum number of iterations to do in the maximization routine (if needed by method). If \code{method="kem"}, this is an easy way to up the iterations and see how your estimates are converging. (positive integer)} 

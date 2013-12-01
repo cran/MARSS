@@ -180,7 +180,11 @@ is.design = function(x, strict=TRUE, dim=NULL, zero.rows.ok=FALSE, zero.cols.ok=
   x=as.matrix(unname(x)) #so that all.equal doesn't fail
   if(any(is.na(x)) || any(is.nan(x))) return(FALSE)
   if(!is.numeric(x)) return(FALSE)  #must be numeric
-  if(!strict){ is.zero = sapply(lapply(x,all.equal,0),isTRUE); x[!is.zero]=1 } #funky to use near equality
+  if(!strict){
+      is.zero = !x
+#     is.zero = sapply(lapply(x,all.equal,0),isTRUE) #funky to use near equality
+      x[!is.zero]=1 
+  } 
   if(!all(x %in% c(1,0))) return(FALSE)  #above ensured that all numeric
   if(!zero.cols.ok & dim(x)[1]<dim(x)[2]) return(FALSE) #if fewer rows than columns then not design
   if(is.list(x)) x=matrix(unlist(x),dim(x)[1],dim(x)[2])
@@ -206,11 +210,22 @@ is.fixed = function(x, by.row=FALSE) { #expects the D (free) matrix; can be 3D o
   return(FALSE)
 }
 
-vec = function(x) {
-  if(!is.array(x)) stop("vec:arg must be a 2D or 3D matrix")
-  if(!(length(dim(x)) %in% c(2,3))) stop("vec: arg must be a 2D or 3D matrix")
-  if(length(dim(x))==2) return(matrix(x,length(x),1))
-  if(length(dim(x))==3) return(array(x,dim=c(length(x[,,1]),1,dim(x)[3])))
+is.zero=function (x) 
+{
+  (abs(x) < .Machine$double.eps)
+}
+
+vec=function (x) 
+{
+  if (!is.array(x)) stop("vec:arg must be a 2D or 3D matrix")
+  len.dim.x=length(dim(x))
+  if (!(len.dim.x==2 | len.dim.x==3)) stop("vec: arg must be a 2D or 3D matrix")
+  if (len.dim.x == 2){
+    attr(x,"dim")=c(length(x),1)
+    return(x)
+  }
+  #else it is an array
+  return(array(x, dim = c(length(x[, , 1]), 1, dim(x)[3])))
 }
 
 unvec = function(x,dim=NULL){
@@ -247,11 +262,19 @@ parmat = function( MLEobj, elem=c("B","U","Q","Z","A","R","x0","V0"), t=1, dims=
   for(el in elem){
     if(length(t)>1){ par.mat[[el]] = array(as.numeric(NA), dim=c(dims[[el]][1:2],length(t))) }
     for(i in t){
-      delem=d[[el]][,,min(dim(d[[el]])[3],i)]
-      felem=f[[el]][,,min(dim(f[[el]])[3],i)]
+      if(dim(d[[el]])[3]==1){
+        delem=d[[el]]
+        attr(delem,"dim")=attr(delem,"dim")[1:2]
+      }else{ delem=d[[el]][,,i] }
+      if(dim(f[[el]])[3]==1){
+        felem=f[[el]]
+        attr(felem,"dim")=attr(felem,"dim")[1:2]
+      }else{ felem=f[[el]][,,i] }
       if(length(t)==1){
         par.mat[[el]] = matrix(felem + delem%*%pars[[el]],dims[[el]][1],dims[[el]][2])
-      }else{ par.mat[[el]][,,i] = matrix(felem + delem%*%pars[[el]],dims[[el]][1],dims[[el]][2]) }
+      }else{ 
+        par.mat[[el]][,,i] = matrix(felem + delem%*%pars[[el]],dims[[el]][1],dims[[el]][2])
+      }
     }
   }
   return(par.mat)
@@ -325,45 +348,60 @@ convert.model.mat=function(param.matrix){
   f=array(unlist(f),dim=c(dim.f1,1,Tmax))
   
   is.char=c()
-  if(any(d)){
+  if(any(d)){ #any character? otherwise all numeric
     is.char=which(d)
-    for(i in is.char){
-      e=mystrsplit(c[[i]])
-      firstel=suppressWarnings(as.numeric(e[1]))
-      if( length(e)==1 ){ e=c("0","+","1","*",e)
-      }else{ if(is.na(firstel) || !is.na(firstel) & e[2]=="*" ) e=c("0","+",e) }
-      pluses=which(e=="+")
-      afterplus=suppressWarnings(as.numeric(e[pluses+1]))
-      if(any(is.na(afterplus))){
-        k=1
-        for(j in pluses[is.na(afterplus)]){
-          e=append(e, c("1","*"), after = j+(k-1)*2)
-          k=k+1
+    if(any(grepl("[*]",c) | grepl("[+]",c))){  #any * or +, then do this really slow code to find the fixed bits
+      for(i in is.char){
+        e=mystrsplit(c[[i]])
+        firstel=suppressWarnings(as.numeric(e[1]))
+        if( length(e)==1 ){ e=c("0","+","1","*",e)
+        }else{ if(is.na(firstel) || !is.na(firstel) & e[2]=="*" ) e=c("0","+",e) }
+        pluses=which(e=="+")
+        afterplus=suppressWarnings(as.numeric(e[pluses+1]))
+        if(any(is.na(afterplus))){
+          k=1
+          for(j in pluses[is.na(afterplus)]){
+            e=append(e, c("1","*"), after = j+(k-1)*2)
+            k=k+1
+          }
         }
+        stars=which(e=="*")
+        pluses=which(e=="+")
+        if(length(stars)!=length(pluses)) stop("convert.model.mat: must use eqn form a+b1*p1+b2*p2...; extra p's can be left off")
+        c[[i]]=paste(e,collapse="")
+        f[[i]]=as.numeric(e[1])
+        varnames=c(varnames,e[stars+1])      
       }
-      stars=which(e=="*")
-      pluses=which(e=="+")
-      if(length(stars)!=length(pluses)) stop("convert.model.mat: must use eqn form a+b1*p1+b2*p2...; extra p's can be left off")
-      c[[i]]=paste(e,collapse="")
-      f[[i]]=as.numeric(e[1])
-      varnames=c(varnames,e[stars+1])
-      
+      varnames=unique(varnames)
+    }else{
+      varnames=unique(unlist(c[is.char]))
     }
-  }
-  varnames=unique(varnames)
+  } 
+  
   
   free=array(0,dim=c(dim.f1,length(varnames),Tmax))
-  for(i in is.char){
-    e=mystrsplit(c[[i]])
-    stars=which(e=="*")
-    e.vars=e[stars+1]
-    
-    for(p in varnames){
-      drow=i%%dim.f1
-      if(drow==0) drow=dim.f1
-      if(p %in% e.vars) free[drow,which(p==varnames),ceiling(i/dim.f1)]=sum(as.numeric(e[(stars-1)[e[stars+1]==p]]))
+  if(any(d)){ #any character? otherwise all numeric
+    if(any(grepl("[*]",c) | grepl("[+]",c))){
+      for(i in is.char){
+        e=mystrsplit(c[[i]])
+        stars=which(e=="*")
+        e.vars=e[stars+1]
+        
+        for(p in varnames){
+          drow=i%%dim.f1
+          if(drow==0) drow=dim.f1
+          if(p %in% e.vars) free[drow,which(p==varnames),ceiling(i/dim.f1)]=sum(as.numeric(e[(stars-1)[e[stars+1]==p]]))
+        }
+      }
+    }else{ #no * or +? Then this is faster
+      for(p in varnames){
+        i = which(c==p)
+        drow=i%%dim.f1
+        drow[drow==0]=dim.f1
+        free[drow,which(p==varnames),ceiling(i/dim.f1)]=1
+      }
     }
-  }
+  } #any characters?
   fixed=f
   colnames(free)=varnames 
   return(list(fixed=fixed,free=free))
@@ -430,11 +468,52 @@ matrix.power <- function(x, n)
 }
 
 #function to take one time from a 3D matrix without R restructuring it
-sub3D=function(x,dim1,dim2,t=1){
-  #if(length(t)>1) stop("sub3D: t must be length 1")
-  mat=x[dim1,dim2,t,drop=FALSE]
-  dims=dim(mat)
-  return(matrix(mat,dims[1],dims[2],dimnames=list(rownames(mat),colnames(mat))))
+#Slower
+# sub3D=function(x,dim1,dim2,t=1){
+#   #if(length(t)>1) stop("sub3D: t must be length 1")
+#   if(t==1 & missing(dim1) & missing(dim2) & dim(x)[3]==1){
+#     dimns=attr(x,"dimnames")[1:2]
+#     attr(x,"dim")=attr(x,"dim")[1:2]
+#     attr(x,"dimnames")=dimns
+#     return(x)
+#   }else{
+#     mat=x[dim1,dim2,t,drop=FALSE]
+#   }
+#   dims=dim(mat)
+#   return(matrix(mat,dims[1],dims[2],dimnames=list(rownames(mat),colnames(mat))))
+# }
+
+# #old with dim1 and dim2
+# sub3D=function(x,dim1,dim2,t=1){
+#   if(!missing(dim1) | !missing(dim2)){
+#     x=x[dim1,dim2,t,drop=FALSE]
+#   }
+#   x.dims = dim(x)
+#   if(x.dims[1]!=1 & x.dims[2]!=1){
+#     x=x[dim1,dim2,t]
+#     return(x)
+#   }else{
+#     x=x[dim1,dim2,t,drop=FALSE]
+#     dimns=attr(x,"dimnames")[1:2]
+#     attr(x,"dim")=attr(x,"dim")[1:2]
+#     attr(x,"dimnames")=dimns
+#     return(x)
+#   }
+# }
+
+#faster
+sub3D=function(x,t=1){
+  x.dims = dim(x)
+  if(x.dims[1]!=1 & x.dims[2]!=1){
+    x=x[,,t]
+    return(x)
+  }else{
+    x=x[,,t,drop=FALSE]
+    dimns=attr(x,"dimnames")[1:2]
+    attr(x,"dim")=attr(x,"dim")[1:2]
+    attr(x,"dimnames")=dimns
+    return(x)
+  }
 }
 
 #replace 0 diags with 0 row/cols; no error checking.  Need square symm matrix

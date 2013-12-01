@@ -1,5 +1,5 @@
 ###################################################
-### code chunk number 11: Cs2_Exercise1
+### code chunk number 11: Cs2_Code1
 ###################################################
 #Code to fit the single population model with i.i.d. errors
 #Read in data
@@ -34,7 +34,7 @@ kem1$AIC  #show the AIC
 
 
 ###################################################
-### code chunk number 18: Cs2_Exercise2
+### code chunk number 18: Cs2_Code2
 ###################################################
 #Code to fit the single population model with independent and unequal errors 
 
@@ -62,7 +62,7 @@ par(mfrow=c(1,1))
 
 
 ###################################################
-### code chunk number 21: Cs2_Exercise3
+### code chunk number 21: Cs2_Code3
 ###################################################
 #fit the north and south population model
 Z.model = factor(c(1,1,2,2,2))
@@ -87,7 +87,7 @@ par(mfrow=c(1,1))
 
 
 ###################################################
-### code chunk number 23: Cs2_Exercise4
+### code chunk number 23: Cs2_Code4
 ###################################################
 Z.model=factor(c(1,2,3,4,5))
 U.model="equal"
@@ -98,7 +98,7 @@ kem=MARSS(dat, model=list(Z=Z.model,
 
 
 ###################################################
-### code chunk number 29: Cs2_Exercises5_7
+### code chunk number 29: Cs2_Code5_7
 ###################################################
 #Two subpopulations with different population parameters
 Z.model=factor(c(1,1,2,2,2))

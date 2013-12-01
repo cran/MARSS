@@ -1,63 +1,5 @@
 ###################################################
-### code chunk number 13: Cs6_compute.resids
-###################################################
-resids.0=residuals(kem.0)$std.residuals
-resids.1=residuals(kem.1)$std.residuals
-resids.2=residuals(kem.2)$std.residuals
-
-
-###################################################
-### code chunk number 5: Cs6_fit.data.0
-###################################################
-#The data is in a ts format, and we need a matrix
-dat = t(as.matrix(Nile))
-#Now we fit the model
-kem.0 = MARSS(dat, model=mod.nile.0)
-
-
-###################################################
-### code chunk number 7: Cs6_fit.data.1
-###################################################
-kem.1 = MARSS(dat, model=mod.nile.1)
-
-
-###################################################
-### code chunk number 10: Cs6_fit.data.2
-###################################################
-kem.2em = MARSS(dat, model=mod.nile.2, silent=TRUE)
-kem.2 = MARSS(dat, model=mod.nile.2,
-  inits=kem.2em$par, method="BFGS")
-
-
-###################################################
-### code chunk number 4: Cs6_mod.nile.0
-###################################################
-mod.nile.0 = list( 
-Z=matrix(1), A=matrix(0), R=matrix("r"),
-B=matrix(1), U=matrix(0), Q=matrix(0),
-x0=matrix("a") )
-
-
-###################################################
-### code chunk number 6: Cs6_mod.nile.1
-###################################################
-mod.nile.1 = list(
-Z=matrix(1), A=matrix(0), R=matrix("r"),
-B=matrix(1), U=matrix("u"), Q=matrix(0),
-x0=matrix("a") )
-
-
-###################################################
-### code chunk number 8: Cs6_mod.nile.2
-###################################################
-mod.nile.2 = list(
-Z=matrix(1), A=matrix(0), R=matrix("r"),
-B=matrix(1), U=matrix(0), Q=matrix("q"),
-x0=matrix("pi") )
-
-
-###################################################
-### code chunk number 3: Cs6_plotdata
+### code chunk number 3: Cs01_plotdata
 ###################################################
 #load the datasets package
 library(datasets)
@@ -66,7 +8,57 @@ plot(Nile,ylab="Flow volume",xlab="Year")
 
 
 ###################################################
-### code chunk number 12: Cs6_plotfit
+### code chunk number 4: Cs02_mod.nile.0
+###################################################
+mod.nile.0 = list( 
+Z=matrix(1), A=matrix(0), R=matrix("r"),
+B=matrix(1), U=matrix(0), Q=matrix(0),
+x0=matrix("a") )
+
+
+###################################################
+### code chunk number 5: Cs03_fit.data.0
+###################################################
+#The data is in a ts format, and we need a matrix
+dat = t(as.matrix(Nile))
+#Now we fit the model
+kem.0 = MARSS(dat, model=mod.nile.0)
+
+
+###################################################
+### code chunk number 6: Cs04_mod.nile.1
+###################################################
+mod.nile.1 = list(
+Z=matrix(1), A=matrix(0), R=matrix("r"),
+B=matrix(1), U=matrix("u"), Q=matrix(0),
+x0=matrix("a") )
+
+
+###################################################
+### code chunk number 7: Cs05_fit.data.1
+###################################################
+kem.1 = MARSS(dat, model=mod.nile.1)
+
+
+###################################################
+### code chunk number 8: Cs06_mod.nile.2
+###################################################
+mod.nile.2 = list(
+Z=matrix(1), A=matrix(0), R=matrix("r"),
+B=matrix(1), U=matrix(0), Q=matrix("q"),
+x0=matrix("pi") )
+
+
+###################################################
+### code chunk number 10: Cs07_fit.data.2
+###################################################
+kem.2em = MARSS(dat, model=mod.nile.2, silent=TRUE)
+kem.2 = MARSS(dat, model=mod.nile.2,
+  inits=kem.2em$par, method="BFGS")
+
+
+###################################################
+### code chunk number 12: Cs08_plotfit
 ###################################################
 library(Hmisc)
 par(mfrow=c(3,1), mar=c(4,4,0.5,0.5), oma=c(1,1,1,1))
@@ -96,7 +88,15 @@ legend("topright", paste("model 2, AICc=",format(kem$AICc,digits=1)),bty="n")
 
 
 ###################################################
-### code chunk number 14: Cs6_plotoutliertests
+### code chunk number 13: Cs09_compute.resids
+###################################################
+resids.0=residuals(kem.0)$std.residuals
+resids.1=residuals(kem.1)$std.residuals
+resids.2=residuals(kem.2)$std.residuals
+
+
+###################################################
+### code chunk number 14: Cs10_plotoutliertests
 ###################################################
 require(Hmisc)
 par(mfrow=c(3,1),mar=c(3,4,1.5,2))
@@ -121,7 +121,7 @@ title("model 2--stochastic level")
 
 
 ###################################################
-### code chunk number 15: Cs6_plotresids
+### code chunk number 15: Cs11_plotresids
 ###################################################
 par(mfrow=c(2,1),mar=c(4,3,2,1))
 x=seq(tsp(Nile)[1],tsp(Nile)[2],tsp(Nile)[3])

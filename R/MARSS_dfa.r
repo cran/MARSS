@@ -160,7 +160,7 @@ if(MARSS.call[["z.score"]]){
 MARSS.call = list(data=dat, inits=MARSS.call$inits, MCbounds=MARSS.call$MCbounds, control=MARSS.call$control, method=MARSS.call$method, form="dlm", silent=MARSS.call$silent, fit=MARSS.call$fit)
 
 #dfa is a type of marxss model, so use MARSS.marxss to test it and set up the marss object
-tmp = MARSS.marxss(list(data=dat,model=dfa.model,method=MARSS.call$method))
+tmp = MARSS.marxss(list(data=dat,model=dfa.model,method=MARSS.call$method,silent=MARSS.call$silent))
 #marss is the name for the form=marss model object that MARSS.form functions return
 #need to add "dfa" to attribute form
 marxss_object=tmp$model

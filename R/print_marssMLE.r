@@ -52,7 +52,7 @@ print.marssMLE <- function (x, digits = max(3, getOption("digits")-4), ..., what
       if (x$method %in% kem.methods && x$convergence %in% c(10,12)){
         if(x$convergence==10) tmp.msg=paste("maxit reached at ",x$control$maxit," iter before log-log convergence.\n", sep="") 
         if(x$convergence==12) tmp.msg=paste("maxit (=",x$control$maxit,") < min.iter.conv.test (=",x$control$min.iter.conv.test,") therefore no log-log test info.\n", sep="")           
-         cat("WARNING: abstol convergence only no log-log convergence.\n", tmp.msg,
+         cat("WARNING: no abstol convergence nor log-log convergence.\n", tmp.msg,
          "The likelihood and params might not be at the ML values.\n",
          "Try setting control$maxit higher.\n")
       }

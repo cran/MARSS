@@ -1,5 +1,5 @@
 ###################################################
-### code chunk number 9: Cs3_code
+### code chunk number 9: Cs3_Code
 ###################################################
 # Read in the data
 # The data are logged already

@@ -122,32 +122,38 @@ is.marssMLE <- function(MLEobj)
     null.flag <- ( is.null(control[[el]]) && !(el %in% ok.null ) )  #those in ok.null can be NULL
     if(null.flag) msg = c(msg, paste(el,"is missing from the control list\n"))
 
-    if( !is.null(control[[el]]) ) { #everything must be numeric except these
-      if( el %in% en[!(en %in% c("safe", "MCInit", "allow.degen", "demean.states"))] ) {
+    if( !is.null(control[[el]]) ) { 
+      #everything must be numeric except these
+      if( el %in% en[!(en %in% c("safe", "MCInit", "allow.degen", "demean.states", "sparse"))] ) {
         null.flag <- (!is.numeric(control[[el]]))
         if(null.flag) msg = c(msg, paste("control list element", el,"is non-numeric\n"))
       }
-      if( (el %in% en[!(en %in% c("safe", "MCInit", "trace", "allow.degen", "demean.states"))])  && is.numeric(control[[el]]) ) {
+      #everything must be positive or 0 except these
+      if( (el %in% en[!(en %in% c("safe", "MCInit", "trace", "allow.degen", "demean.states", "sparse"))])  && is.numeric(control[[el]]) ) {
         null.flag <- ( control[[el]] <= 0)
         if(null.flag) msg = c(msg, paste("control list element", el,"less than or equal to zero\n"))
       }
+      #trace can be -1 but no smaller
       if ( (el=="trace") && is.numeric(control[[el]]) ) {
         null.flag <- ( control[[el]] < -1)
         if(null.flag) msg = c(msg, paste("control list element trace must be an integer greater than or equal to -1.\n"))
       }
+      #these need to be whole numbers
       if (el %in% c("numInits", "numInitSteps", "trace", "minit", "maxit", "min.iter.conv.test", "conv.test.deltaT", "min.degen.iter") && is.numeric(control[[el]])) {
         null.flag <- ( !is.wholenumber(control[[el]]) )
         if(null.flag) msg = c(msg, paste("control list element", el,"is not a whole number\n"))
       }
+      #minit must be less than maxit
       if (el %in% c("minit") && !is.null(control[["maxit"]]) ) {
         if(!is.null(control[["minit"]]) && !is.null(control[["maxit"]]) && is.numeric(control$minit) && is.numeric(control$maxit) && is.wholenumber(control$minit) &&  is.wholenumber(control$maxit)) null.flag <- (control$minit > control$maxit)  
         if(null.flag) msg = c(msg, paste("control list element minit is greater than maxit\n"))
       }
+      #conv.test.deltaT can't be less than 2
       if (el %in% c("conv.test.deltaT") && is.numeric(control[[el]]) ) {
         null.flag <- ( control[[el]] < 2)
         if(null.flag) msg = c(msg, "control list element conv.test.deltaT must be greater than 2\n")
       }
-      if (el %in% c("safe", "MCInit", "allow.degen", "demean.states")) {
+      if (el %in% c("safe", "MCInit", "allow.degen", "demean.states", "sparse")) {
         null.flag <- !(control[[el]] %in% c(TRUE, FALSE) )	  
         if(null.flag) msg = c(msg, paste("control list element", el,"is not TRUE or FALSE\n"))
       }

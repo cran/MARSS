@@ -46,11 +46,14 @@ MARSS = function(y,
   ## with attributes model.dims, X.names, form, equation
   ## error checking within the function is a good idea though not required
   ## if changes to the control values are wanted these can be set by changing MARSS.inputs$control
+  if(silent==2) cat("Building the marssMODEL object from the model argument to MARSS().\n")
   MARSS.inputs = eval(call(as.marss.fun, MARSS.call))
   marss.object=MARSS.inputs$marss
+  if(silent==2 ) cat(paste("Resulting model has ",attr(marss.object,"model.dims")$x[1]," state processes and ",attr(marss.object,"model.dims")$y[1]," observation processes.\n",sep=""))
   
   ## Check that the marssMODEL object output by MARSS.form() is ok
   ## More checking on the control list is done by is.marssMLE() to make sure the MLEobj is ready for fitting
+  if(silent==2) cat(paste("Checking that the marssMODEL object output by MARSS.",form,"() is ok.\n",sep=""))
   tmp = is.marssMODEL(marss.object)
   if(!isTRUE(tmp)) {
     if( !silent || silent==2 ) { cat(tmp); return(marss.object) } 
@@ -62,6 +65,7 @@ MARSS = function(y,
   ## and fill in defaults if some params left off
   ## This does not check model since the marssMODEL object is constructed
   ## via the MARSS.form() function above
+  if(silent==2) cat("Running checkMARSSInputs().\n")
   MARSS.inputs=checkMARSSInputs(MARSS.inputs, silent=FALSE)
   
   
@@ -91,7 +95,7 @@ MARSS = function(y,
     
     #if errors, tmp will not be true, it will be error messages
     if(!isTRUE(tmp)) {
-      if( !silent ) {
+      if( !silent || silent==2) {
         cat(tmp)
         cat(" The incomplete/inconsistent MLE object is being returned.\n")
       }
@@ -145,7 +149,7 @@ MARSS = function(y,
     if(!fit) MLEobj$convergence=3
     
     if(fit) {
-      ## If not parameters are estimated, then set par element and get the states
+      ## If no parameters are estimated, then set par element and get the states
       if(all(unlist(lapply(MLEobj$marss$free,is.fixed)))){
         MLEobj$convergence=3
         MLEobj$par=list(); for(el in attr(MLEobj$marss,"par.names")) MLEobj$par[[el]]=matrix(0,0,1)
@@ -181,6 +185,7 @@ MARSS = function(y,
           MLEobj$Ey=MARSShatyt(MLEobj)
         }
       }else{ #there is something to estimate
+        if(silent==2 ) cat(paste("Fitting model with ",method,".\n",sep=""))
         ## Fit and add param estimates to the object
         if(method %in% kem.methods) MLEobj = MARSSkem(MLEobj)
         if(method %in% optim.methods) MLEobj = MARSSoptim(MLEobj)
@@ -210,9 +215,9 @@ MARSS = function(y,
         }
     } # fit the model
     
-    if(!silent & MLEobj$convergence %in% c(0,1,3,10,11)){ print(MLEobj) }
-    if(!silent & !(MLEobj$convergence %in% c(0,1,3,10,11))){ cat(MLEobj$errors) } # 3 added since don't print if fit=FALSE
-    if(!silent & !fit) print(MLEobj$model)
+    if((!silent || silent==2) & MLEobj$convergence %in% c(0,1,3,10,11,12)){ print(MLEobj) }
+    if((!silent || silent==2) & !(MLEobj$convergence %in% c(0,1,3,10,11,12))){ cat(MLEobj$errors) } # 3 added since don't print if fit=FALSE
+    if((!silent || silent==2) & !fit) print(MLEobj$model)
     
     return(MLEobj)
   } # end MLE methods

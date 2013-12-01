@@ -75,7 +75,7 @@ msg=c("")
   if(!is.numeric(MARSS.inputs$data)) {problem=TRUE; msg = c(msg, " Data must be numeric.\n")}
 
 #check that silent is T F
-  if(!(MARSS.inputs$silent %in% c(TRUE, FALSE))){
+  if(!(MARSS.inputs$silent %in% c(TRUE, FALSE, 2))){
     problem=TRUE
     msg = c(msg, " silent must be TRUE or FALSE.\n")
   }

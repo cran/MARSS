@@ -7,14 +7,14 @@ MARSSkem = function( MLEobj ) {
   modelObj=MLEobj[["marss"]]
 # This is a core function and does not check if user specified a legal or solveable model. 
 # y is MLEobj$marss$data with the missing values replaced by 0
-kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatment "x00" x0 is at t=0 or "x01" x0 is at t=1
+kf.x0 = ifelse(modelObj[["tinitx"]]==1,"x10","x00")  #the initial conditions treatment "x00" x0 is at t=0 or "x01" x0 is at t=1
 #kf.x0=x00 prior is defined as being E[x(t=0)|y(t=0)]; xtt[0]=x0; Vtt[0]=V0
 #kf.x1=x10 prior is defined as being E[x(t=0)|y(t=0)]; xtt1[1]=x0; Vtt1[1]=V0
 
   #The model will be form = marss, so use base function for that form here
   constr.type = describe_marss( modelObj )
   #Check that model is allowed given the EM algorithm constaints; returns some info on the model structure
-  if(MLEobj$control$trace != -1){
+  if(MLEobj[["control"]][["trace"]] != -1){
     errhead = "\nErrors were caught in MARSSkemcheck \n"
     errmsg = " Try using foo=MARSS(..., fit=FALSE), then summary(foo$model) to see what model you are trying to fit.\n" 
     tmp=MARSSkemcheck( MLEobj )
@@ -29,8 +29,9 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
   d = modelObj[["free"]]      # D or free matrix
   f = modelObj[["fixed"]]   # f matrix
   inits = MLEobj[["start"]]
-  model.el = names(f)
-  n = dim(y)[1]; TT = dim(y)[2]; m = dim(f$x0)[1]
+  model.el = attr(modelObj, "par.names")
+  model.dims = attr(modelObj, "model.dims")
+  n =  model.dims[["data"]][1]; TT = model.dims[["data"]][2]; m = model.dims[["x"]][1]
   Id = list(m = diag(1,m), n = diag(1,n)); IIm=diag(1,m) # identity matrices
 
   control = MLEobj$control
@@ -43,20 +44,25 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
   ## assign the starting parameter values; use fixed values where fixed otherwise use inits
   for(elem in model.el) MLEobj.iter$par[[elem]]=inits[[elem]]
   
-  ## make a list of time-varying parameters
-  time.varying = list()
+  ## make a list of time-varying and fixed parameters
+  time.varying = fixed = list()
   for(elem in model.el) {
-    if( is.fixed(d[[elem]]) ) MLEobj.iter$par[[elem]]=matrix(0,0,1)
-    if( (dim(modelObj$free[[elem]])[3] == 1) & (dim(modelObj$fixed[[elem]])[3] == 1)){
-        time.varying[[elem]] = FALSE
-      }else{ time.varying[[elem]] = TRUE }  #time-varying
+    if( is.fixed(d[[elem]]) ){ 
+      MLEobj.iter$par[[elem]]=matrix(0,0,1)
+      fixed[[elem]] = TRUE
+    }else{ fixed[[elem]] = FALSE }
+    if( model.dims[[elem]][3] == 1){
+      time.varying[[elem]] = FALSE
+    }else{ time.varying[[elem]] = TRUE }  #time-varying
   }
-  IIz=list(); IIz$V0=makediag(as.numeric(takediag(parmat(MLEobj.iter, "V0", t=1)$V0)==0),m)
+  #flags for whether a 0 was set on R or Q diagonals; determines whether various is.zero diagonal matrices are recomputed
+  set.degen=list(Q=FALSE, R=FALSE, V0=FALSE)
+  #define a couple constants that come up a lot
+  IIzV0=diag(as.numeric(diag(parmat(MLEobj.iter, "V0", t=1)$V0)==0),m)
+  IImIIzV0 = (IIm-IIzV0)
     
-  ## YM shows the location of missing values after missing values in y are zero-ed out
-  YM=matrix(as.numeric(!is.na(y)),n,TT)
   ## zero out the missing values
-  y[!YM]=0
+  y[is.na(y)]=0
 
   ## Set up variable for debuging and diagnostics
   iter.record=list(par=NULL,logLik=NULL)  
@@ -70,7 +76,9 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
   # 72 means no info yet; 0 means converged
   MLEobj.iter$conv.test=list(convergence=72, messages="No convergence testing performed.\n", not.converged.params=names(coef(MLEobj.iter,type="vector")), converged.params=c() )
   
+  if(control$silent==2) cat("EM iteration: ")
   for(iter in 1:(control$maxit+1)) { #+1 so that the iter.record and kf are run for the last EM iteration
+    if(control$silent==2) cat(iter," ")
     ################# E STEP Estimate states given U,Q,A,R,B,X0 via Kalman filter
     #####################################################################################
     kf.last = kf
@@ -88,6 +96,7 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
       MLEobj.iter$kf$xtT = kf$xtT-xbar
       MLEobj.iter$kf$x0T = kf$x0T-xbar
     }
+    
     Ey = MARSShatyt( MLEobj.iter )
     if(!Ey$ok) { 
       if(control$trace>0){ msg.kf=c(msg.kf,paste("iter=",iter," ",Ey$errors) )
@@ -96,7 +105,7 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
       stopped.with.errors=TRUE; break
       }
     MLEobj.iter$Ey = Ey
-
+    
    # This is a diagnostic line that checks if the solution is becoming unstable; likelike.old is set first at iter=1
     if(iter>1 && is.finite(loglike.old) == TRUE && is.finite(MLEobj.iter$logLik) == TRUE ) cvg = MLEobj.iter$logLik - loglike.old  
     if(iter > 2 & cvg < -sqrt(.Machine$double.eps)) {
@@ -115,7 +124,7 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
         msg.kf=c(msg.kf, paste("iter=",iter," ", kf$errors, sep=""))
         }
       MLEobj.iter$iter.record=iter.record
-    }else { #Otherwise keep just last (control$conv.test.deltaT+1) iterations for diagnostics
+    }else{ #Otherwise keep just last (control$conv.test.deltaT+1) iterations for diagnostics
       iter.record$par=rbind(iter.record$par,coef(MLEobj.iter,type="vector"))
       iter.record$logLik=c(iter.record$logLik,MLEobj.iter$logLik)
       tmp.len=dim(iter.record$par)[1]
@@ -125,7 +134,7 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
         }
       MLEobj.iter$iter.record=iter.record
     }
-       
+    
     ################
     # Convergence Test
     ################################################################
@@ -154,55 +163,60 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
     # Get new R subject to its constraints
     ################################################################
     # For the degen test, I require that d is a design matrix;
-    if(control$allow.degen){
+    if(control[["allow.degen"]]){
       tmp=degen.test("R", MLEobj.iter, iter) #this will test degeneracy and replace diags with 0s if needed
       MLEobj.iter=tmp$MLEobj; msg.kem=c(msg.kem, tmp$msg)
-      d$R=MLEobj.iter$marss$free$R
-      f$R=MLEobj.iter$marss$fixed$R
-      kf=MLEobj.iter$kf
-      Ey=MLEobj.iter$Ey
-    }
-    
-    #Now run the standard EM update equations
-    if(!is.fixed(d$R)){
-      sum1 = t.dR.dR = 0
-      t.hatxt = t(kf$xtT); t.hatyt = t(Ey$ytT)
-      Z=par1$Z; t.Z = matrix(Z,m,n,byrow=TRUE)
-      A=par1$A; t.A = matrix(A,1,n,byrow=TRUE)
-      for (i in 1:TT) {
-        if(time.varying$Z & i>1){ Z = parmat(MLEobj.iter, "Z", t=i)$Z; t.Z = matrix(Z,m,n,byrow=TRUE) }
-        if(time.varying$A & i>1){ A = parmat(MLEobj.iter, "A", t=i)$A; t.A = matrix(A,1,n,byrow=TRUE) }
-        if(time.varying$R | i==1){ 
-          dR = sub3D(d$R,t=min(i,dim(d$R)[3])); t.dR = t(dR)
-          t.dR.dR = t.dR.dR + t.dR%*%dR }
-        hatyt = Ey$ytT[,i,drop=FALSE]; hatyxt=sub3D(Ey$yxtT,t=i); hatOt = sub3D(Ey$OtT,t=i)
-        hatPt = kf$VtT[,,i]+kf$xtT[,i,drop=FALSE]%*%t.hatxt[i,,drop=FALSE]
-        hatxt = kf$xtT[,i,drop=FALSE]
-        sum1a = (hatOt - hatyxt%*%t.Z - Z%*%t(hatyxt)- hatyt%*%t.A - A%*%t.hatyt[i,,drop=FALSE] + 
-            Z%*%hatPt%*%t.Z + Z%*%hatxt%*%t.A + A%*%t.hatxt[i,,drop=FALSE]%*%t.Z + A%*%t.A)
-        sum1a = symm(sum1a) #enforce symmetry function from MARSSkf
-        sum1 = sum1 + t.dR%*%vec(sum1a)
+      #update d and f because some of the R diagonals may have been set to 0
+      if(tmp$set.degen){ #then some diagonals set to 0 so need to update values
+        d$R=MLEobj.iter$marss$free$R
+        f$R=MLEobj.iter$marss$fixed$R
+        kf=MLEobj.iter$kf
+        Ey=MLEobj.iter$Ey
+        fixed$R = is.fixed(d$R)
+        set.degen$R=TRUE  #flag so that the identity matrices are redone
       }
-      if(time.varying$R){ 
+    }
+
+    #Now run the standard EM update equations
+    if(!fixed[["R"]]){
+      sum1 = t.dR.dR = 0
+      Z=par1$Z
+      A=par1$A
+      for (i in 1:TT) {
+        if(time.varying[["Z"]] & i>1){ Z = parmat(MLEobj.iter, "Z", t=i)$Z }
+        if(time.varying[["A"]] & i>1){ A = parmat(MLEobj.iter, "A", t=i)$A }
+        if(time.varying[["R"]] | i==1){ 
+          dR = sub3D(d[["R"]],t=i) #by def, i goes to TT if time-varying
+          t.dR.dR = t.dR.dR + crossprod(dR)
+        }
+        hatyt = Ey[["ytT"]][,i,drop=FALSE]; hatyxt=sub3D(Ey[["yxtT"]],t=i); hatOt = sub3D(Ey[["OtT"]],t=i)
+        hatPt = kf[["VtT"]][,,i]+tcrossprod(kf[["xtT"]][,i,drop=FALSE])
+        hatxt = kf[["xtT"]][,i,drop=FALSE]
+        sum1a = (hatOt - tcrossprod(hatyxt, Z) - tcrossprod(Z, hatyxt)- tcrossprod(hatyt, A) - tcrossprod(A, hatyt) + 
+                   tcrossprod(Z%*%hatPt, Z) + tcrossprod(Z%*%hatxt, A) + tcrossprod(A, Z%*%hatxt) + tcrossprod(A)) #A%*%t.A
+        sum1a = symm(sum1a) #enforce symmetry function from MARSSkf
+        sum1 = sum1 + crossprod(dR, vec(sum1a))
+      }
+      if(time.varying[["R"]]){ 
         if(length(t.dR.dR)==1){ inv.dR=1/t.dR.dR }else{ inv.dR = pcholinv(t.dR.dR) }
       }else{ 
         if(length(t.dR.dR)==1){ inv.dR=(1/t.dR.dR)/TT }else{ inv.dR = pcholinv(t.dR.dR)/TT }
-      } 
-      MLEobj.iter$par$R = matrix(0,dim(d$R)[2],1)
-      MLEobj.iter$par$R = inv.dR%*%sum1
-      par1$R=parmat(MLEobj.iter,"R",t=1)$R
+      }       
+
+      MLEobj.iter[["par"]][["R"]] = inv.dR%*%sum1 #.03
+      par1[["R"]]=parmat(MLEobj.iter,"R",t=1)$R
       
     #Start~~~~~~~~Error checking
     R=par1$R  #reset
-    for(i in 1:max(dim(d$R)[3],dim(f$R)[3])){
+    for(i in 1:model.dims[["R"]][3]){
       if(time.varying$R & i>1) R=parmat(MLEobj.iter,"R",t=i)$R  
       if(any(eigen(R,symmetric=TRUE,only.values=TRUE)$values<0)) {
         stop.msg=paste("Stopped at iter=",iter," in MARSSkem: solution became unstable. R update is not positive definite.\n",sep="")
         stopped.with.errors=TRUE;  
         break }
-      }
+    }
     if(stopped.with.errors) break      
-    if(control$safe && !is.fixed(d$R) ){  
+    if( control$safe && !fixed[["R"]] ){  
       new.kf=rerun.kf("R", MLEobj.iter, iter)
       if(!new.kf$ok){
        stopped.with.errors=TRUE
@@ -217,6 +231,7 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
         msg.kem=c(msg.kem, new.kf$msg.kem)
       }
     }
+      
     } #R not fixed
 
     ################
@@ -227,33 +242,37 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
     if(control$allow.degen){
       tmp=degen.test("Q", MLEobj.iter, iter) #this will test degeneracy and replace diags with 0s if needed
       MLEobj.iter=tmp$MLEobj; msg.kem=c(msg.kem, tmp$msg)
-      d$Q=MLEobj.iter$marss$free$Q
-      f$Q=MLEobj.iter$marss$fixed$Q
-      kf=MLEobj.iter$kf
-      Ey=MLEobj.iter$Ey
+      if(tmp$set.degen){
+        d$Q=MLEobj.iter$marss$free$Q
+        f$Q=MLEobj.iter$marss$fixed$Q
+        kf=MLEobj.iter$kf
+        Ey=MLEobj.iter$Ey
+        fixed$Q = is.fixed(d$Q)
+        set.degen$Q=TRUE  #flag so that the identity matrices are redone
+      }
     }
     
     #Then do the regular EM update
-    if( !is.fixed(d$Q) ){ #dim d$Q =0 or d$Q all zeros
+    if( !fixed[["Q"]] ){ #dim d$Q =0 or d$Q all zeros
       # If you treat x0 as at t=1 then 
       # S00 = 0; S11 = 0; S10 = 0; X1 = 0; X0 = 0; TT.numer = TT-1
       # Otherwise if x0 is at t=0 follow Shumway and Stoffer (S&S2006 Eqn 6.67-69)
-      dQ = sub3D(d$Q,t=1); t.dQ = t(dQ)  #won't be all zeros due to !is.fixed
-      B = par1$B; t.B = matrix(B,m,m,byrow=TRUE) 
-      U = par1$U; t.U = matrix(U,1,m,byrow=TRUE)
-      t.hatxt = t(kf$xtT)
+      dQ = sub3D(d$Q,t=1) #won't be all zeros due to !is.fixed
+      B = par1$B
+      U = par1$U
       if(kf.x0=="x00"){
-        TT.numer = TT
-        X0 = (IIm-IIz$V0)%*%kf$x0T + IIz$V0%*%par1$x0; t.X0 = t(X0) 
-        S00 = kf$V0T + X0%*%t.X0
-        S10 = kf$Vtt1T[,,1] + kf$xtT[,1,drop=FALSE]%*%t.X0;  #where diag.V0=0 kf$Vtt1T[,,1]=0 since x at t-1 is fixed
-        S11 = kf$VtT[,,1] + kf$xtT[,1,drop=FALSE]%*%t.hatxt[1, ,drop=FALSE]
-        X1 = kf$xtT[,1,drop=FALSE]; t.X1 = t(X1)
-        sum1a = (S11 - B%*%t(S10) - S10%*%t.B + B%*%S00%*%t.B
-          - U%*%t.X1 - X1%*%t.U + U%*%t.X0%*%t.B + B%*%X0%*%t.U + U%*%t.U)
+        TT.numer = TT; 
+        # IImIIzV0 = (IIm-IIz$V0[,,1]); IIzV0 = IIz$V0[,,1]      
+        X0 =  IImIIzV0%*%kf$x0T + IIzV0%*%par1$x0
+        S00 = kf$V0T + tcrossprod(X0)
+        S10 = kf$Vtt1T[,,1] + tcrossprod(kf$xtT[,1,drop=FALSE], X0);  #where diag.V0=0 kf$Vtt1T[,,1]=0 since x at t-1 is fixed
+        S11 = kf$VtT[,,1] + tcrossprod(kf$xtT[,1,drop=FALSE])
+        X1 = kf$xtT[,1,drop=FALSE]
+        sum1a = (S11 - tcrossprod(B, S10) - tcrossprod(S10, B) + tcrossprod(B%*%S00, B)
+                 - tcrossprod(U, X1) - tcrossprod(X1, U) + tcrossprod(U, B%*%X0) + tcrossprod(B%*%X0, U) + tcrossprod(U)) #U%*%t.U
         sum1a = symm(sum1a) #symmetry function from MARSSkf
-        sum1 = t.dQ%*%vec(sum1a)
-        t.dQ.dQ = t.dQ%*%dQ
+        sum1 = crossprod(dQ, vec(sum1a))
+        t.dQ.dQ = crossprod(dQ)
       }
       if(kf.x0=="x10"){
         sum1 = 0; t.dQ.dQ=0; TT.numer = TT-1
@@ -261,29 +280,30 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
       }
 
       for (i in 2:TT) {
-        S00 = kf$VtT[,,i-1] + kf$xtT[,i-1,drop=FALSE]%*%t.hatxt[i-1, ,drop=FALSE]   #sum 2:T E(xt1T%*%t(xt1T))
-        S10 = kf$Vtt1T[,,i] + kf$xtT[,i,drop=FALSE]%*%t.hatxt[i-1, ,drop=FALSE]     #sum 2:T E(xtT%*%t(xt1T))
-        S11 = kf$VtT[,,i] + kf$xtT[,i,drop=FALSE]%*%t.hatxt[i, ,drop=FALSE]         #sum 2:T E(xtT%*%t(xt1T))
-        X0 = kf$xtT[,i-1,drop=FALSE]; t.X0 = t(X0)                                          #sum 2:T E(xt1T)
-        X1 = kf$xtT[,i,drop=FALSE]; t.X1 = t(X1)                                            #sum 2:T E(xtT)
-        if(time.varying$B ){ B = parmat(MLEobj.iter, "B", t=i)$B; t.B = matrix(B,m,m,byrow=TRUE) }
-        if(time.varying$U ){ U = parmat(MLEobj.iter, "U", t=i)$U; t.U = matrix(U,1,m,byrow=TRUE) }
-        if(time.varying$Q ){ 
-          dQ = sub3D(d$Q,t=min(i,dim(d$Q)[3])); t.dQ = t(dQ)
-          t.dQ.dQ = t.dQ.dQ + t.dQ%*%dQ }
-        sum1a = (S11 - B%*%t(S10) - S10%*%t.B + B%*%S00%*%t.B
-          -U%*%t.X1 - X1%*%t.U + U%*%t.X0%*%t.B + B%*%X0%*%t.U + U%*%t.U)
+        S00 = kf[["VtT"]][,,i-1] + tcrossprod(kf[["xtT"]][,i-1,drop=FALSE]) #sum 2:T E(xt1T%*%t(xt1T))
+        S10 = kf[["Vtt1T"]][,,i] + tcrossprod(kf[["xtT"]][,i,drop=FALSE],kf[["xtT"]][,i-1,drop=FALSE])  #sum 2:T E(xtT%*%t(xt1T))
+        S11 = kf[["VtT"]][,,i] + tcrossprod(kf[["xtT"]][,i,drop=FALSE])   #sum 2:T E(xtT%*%t(xt1T))
+        X0 = kf[["xtT"]][,i-1,drop=FALSE]      #sum 2:T E(xt1T)
+        X1 = kf[["xtT"]][,i,drop=FALSE]        #sum 2:T E(xtT)
+        if(time.varying[["B"]] ){ B = parmat(MLEobj.iter, "B", t=i)$B }
+        if(time.varying[["U"]] ){ U = parmat(MLEobj.iter, "U", t=i)$U }
+        if(time.varying[["Q"]] ){ 
+          dQ = sub3D(d[["Q"]],t=i)
+          t.dQ.dQ = t.dQ.dQ + crossprod(dQ)
+        }
+        sum1a = (S11 - tcrossprod(B,S10) - tcrossprod(S10, B) + tcrossprod(B%*%S00,B)
+                 - tcrossprod(U, X1) - tcrossprod(X1, U) + tcrossprod(U,B%*%X0) + tcrossprod(B%*%X0, U) + tcrossprod(U))
         sum1a = symm(sum1a) #enforce symmetry function from MARSSkf
-        sum1 = sum1 + t.dQ%*%vec(sum1a)
+        sum1 = sum1 + crossprod(dQ, vec(sum1a)) 
       }
       #pcholinv because there might be all zero cols in dQ; won't equal matrix(0,1,1) since !is.fixed
-      if(time.varying$Q){ if(length(t.dQ.dQ)==1){ inv.dQ=1/t.dQ.dQ }else{ inv.dQ = pcholinv(t.dQ.dQ) }
+      if(time.varying[["Q"]]){ 
+          if(length(t.dQ.dQ)==1){ inv.dQ=1/t.dQ.dQ }else{ inv.dQ = pcholinv(t.dQ.dQ) }
         }else{
-        t.dQ.dQ = t.dQ%*%dQ
+        t.dQ.dQ = crossprod(dQ) #t.dQ%*%dQ
         if(length(t.dQ.dQ)==1){ inv.dQ=(1/t.dQ.dQ)/TT.numer }else{ inv.dQ = pcholinv(t.dQ.dQ)/TT.numer }
-      }    
-      MLEobj.iter$par$Q = matrix(0,dim(d$Q)[2],1)
-      #0 will appear in par where there all 0 cols in d since inv.dQ will be 0 row/col there      
+      }
+      #0 will appear in par where there are all 0 cols in d since inv.dQ will be 0 row/col there      
       MLEobj.iter$par$Q=inv.dQ%*%sum1
       par1$Q=parmat(MLEobj.iter,"Q",t=1)$Q
       
@@ -297,7 +317,7 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
         }
     }
     if(stopped.with.errors) break      
-    if( control$safe &&  !is.fixed(d$Q) ){
+    if( control$safe &&  !fixed[["Q"]] ){
       new.kf=rerun.kf("Q", MLEobj.iter, iter)
       if(!new.kf$ok){
         stopped.with.errors=TRUE
@@ -314,55 +334,66 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
     }
     } #if Q not fixed
 
-    #don't use is.fixed here since want to compute the II and star matrices if R or Q is all zeros after degen test
-    #note, don't really need to do this over and over after first degen conversion...
-    if( !(dim(d$Q)[2]==0) | !(dim(d$R)[2]==0) | !(dim(d$V0)[2]==0) | iter==1 ){
+    #This code sets up the IIz and star (inverse) matrices needed
+    #This only needs to be done at iter=1
+    if( !fixed[["Q"]] | !fixed[["R"]] | !fixed[["V0"]] | set.degen[["Q"]] | set.degen[["R"]] | iter==1 ){
     #Set up the variance matrices needed for the degenerate case
     if(iter==1){ 
       IIz=IId=IIis=star=list()  #OMGp referes to the Omega^+ matrices; OMGz is Omega^0
-      elems=c("Q", "R", "V0")      
-    }else{ elems=c("Q", "R", "V0")[c(!(dim(d$Q)[2]==0), !(dim(d$R)[2]==0), !(dim(d$V0)[2]==0))] }
+      elems=c("Q", "R", "V0") 
+      for(elem in elems){ #set up the arrays; only needed at iter=1
+        star[[elem]]=IIz[[elem]]=array(0,dim=c(model.dims[[elem]][1],model.dims[[elem]][1],model.dims[[elem]][3]))
+      }
+    }else{ elems=c("Q", "R", "V0")[c((!fixed[["Q"]] | set.degen[["Q"]]), (!fixed[["R"]] | set.degen[["R"]]), !fixed[["V0"]])] }
     for( elem in elems ){
-      thedim=sqrt( dim(f[[elem]])[1] )
-      maxT=max(dim(f[[elem]])[3],dim(d[[elem]])[3])
+      thedim=model.dims[[elem]][1] #sqrt( dim(f[[elem]])[1] )
+      maxT=model.dims[[elem]][3] #max(dim(f[[elem]])[3],dim(d[[elem]])[3])
       #star$elem is mathbb{elem} or t(OMGp)%*%inv(elem^+)%*%OMGp
-      star[[elem]]=IIz[[elem]]=array(0,dim=c(thedim,thedim,maxT))
+      #move up so only done once; star[[elem]]=IIz[[elem]]=array(0,dim=c(thedim,thedim,maxT))
       for(i in 1:maxT){
-        assign(elem,parmat(MLEobj.iter,elem,t=i)[[elem]])
+        pari = parmat(MLEobj.iter,elem,t=i)[[elem]]
+        #assign(elem,parmat(MLEobj.iter,elem,t=i)[[elem]])
         #IIp is I_{t,*}^+   IIz is I_{t,*}^{(0)}
-        IIz[[elem]][,,i]  = makediag(as.numeric(takediag(get(elem))==0),thedim)
-        #I require that I_q^0 and I_q^+ are time-constant
-        if(elem=="Q"){
+        if(set.degen[[elem]] | iter==1){
+        IIz[[elem]][,,i]  = diag(as.numeric(diag(pari)==0),thedim)
+        #I require that I_q^0 and I_q^+ are time-constant; meaning locations of 0s on diagonal of Q are time-constant
+        if(elem=="Q" & maxT !=1){
           if(!all.equal(IIz[[elem]][,,1],IIz[[elem]][,,i])){ 
-            stop.msg = paste("Stopped at iter=",iter," in MARSSkem. IIz$Q must be time invariant.\n",sep="")
+            stop.msg = paste("Stopped at iter=",iter," in MARSSkem. IIz$Q (location of 0s on diagonal) must be time invariant.\nYou probably want to set allow.degen=FALSE if it is true.\n",sep="")
             stopped.with.errors=TRUE; break }
         }
-        star[[elem]][,,i] = pcholinv(get(elem))
         }
-      if(elem%in%c("Q","V0")){ IIz[[elem]]=sub3D(IIz[[elem]],t=1) }#time-invariant
+        star[[elem]][,,i] = pcholinv(pari)
+      }
+      set.degen[[elem]]=FALSE #reset so this code is not run again
+      if(elem=="V0" & (iter==1 | set.degen$V0)){ #then 0 location in V0 has potentially changed (via degen.test(V0))
+        #set up the diag matrices needed often
+        IIzV0=sub3D(IIz$V0,t=1)
+        IImIIzV0 = (IIm-IIzV0)
+      }      
       }  #for over elems
       if(stopped.with.errors) break
-    } #if Q or R is not fixed or iter=1
+    } #if Q, R or V0 is not fixed or a value was set to 0 via allow.degen or iter=1
             
     ################
     # Get new x0 subject to its constraints
     ################################################################
-    if( !is.fixed(d$x0) ){  # some element needs estimating
-      f.x0=sub3D(f$x0,t=1) #otherwise R changes to a vector
-      d.x0=sub3D(d$x0,t=1) #otherwise R might change to a vector
+    if( !fixed[["x0"]] ){  # some element needs estimating
+      f.x0=sub3D(f$x0,t=1) 
+      d.x0=sub3D(d$x0,t=1) 
       A=par1$A; Z=par1$Z; B=par1$B; U=par1$U
-      Qinv = sub3D(star$Q,t=1); diag.Q=1-takediag(IIz$Q) 
+      Qinv = sub3D(star$Q,t=1); diag.Q=1-takediag(IIz$Q[,,1]) 
       Rinv = sub3D(star$R,t=1); diag.R1=1-takediag(IIz$R[,,1]); 
       IIz.R = sub3D(IIz$R,t=1) 
       x0.degen.update = FALSE
-      diag.V0=1-takediag(IIz$V0)
+      diag.V0=1-takediag(IIzV0)
       nQ0=sum(diag.Q==0)
       if(any(diag.Q==0)) x0.degen.update=!is.fixed(d.x0[diag.Q==0,,drop=FALSE])       
       numer=denom=0
       if(kf.x0=="x00") hatxt0=kf$x0T else hatxt0=kf$xtT[,1,drop=FALSE]
       if(any(diag.V0==1)){ #meaning some V0 positive
-        denom=t(d.x0)%*%star$V0[,,1]%*%d.x0
-        numer=t(d.x0)%*%(hatxt0-f.x0)
+        denom = crossprod( d.x0, star$V0[,,1]%*%d.x0) 
+        numer = crossprod( d.x0, hatxt0-f.x0) 
       }
 
       if(any(diag.V0==0)){
@@ -376,27 +407,27 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
           IId=makediag(1-diag.Q) #only can be w free if Q==0
           if(any(diag.Q==0)&any(diag.Q!=0)) #which did not pick up a zero from B
             IId[diag.Q==0,diag.Q==0][1 + 0:(nQ0 - 1)*(nQ0 + 1)]=apply(Mt[diag.Q==0,diag.Q!=0,drop=FALSE]==0,1,all)
-          Delta7 = kf$xtT[,1,drop=FALSE]-B%*%((IIm-IIz$V0)%*%hatxt0 + IIz$V0%*%f.x0)-U
-          Delta8 = B%*%IIz$V0%*%d.x0 #since IId.tm and Bstar.tm are IIm
-          numer = numer+t(Delta8)%*%Qinv%*%Delta7
-          denom = denom+t(Delta8)%*%Qinv%*%Delta8
+          Delta7 = kf$xtT[,1,drop=FALSE]-B%*%(IImIIzV0%*%hatxt0 + IIzV0%*%f.x0)-U
+          Delta8 = B%*%IIzV0%*%d.x0 #since IId.tm and Bstar.tm are IIm
+          numer = numer+crossprod(Delta8, Qinv%*%Delta7)
+          denom = denom+crossprod(Delta8, Qinv%*%Delta8)
         }else{  #x10
           Bstar=IIm; Ustar=0*U
           IId.tm=0; IId=IIm
           Mt=IIm
         }
         if(any(IId==1)){ #again t=1
-          Delta5=Ey$ytT[,1,drop=FALSE]-Z%*%(IIm-IId)%*%kf$xtT[,1,drop=FALSE]-Z%*%IId%*%(Bstar%*%((IIm-IIz$V0)%*%hatxt0 + IIz$V0%*%f.x0)+Ustar)-A
-          Delta6=Z%*%IId%*%Bstar%*%IIz$V0%*%d.x0          
+          Delta5=Ey$ytT[,1,drop=FALSE]-Z%*%((IIm-IId)%*%kf$xtT[,1,drop=FALSE])-Z%*%IId%*%(Bstar%*%(IImIIzV0%*%hatxt0 + IIzV0%*%f.x0)+Ustar)-A
+          Delta6=Z%*%IId%*%Bstar%*%(IIzV0%*%d.x0)         
           if(any(diag.R1==0)){
-             if(any(t(Delta6)%*%IIz.R%*%Delta6 !=0)){
+             if(any(crossprod(Delta6,IIz.R)%*%Delta6 !=0)){
                stop.msg = paste("Stopped at iter=",iter," in MARSSkem at x0 update.\n There are 0s on R diagonal. x0 assoc with these must be fixed (not estimated).\n", sep="")
                stopped.with.errors=TRUE
                break
              }
           }
-          numer = numer + t(Delta6)%*%Rinv%*%Delta5
-          denom = denom + t(Delta6)%*%Rinv%*%Delta6
+          numer = numer + crossprod(Delta6, Rinv%*%Delta5) 
+          denom = denom + crossprod(Delta6, Rinv%*%Delta6) 
         }
         #t>1 will break out as soon as no IId=1
           for(t in 2:TT){ #start at 2 if x00; at 3 if x10
@@ -419,24 +450,24 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
                 IId[diag.Q==0,diag.Q==0][1 + 0:(nQ0 - 1)*(nQ0 + 1)]=apply(Mt[diag.Q==0,diag.Q!=0,drop=FALSE]==0,1,all)
             }
             if(any(IId==1)){
-              Delta5=Ey$ytT[,t,drop=FALSE]-Z%*%(IIm-IId)%*%kf$xtT[,t,drop=FALSE]-Z%*%IId%*%(Bstar%*%((IIm-IIz$V0)%*%hatxt0 + IIz$V0%*%f.x0)+Ustar)-A
-              Delta6=Z%*%IId%*%Bstar%*%IIz$V0%*%d.x0
+              Delta5=Ey$ytT[,t,drop=FALSE]-Z%*%((IIm-IId)%*%kf$xtT[,t,drop=FALSE])-Z%*%IId%*%(Bstar%*%(IImIIzV0%*%hatxt0 + IIzV0%*%f.x0)+Ustar)-A
+              Delta6=Z%*%IId%*%Bstar%*%(IIzV0%*%d.x0)
               #Deal with Delta6=0 and Rinv=Inf, so 0*Inf
               if(any(diag.R1==0)){
-                if(any(t(Delta6)%*%IIz.R%*%Delta6 !=0)){
+                if(any(crossprod(Delta6, IIz.R)%*%Delta6 !=0)){
                   stop.msg = paste("Stopped at iter=",iter," in MARSSkem at x0 update.\n There are 0s on R diagonal. x0 assoc with these must be fixed (not estimated).\n", sep="")
                   stopped.with.errors=TRUE
                   break
                 }
               }
-              numer = numer + t(Delta6)%*%Rinv%*%Delta5
-              denom = denom + t(Delta6)%*%Rinv%*%Delta6
+              numer = numer + crossprod(Delta6, Rinv%*%Delta5)
+              denom = denom + crossprod(Delta6, Rinv%*%Delta6)
             }
             if(any(IId.tm==1)){
-              Delta7 = kf$xtT[,t,drop=FALSE]-B%*%(IIm-IId.tm)%*%kf$xtT[,t-1,drop=FALSE]-B%*%IId.tm%*%(Bstar.tm%*%((IIm-IIz$V0)%*%hatxt0 + IIz$V0%*%f.x0)+Ustar.tm)-U
-              Delta8 = B%*%IId.tm%*%Bstar.tm%*%IIz$V0%*%d.x0
-              numer = numer + t(Delta8)%*%Qinv%*%Delta7
-              denom = denom + t(Delta8)%*%Qinv%*%Delta8
+              Delta7 = kf$xtT[,t,drop=FALSE]-B%*%(IIm-IId.tm)%*%kf$xtT[,t-1,drop=FALSE]-B%*%IId.tm%*%(Bstar.tm%*%(IImIIzV0%*%hatxt0 + IIzV0%*%f.x0)+Ustar.tm)-U
+              Delta8 = B%*%IId.tm%*%Bstar.tm%*%(IIzV0%*%d.x0)
+              numer = numer + crossprod(Delta8, Qinv%*%Delta7) 
+              denom = denom + crossprod(Delta8, Qinv%*%Delta8) 
             }
           } #for t
       } #any diag.LAM=0
@@ -451,7 +482,7 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
       par1$x0=parmat(MLEobj.iter,"x0",t=1)$x0
 
       #~~~~~~~~Error checking  
-      if( control$safe &&  !is.fixed(d$x0) ){
+      if( control$safe &&  !fixed[["x0"]] ){
         new.kf=rerun.kf("x0", MLEobj.iter, iter)
         if(!new.kf$ok){
           stopped.with.errors=TRUE
@@ -471,9 +502,9 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
     ################
     # Get new V0 subject to its constraints
     ################################################################
-    if( !is.fixed(d$V0) ){  # some element needs estimating (obviously V0!=0)
+    if( !fixed[["V0"]] ){  # some element needs estimating (obviously V0!=0)
       dV0=sub3D(d$V0,t=1)
-      V0.update = chol2inv(chol(t(dV0)%*%dV0))%*%t(dV0)%*%vec(kf$V0T)
+      V0.update = chol2inv(chol(crossprod(dV0)))%*%crossprod(dV0, vec(kf$V0T))
       MLEobj.iter$par$V0 = V0.update
       if(!is.matrix(MLEobj.iter$par$V0) ) MLEobj.iter$par$V0=matrix(MLEobj.iter$par$V0,dim(d$V0)[2],1)
       par1$V0=parmat(MLEobj.iter,"V0",t=1)$V0
@@ -507,23 +538,28 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
     ################
     # Get new A subject to its constraints (update of R will use this)
     ##############################################################
-    if( !is.fixed(d$A) ){ #if there is anything to update
+    if( !fixed[["A"]] ){ #if there is anything to update
       #note if Z and f.a are constant then we can write this as numer = (Ey$ytT - Z %*% kf$xtT)%*%matrix(1,dim(kf$xtT)[2],1)-TT*f$A
       numer=denom=0
       Z=par1$Z #reset
+      starR=star[["R"]][,,1]
       for(i in 1:TT){
-        if(time.varying$Z & i>1) Z = parmat(MLEobj.iter,"Z",t=i)$Z
-        dA=sub3D(d$A,t=min(i,dim(d$A)[3]))
-        fA=sub3D(f$A,t=min(i,dim(f$A)[3]))
-        starR=star$R[,,min(i,dim(star$R)[3])]
-        numer = numer + t(dA)%*%starR%*%(Ey$ytT[,i,drop=FALSE]-Z%*%kf$xtT[,i,drop=FALSE]-fA)
-        denom = denom + t(dA)%*%starR%*%dA
+        if(time.varying[["Z"]] & i>1) Z = parmat(MLEobj.iter,"Z",t=i)$Z
+        if(time.varying[["A"]] | i==1){
+          dA=sub3D(d[["A"]],t=i)
+          fA=sub3D(f$A,t=i)
+        }
+        if(time.varying[["R"]]) starR=star[["R"]][,,i]
+        numer = numer + crossprod(dA, starR%*%(Ey[["ytT"]][,i,drop=FALSE]-Z%*%kf[["xtT"]][,i,drop=FALSE]-fA))
+        denom = denom + crossprod(dA, starR%*%dA)
       }
       if(length(denom)==1){ denom = try(1/denom) }else{ denom=try(chol2inv(chol( denom ))) }
       if(inherits(denom, "try-error")){
         stop.msg = paste("Stopped at iter=",iter," in MARSSkem at A update. denom is not invertible. \n If R diagonals equal to 0,\n then A elements corresponding to R==0 cannot be estimated.\n", sep="")
         stopped.with.errors=TRUE;  break }
       MLEobj.iter$par$A = denom%*%numer
+      
+      #not sure why denom%*%numer would ever not be a matrix
       if(!is.matrix(MLEobj.iter$par$A) ) MLEobj.iter$par$A=matrix(MLEobj.iter$par$A,dim(d$A)[2],1)
       par1$A = parmat(MLEobj.iter,"A",t=1)$A
 
@@ -548,18 +584,18 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
     ################
     # Get new U subject to its constraints (update of Q and B will use this)
     ########################################################################
-    if( !is.fixed(d$U) ){ #if there is anything to update
+    if( !fixed[["U"]] ){ #if there is anything to update
       numer = matrix(0,m,1); denom = matrix(0,m,m) #this is the start if kf.x0="x10"
       fU=sub3D(f$U,t=1); dU=sub3D(d$U,t=1)
       B=par1$B; Z=par1$Z; A=par1$A   #reset
       Qinv = star$Q[,,1]; Rinv = star$R[,,1]
-      U.degen.update = FALSE
-      diag.Q=1-takediag(IIz$Q); diag.V0=1-takediag(IIz$V0)
+      #U.degen.update = FALSE #CUT?
+      diag.Q=1-takediag(IIz$Q[,,1]); diag.V0=1-takediag(IIzV0)
       nQ0=sum(diag.Q==0)
-      if(any(diag.Q==0)) U.degen.update=!all(d$U[diag.Q==0,,]==0)       
+      #if(any(diag.Q==0)) U.degen.update=!all(d$U[diag.Q==0,,]==0)    #CUT?   
       numer=denom=0
       if(kf.x0=="x00") hatxt0=kf$x0T else hatxt0=kf$xtT[,1,drop=FALSE]
-      E.x0 = (IIm-IIz$V0)%*%hatxt0+IIz$V0%*%par1$x0
+      E.x0 = IImIIzV0%*%hatxt0+IIzV0%*%par1$x0
       AdjM=B; AdjM[AdjM!=0]=1
       if(kf.x0=="x00"){
         #set up values for t=1
@@ -574,18 +610,18 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
         #x_1-B(I-Id)xtm-B Id (B* E.x0 + f*)-fU; f*=0, B*=I; xtm=E.x0 so reduces to the following
         Delta3 = kf$xtT[,1,drop=FALSE]-B%*%E.x0-fU
         Delta4 = dU #since IId.tm and Bstar.tm are IIm
-        numer = numer+t(Delta4)%*%Qinv%*%Delta3
-        denom = denom+t(Delta4)%*%Qinv%*%Delta4
+        numer = numer + crossprod(Delta4, Qinv%*%Delta3) 
+        denom = denom + crossprod(Delta4, Qinv%*%Delta4) 
       }else{  #x10
         Bstar=IIm; fstar=0*fU; Dstar=0*dU
         IId.tm=0*IIm; IId=IIm
         Mt=IIm
       }
       if(any(IId==1)){ #again t=1
-        Delta1=Ey$ytT[,1,drop=FALSE]-Z%*%(IIm-IId)%*%kf$xtT[,1,drop=FALSE]-Z%*%IId%*%(Bstar%*%E.x0+fstar)-A
+        Delta1=Ey$ytT[,1,drop=FALSE]-Z%*%((IIm-IId)%*%kf$xtT[,1,drop=FALSE])-Z%*%(IId%*%(Bstar%*%E.x0+fstar))-A
         Delta2=Z%*%IId%*%Dstar
-        numer = numer + t(Delta2)%*%Rinv%*%Delta1
-        denom = denom + t(Delta2)%*%Rinv%*%Delta2
+        numer = numer + crossprod(Delta2, Rinv%*%Delta1) 
+        denom = denom + crossprod(Delta2, Rinv%*%Delta2) 
       }
           for(t in 2:TT){ 
             if(time.varying$U){ fU=sub3D(f$U,t=t); dU=sub3D(d$U,t=t) }
@@ -609,15 +645,15 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
                 }
             }
             if(any(IId==1)){
-              Delta1=Ey$ytT[,t,drop=FALSE]-Z%*%(IIm-IId)%*%kf$xtT[,t,drop=FALSE]-Z%*%IId%*%(Bstar%*%E.x0+fstar)-A
+              Delta1=Ey$ytT[,t,drop=FALSE]-Z%*%((IIm-IId)%*%kf$xtT[,t,drop=FALSE])-Z%*%(IId%*%(Bstar%*%E.x0+fstar))-A
               Delta2=Z%*%IId%*%Dstar
-              numer = numer + t(Delta2)%*%Rinv%*%Delta1
-              denom = denom + t(Delta2)%*%Rinv%*%Delta2
+              numer = numer + crossprod(Delta2, Rinv%*%Delta1) 
+              denom = denom + crossprod(Delta2, Rinv%*%Delta2) 
             }
-              Delta3 = kf$xtT[,t,drop=FALSE]-B%*%(IIm-IId.tm)%*%kf$xtT[,t-1,drop=FALSE]-B%*%IId.tm%*%(Bstar.tm%*%E.x0+fstar.tm)-fU
+              Delta3 = kf$xtT[,t,drop=FALSE]-B%*%((IIm-IId.tm)%*%kf$xtT[,t-1,drop=FALSE])-B%*%(IId.tm%*%(Bstar.tm%*%E.x0+fstar.tm))-fU
               Delta4 = dU + B%*%IId.tm%*%Dstar.tm
-              numer = numer + t(Delta4)%*%Qinv%*%Delta3
-              denom = denom + t(Delta4)%*%Qinv%*%Delta4
+              numer = numer + crossprod(Delta4, Qinv%*%Delta3) 
+              denom = denom + crossprod(Delta4, Qinv%*%Delta4) 
           } #for i
       if(length(denom)==1){ denom = 1/denom }else{ denom=try(chol2inv(chol( denom ) ),silent=TRUE) }
       if(inherits(denom, "try-error") | (length(denom)==1 && denom==0)){
@@ -630,7 +666,7 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
     par1$U = parmat(MLEobj.iter,"U",t=1)$U  
 
     #~~~~~~~~Error checking  
-    if( control$safe &&  !is.fixed(d$U) ){
+    if( control$safe &&  !fixed[["U"]] ){
       new.kf=rerun.kf("U", MLEobj.iter, iter)
       if(!new.kf$ok){
         stopped.with.errors=TRUE
@@ -650,37 +686,40 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
     ################
     # Get new B subject to its constraints
     ################################################################
-    if( !is.fixed(d$B) ) {
-        t.kf.xtT = t(kf$xtT) #move t() out of for loop
-        U=par1$U    #reset
-        hatxtm =  (IIm-IIz$V0)%*%kf$x0T + IIz$V0%*%par1$x0; t.hatxtm = t(kf$x0T)
-        hatVtm = (IIm-IIz$V0)%*%kf$V0T%*%(IIm-IIz$V0) + IIz$V0%*%par1$V0%*%IIz$V0
+    if( !fixed[["B"]] ) {
+        #t.kf.xtT = t(kf$xtT) #move t() out of for loop
+        #need these for t=1 whether kf.x0=x00 or not
+		    U=par1$U    #reset
+        starQ=sub3D(star$Q,t=1)
+        dB=sub3D(d$B,t=1); fB=sub3D(f$B,t=1)
         if(kf.x0=="x00"){  #prior is defined as being E[x(t=0)|y(t=0)]; xtt[0]=x0; Vtt[0]=V0
+          hatxtm =  IImIIzV0%*%kf$x0T + IIzV0%*%par1$x0
+          hatVtm = IImIIzV0%*%kf$V0T%*%IImIIzV0 + IIzV0%*%par1$V0%*%IIzV0
           hatxt = kf$xtT[,1,drop=FALSE]
-          Ptm = hatVtm + hatxtm%*%t.hatxtm
-          Pttm = kf$Vtt1T[,,1] + hatxt%*%t.hatxtm
-          starQ=sub3D(star$Q,t=1)
+          Ptm = hatVtm + tcrossprod(hatxtm,kf$x0T) #note def of t.hatxtm = kf$x0T not t(hatxtm)
+          Pttm = kf$Vtt1T[,,1] + tcrossprod(hatxt,kf$x0T) #note def of t.hatstm for t=0
           kronPtmQ = kronecker(Ptm,starQ)
-          dB=sub3D(d$B,t=1); fB=sub3D(f$B,t=1)
-          denom = t(dB)%*%kronPtmQ%*%dB
-          numer = t(dB)%*%(vec(starQ%*%(Pttm - U%*%t.hatxtm)) - kronPtmQ%*%fB)
+          denom = crossprod(dB, kronPtmQ%*%dB)
+          numer = crossprod(dB, (vec(starQ%*%(Pttm - tcrossprod(U,kf$x0T))) - kronPtmQ%*%fB))
         }else{ #prior is defined as being E[x(t=1)|y(t=0)]; xtt1[1]=x0; Vtt1[1]=V0
           denom = numer = 0 #see Ghahramani and Hinton treatment.  Summation starts at t=2
         }        
 
         for (i in 2:TT) { 
           hatxtm = kf$xtT[,i-1,drop=FALSE]
-          t.hatxtm = t.kf.xtT[i-1, ,drop=FALSE]
           hatVtm = kf$VtT[,,i-1] 
           hatxt = kf$xtT[,i,drop=FALSE]
-          Ptm = hatVtm + hatxtm%*%t.hatxtm
-          Pttm = kf$Vtt1T[,,i] + hatxt%*%t.hatxtm
-          starQ=sub3D(star$Q,t=min(i,dim(star$Q)[3]))
+          Ptm = hatVtm + tcrossprod(hatxtm) 
+          Pttm = kf$Vtt1T[,,i] + tcrossprod(hatxt,hatxtm) 
+          if(time.varying$Q) starQ=sub3D(star$Q,t=i)
           kronPtmQ = kronecker(Ptm,starQ)
-          dB=sub3D(d$B,t=min(i,dim(d$B)[3])); fB=sub3D(f$B,t=min(i,dim(f$B)[3]))
+          if(time.varying$B){
+            dB=sub3D(d$B,t=i)
+            fB=sub3D(f$B,t=i)
+          }
           if(time.varying$U) U = parmat(MLEobj.iter,"U",t=i)$U
-          denom = denom + t(dB)%*%kronPtmQ%*%dB
-          numer = numer + t(dB)%*%(vec(starQ%*%(Pttm - U%*%t.hatxtm)) - kronPtmQ%*%fB)
+          denom = denom + crossprod(dB, kronPtmQ%*%dB)
+          numer = numer + crossprod(dB, vec(starQ%*%(Pttm - tcrossprod(U, hatxtm) )) - kronPtmQ%*%fB )
         } #for i
         if(length(denom)==1){ denom = try(1/denom) }else{ denom=try(chol2inv(chol( denom ) )) }
         if(inherits(denom, "try-error")){
@@ -689,6 +728,7 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
         MLEobj.iter$par$B = denom%*%numer
         if( !is.matrix(MLEobj.iter$par$B) ) MLEobj.iter$par$B=matrix(MLEobj.iter$par$B,dim(d$B)[2],1)
         par1$B = parmat(MLEobj.iter,"B",t=1)$B
+        
       #~~~~~~~~Error checking      
       if( control$safe ){
         new.kf=rerun.kf("B", MLEobj.iter, iter)
@@ -719,27 +759,31 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
     ################
     # Get new Z subject to its constraints
     ################################################################
-    if( !is.fixed(d$Z) ){
-      hatyxt = Ey$yxtT[,,1]
-      t.kf.xtT = t(kf$xtT) #move t() out of for loop
+    if( !fixed[["Z"]] ){
       numer = denom = 0
       A = par1$A #reset
+      starR=star$R[,,1]
       for (i in 1:TT) {
-        Pt = kf$VtT[,,i] + kf$xtT[,i,drop=FALSE]%*%t(kf$xtT[,i,drop=FALSE])
+        hatxt = kf$xtT[,i,drop=FALSE]
+        Pt = kf$VtT[,,i] + tcrossprod(hatxt) 
         hatyxt = Ey$yxtT[,,i]
         if(time.varying$A & i>1) A=parmat(MLEobj.iter,"A",t=i)$A
-        starR=star$R[,,min(i,dim(star$R)[3])]
-        fZ=sub3D(f$Z,t=min(i,dim(f$Z)[3]))
-        dZ=sub3D(d$Z,t=min(i,dim(d$Z)[3]))
+        if(time.varying$R) starR=star$R[,,i]
+        if(time.varying$Z | i==1){
+          fZ=sub3D(f$Z,t=i)
+          dZ=sub3D(d$Z,t=i)
+        }
         PkronR = kronecker( Pt, starR )
-        numer = numer + t(dZ)%*%(vec(starR%*%(hatyxt-A%*%t.kf.xtT[i,,drop=FALSE])) - PkronR%*%fZ)
-        denom = denom + t(dZ)%*%PkronR%*%dZ
+        numer = numer + crossprod(dZ, vec(starR%*%(hatyxt-tcrossprod(A, hatxt))) - PkronR%*%fZ)
+        denom = denom + crossprod(dZ, PkronR%*%dZ)
       } #for i
       if(length(denom)==1){ denom = try(1/denom) }else{ denom=try(chol2inv(chol( denom ) )) }
       if(inherits(denom, "try-error")){ 
         stop.msg = paste("Stopped at iter=",iter," in MARSSkem in Z update.  denom is not invertible.\n", sep="")
         stopped.with.errors=TRUE;  break }
       MLEobj.iter$par$Z = denom%*%numer
+      
+      #not sure this is needed; is guarding against R returning a vector
       if( !is.matrix(MLEobj.iter$par$Z) ) MLEobj.iter$par$Z=matrix(MLEobj.iter$par$Z,dim(d$Z)[2],1)
       par1$Z = parmat(MLEobj.iter,"Z",t=1)$Z            
 
@@ -763,15 +807,12 @@ kf.x0 = ifelse(modelObj$tinitx==1,"x10","x00")  #the initial conditions treatmen
         Ck = kappa(denom)
         if(Ck>condition.limit) msg.kem=c(msg.kem,paste("iter=",iter," Unstable Z estimate because P_{t,t} is ill-conditioned. C =",round(Ck), sep=""))
       }
-    }#if !is.fixed Z    
+    }#if !is.fixed Z 
   }  # end inner iter loop
-
+  if(control$silent==2) cat("\n")
+  
   #prepare the MLEobj to return which has the elements set here
   MLEobj.return = MLEobj
-#not sure why this was here 3-18-13
-#   MLEobj.return$control=MLEobj$control
-#   MLEobj.return$start=MLEobj$start
-#   MLEobj.return$model=MLEobj$model
   MLEobj.return$iter.record = iter.record
   MLEobj.return$numIter = iter
   
@@ -970,23 +1011,25 @@ rerun.kf = function(elem, MLEobj, iter){    #Start~~~~~~~~Error checking
 }
 
 degen.test = function(elem, MLEobj, iter){
-    if( is.fixed(MLEobj$marss$free[[elem]]) ) return(list(MLEobj=MLEobj, msg=NULL))
-    if( MLEobj$constr.type[[elem]]=="time-varying" ) return(list(MLEobj=MLEobj, msg=NULL))
-    if( !MLEobj$control$allow.degen ) return(list(MLEobj=MLEobj, msg=NULL))
-    if( iter<=MLEobj$control$min.degen.iter ) return(list(MLEobj=MLEobj, msg=NULL))
+    if( is.fixed(MLEobj$marss$free[[elem]]) ) return(list(MLEobj=MLEobj, msg=NULL, set.degen=FALSE))
+    if( MLEobj$constr.type[[elem]]=="time-varying" ) return(list(MLEobj=MLEobj, msg=NULL, set.degen=FALSE))
+    if( !MLEobj$control$allow.degen ) return(list(MLEobj=MLEobj, msg=NULL, set.degen=FALSE))
+    if( iter<=MLEobj$control$min.degen.iter ) return(list(MLEobj=MLEobj, msg=NULL, set.degen=FALSE))
     if( !is.design(MLEobj$marss$free[[elem]], zero.rows.ok=TRUE) )
-       return(list(MLEobj=MLEobj, msg=NULL))  #strict, i.e. only 0 and 1
+       return(list(MLEobj=MLEobj, msg=NULL, set.degen=FALSE))  #strict, i.e. only 0 and 1
     #not fixed, not time-varying, allow.degen set, iter>min iter and free is a design matrix
     #So can proceed
     #if here then not time-varying
     degen.par= abs(MLEobj$par[[elem]]) < MLEobj$control$degen.lim
     msg.degen=NULL
+    set.degen=FALSE
     if(any(degen.par)){
-      degen.ok=FALSE
       for(i in which(degen.par)){
         MLEobj.tmp=MLEobj
+        #set corresponding par to 0 and corresponding col of free to 0
         MLEobj.tmp$par[[elem]][i,1]=0
-        MLEobj.tmp$marss$free[[elem]][,i,1]=0 #req not time-varying
+        MLEobj.tmp$marss$free[[elem]][,i,1]=0 #req not time-varying so set t=1
+        #need to check that setting a R or Q diag to 0 doesn't lead to a improper model
         kemcheck=MARSSkemcheck(MLEobj.tmp)
 
         if(kemcheck$ok){
@@ -1007,10 +1050,12 @@ degen.test = function(elem, MLEobj, iter){
             MLEobj$kf$x0T = new.kf$x0T-xbar
           }
           MLEobj$logLik=new.kf$logLik
+          set.degen=TRUE
         } 
       }else{ msg.degen=c( msg.degen, paste("iter=",iter," Setting element of ",elem," to 0, blocked due to the following MARSSkemcheck errors.\n  MARSSkemcheck error: ", kemcheck$msg,sep="")) }
       } #for degen.par; do one by one
     } #update MLEobj
-  return(list(MLEobj=MLEobj, msg=msg.degen))
+    #set.degen is a flag to say if any 0 elements were set
+  return(list(MLEobj=MLEobj, msg=msg.degen, set.degen=set.degen))
 }
 

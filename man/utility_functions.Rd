@@ -9,6 +9,7 @@
 \alias{is.blockunconst}
 \alias{is.design}
 \alias{is.fixed}
+\alias{is.zero}
 \alias{ is.solvable }
 \alias{vec}
 \alias{unvec}
@@ -41,6 +42,7 @@ takediag(x)
 is.design(x, strict=TRUE, dim=NULL, zero.rows.ok=FALSE, zero.cols.ok=FALSE)
 is.fixed(x, by.row=FALSE)
 is.identity(x, dim=NULL)
+is.zero(x)
 vec(x)
 unvec(x, dim=NULL)
 is.wholenumber(x, tol = .Machine$double.eps^0.5)
@@ -50,7 +52,7 @@ mystrsplit(x)
 convert.model.mat(param.matrix)
 fixed.free.to.formula(fixed,free,dim)
 matrix.power(x, n)
-sub3D(x,dim1,dim2,t=1)
+sub3D(x,t=1)
 pinv(x)
 pcholinv(x)
 is.solvable(A,y=NULL)
@@ -70,7 +72,6 @@ parmat(MLEobj, elem = c("B", "U", "Q", "Z", "A", "R", "x0", "V0"),
   \item{t}{ The time index or third dimension of a 3D matrix }
   \item{nu, V}{ Parameters of a Wishart distribution. }
   \item{param.matrix}{ The list matrix version of a time-invariant MARSS model. }
-  \item{dim1, dim2}{ The first and second dimensions of a 3D matrix. }
   \item{n}{ An interger for the power function. }
   \item{ zero.rows.ok, zero.cols.ok }{ Means the design matrix can have all zero rows or columns. }
   \item{ strict }{ Specifies whether the design matrix must be only 0s and 1s. }
@@ -81,13 +82,13 @@ parmat(MLEobj, elem = c("B", "U", "Q", "Z", "A", "R", "x0", "V0"),
 }
 \details{
 \itemize{
-  \item \code{is...} tests for various matrix properties.
+  \item \code{is...} tests for various matrix properties.  isDiagonal() from the Matrix package is used to test numeric matrices for diagonality.  is.diagonal() is only used to determine if list matrices (that combine numeric and character values) are diagonal. is.zero tests for near zeroness and give TRUE for is.zero((.5-.3)-(.3-.1)) unlike ==0.
   \item \code{vec(x)} creates a column vector from a matrix per the standard vec math function.
   \item \code{unvec(c,dim)} takes the vector c and creates a matrix with the specified dimensions.
   \item \code{Imat(nrow)} returns the identity matrix of dimension nrow.
   \item \code{ fixed.free.to.formula } takes a fixed and free pair and constructs a list matrix (or array if time-varying) with formulas in each matrix element.
   \item \code{ convert.model.mat } takes a list matrix with formulas in each element and converts to a fixed/free pair.
-  \item \code{ sub3D } returns a 2D matrix after subsetting a 3D matrix on the third (time) dimension.
+  \item \code{ sub3D } returns a 2D matrix after subsetting a 3D matrix on the third (time) dimension. Ensures that R always returns a matrix.
   \item \code{ mystrsplit } is a customized string splitter used by \code{convert.model.mat}.
   \item \code{ rwishart } generates random draws from a wishart distribution.
   \item \code{ matrix.power } is a faster way to get the n-th power of a matrix.

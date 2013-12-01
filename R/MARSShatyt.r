@@ -6,10 +6,11 @@ MARSShatyt = function( MLEobj ) {
   modelObj = MLEobj[["marss"]]
   if(!is.null(MLEobj[["kf"]])){ kfList = MLEobj$kf
   }else{ kfList=MARSSkf(MLEobj) }
-  n=dim(modelObj$data)[1]; TT=dim(modelObj$data)[2]; m=dim(modelObj$fixed$x0)[1]
+  model.dims=attr(modelObj,"model.dims")
+  n=model.dims$data[1]; TT=model.dims$data[2]; m=model.dims$x[1]
   
   #create the YM matrix
-  YM=matrix(as.numeric(!is.na(modelObj$data)),n,TT)
+  YM=matrix(as.numeric(!is.na(modelObj[["data"]])),n,TT)
   #Make sure the missing vals in y are zeroed out if there are any
   y=modelObj$data
   y[YM==0]=0
@@ -32,11 +33,13 @@ MARSShatyt = function( MLEobj ) {
   #Note diff in param names from S&S;B=Phi, Z=A, A not in S&S
   time.varying = c(); pari=list()
   for(elem in c("R","Z","A")){  #only params needed for this function
-    if( (dim(modelObj$free[[elem]])[3] == 1) & (dim(modelObj$fixed[[elem]])[3] == 1)){  #not time-varying
+    if( model.dims[[elem]][3] == 1 ){  #not time-varying
       pari[[elem]]=parmat(MLEobj, elem, t=1)[[elem]]
       if(elem=="R"){ 
         if(length(pari$R)==1) diag.R=unname(pari$R) else diag.R = takediag(unname(pari$R))
-        is.R.diagonal = is.diagonal(pari$R) }
+        #isDiagonal is rather expensive; this test is faster
+        is.R.diagonal = all(pari$R[!diag(nrow(pari$R))] == 0) # = isDiagonal(pari$R)
+      }
     }else{ time.varying = c(time.varying, elem) } #which elements are time varying
   }#end for loop over elem
   
@@ -53,14 +56,20 @@ MARSShatyt = function( MLEobj ) {
       pari[[elem]]=parmat(MLEobj, elem, t=t)[[elem]] 
       if(elem=="R"){ 
         if(length(pari$R)==1) diag.R=unname(pari$R) else diag.R = takediag(unname(pari$R))
-        is.R.diagonal = is.diagonal(pari$R) }
+        #isDiagonal is rather expensive; this test is faster
+        is.R.diagonal = all(pari$R[!diag(nrow(pari$R))] == 0)
+        #is.R.diagonal = isDiagonal(pari$R)
+      }
     }
     if(all(YM[,t]==1)){  #none missing
       hatyt[,t]=y[,t,drop=FALSE]
       hatytt1[,t]=y[,t,drop=FALSE]
-      hatOt[,,t]=hatyt[,t,drop=FALSE]%*%matrix(hatyt[,t,drop=FALSE],1,n) #matrix() is faster than t()
-      hatyxt[,,t]=hatyt[,t,drop=FALSE]%*%matrix(hatxt[,t,drop=FALSE],1,m)
-      hatyxtt1[,,t]=hatyt[,t,drop=FALSE]%*%matrix(hatxt1[,t,drop=FALSE],1,m)
+      hatOt[,,t]=tcrossprod(hatyt[,t,drop=FALSE]) #matrix() is faster than t()
+#      hatOt[,,t]=hatyt[,t,drop=FALSE]%*%matrix(hatyt[,t,drop=FALSE],1,n) #matrix() is faster than t()
+      hatyxt[,,t]=tcrossprod(hatyt[,t,drop=FALSE], hatxt[,t,drop=FALSE])
+#      hatyxt[,,t]=hatyt[,t,drop=FALSE]%*%matrix(hatxt[,t,drop=FALSE],1,m)
+      hatyxtt1[,,t]=tcrossprod(hatyt[,t,drop=FALSE], hatxt1[,t,drop=FALSE])
+#      hatyxtt1[,,t]=hatyt[,t,drop=FALSE]%*%matrix(hatxt1[,t,drop=FALSE],1,m)
     }else{
       I.2 = I.r = I.n; 
       I.2[YM[,t]==1,]=0 #1 if YM=0 and 0 if YM=1
@@ -81,9 +90,12 @@ MARSShatyt = function( MLEobj ) {
       hatyt[,t]=y[,t,drop=FALSE] - Delta.r%*%(y[,t,drop=FALSE]-pari$Z%*%hatxt[,t,drop=FALSE]-pari$A)
       hatytt1[,t]=pari$Z%*%hatxtt1[,t,drop=FALSE]+pari$A
       t.DZ = matrix(Delta.r%*%pari$Z,m,n,byrow=TRUE)
-      hatOt[,,t]=I.2%*%(Delta.r%*%pari$R+Delta.r%*%pari$Z%*%hatVt[,,t]%*%t.DZ)%*%I.2 + hatyt[,t,drop=FALSE]%*%matrix(hatyt[,t,drop=FALSE],1,n)
-      hatyxt[,,t]=hatyt[,t,drop=FALSE]%*%matrix(hatxt[,t,drop=FALSE],1,m)+Delta.r%*%pari$Z%*%hatVt[,,t]
-      hatyxtt1[,,t]=hatyt[,t,drop=FALSE]%*%matrix(hatxt1[,t,drop=FALSE],1,m)+Delta.r%*%pari$Z%*%hatVtt1[,,t]
+      hatOt[,,t]=I.2%*%(Delta.r%*%pari$R+Delta.r%*%pari$Z%*%hatVt[,,t]%*%t.DZ)%*%I.2 + tcrossprod(hatyt[,t,drop=FALSE])
+#      hatOt[,,t]=I.2%*%(Delta.r%*%pari$R+Delta.r%*%pari$Z%*%hatVt[,,t]%*%t.DZ)%*%I.2 + hatyt[,t,drop=FALSE]%*%matrix(hatyt[,t,drop=FALSE],1,n)
+      hatyxt[,,t]=tcrossprod(hatyt[,t,drop=FALSE], hatxt[,t,drop=FALSE])+Delta.r%*%pari$Z%*%hatVt[,,t]
+#      hatyxt[,,t]=hatyt[,t,drop=FALSE]%*%matrix(hatxt[,t,drop=FALSE],1,m)+Delta.r%*%pari$Z%*%hatVt[,,t]
+      hatyxtt1[,,t]=tcrossprod(hatyt[,t,drop=FALSE],hatxt1[,t,drop=FALSE])+Delta.r%*%pari$Z%*%hatVtt1[,,t]
+#      hatyxtt1[,,t]=hatyt[,t,drop=FALSE]%*%matrix(hatxt1[,t,drop=FALSE],1,m)+Delta.r%*%pari$Z%*%hatVtt1[,,t]
     }
   } #for loop over time
   rtn.list=list(ytT = hatyt, OtT = hatOt, yxtT=hatyxt, yxt1T=hatyxtt1, ytt1 = hatytt1) 

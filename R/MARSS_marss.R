@@ -13,17 +13,17 @@
 # is.marssMODEL_marss
 
 ###################################################################################
-MARSS.marxss=function(MARSS.call){
+MARSS.marss=function(MARSS.call){
   #Part 1 Set up defaults and check that what the user passed in is allowed
   
   #Check that no args were passed into MARSS that are not allowed
-  marxss.allowed.in.MARSS.call=c("model")
-  allowed.in.call=c(marxss.allowed.in.MARSS.call,common.allowed.in.MARSS.call)
+  marss.allowed.in.MARSS.call=c("model")
+  allowed.in.call=c(marss.allowed.in.MARSS.call,common.allowed.in.MARSS.call)
   if(any(!(names(MARSS.call) %in% allowed.in.call))){
     bad.names=names(MARSS.call)[!(names(MARSS.call) %in% allowed.in.call)]
     msg=paste("Argument ", paste(bad.names, collapse=", "),"  not allowed MARSS call for form ", MARSS.call$form, ". See ?MARSS.marxss\n", sep="")
-    cat("\n","Errors were caught in MARSS.marxss \n", msg, sep="")
-    stop("Stopped in MARSS.marxss() due to problem(s) with model specification.\n", call.=FALSE)
+    cat("\n","Errors were caught in MARSS.marss \n", msg, sep="")
+    stop("Stopped in MARSS.marss() due to problem(s) with model specification.\n", call.=FALSE)
   }
   
   # 1 Check for form dependent user inputs for method and reset defaults for inits, MCbounds, and control if desired
@@ -36,31 +36,22 @@ MARSS.marxss=function(MARSS.call){
   #   so you need to make sure each name in model.defaults has a model.allowed value here 
   model.allowed = list(
     A=c("scaling", "unconstrained", "unequal", "equal", "zero"),
-    D=c("unconstrained", "equal", "unequal", "zero","diagonal and unequal","diagonal and equal","zero"),
     B=c("identity", "zero", "unconstrained", "unequal", "diagonal and unequal", "diagonal and equal", "equalvarcov"),
     Q=c("identity", "zero", "unconstrained", "diagonal and unequal", "diagonal and equal", "equalvarcov"),
     R=c("identity", "zero", "unconstrained", "diagonal and unequal", "diagonal and equal", "equalvarcov"),
     U=c("unconstrained", "equal", "unequal", "zero"),
-    C=c("unconstrained", "equal", "unequal", "zero","diagonal and unequal","diagonal and equal","zero"),
     x0=c("unconstrained", "equal", "unequal", "zero","diagonal and unequal","diagonal and equal"),
     V0=c("identity", "zero", "unconstrained", "diagonal and unequal", "diagonal and equal", "equalvarcov"),
     Z=c("identity","unconstrained", "diagonal and unequal", "diagonal and equal", "equalvarcov", "onestate"),
-    c=c("zero"),
-    d=c("zero"),
     tinitx=c(0,1),
     diffuse=c(TRUE,FALSE),
     factors = c("Z"),
-    matrices = c("A","B","Q","R","U","x0","Z","V0","D","C","d","c")
+    matrices = c("A","B","Q","R","U","x0","Z","V0")
   )
   
   #model.defaults is form dependent so you must specify it
-  model.defaults =list(Z="identity", A="scaling", R="diagonal and equal", B="identity", U="unconstrained", Q="diagonal and unequal", x0="unconstrained", V0="zero", D="zero", d=matrix(0,1,1), C="zero", c=matrix(0,1,1), tinitx=0, diffuse=FALSE)
-  
-  if(!is.null(MARSS.call[["model"]][["c"]]))
-    if(!identical(MARSS.call$model$c, "zero") & !all(MARSS.call$model$c==0)) model.defaults$C="unconstrained"
-  if(!is.null(MARSS.call[["model"]][["d"]]))
-    if(!identical(MARSS.call$model$d, "zero") & !all(MARSS.call$model$d==0)) model.defaults$D="unconstrained"
-  
+  model.defaults =list(Z="identity", A="scaling", R="diagonal and equal", B="identity", U="unconstrained", Q="diagonal and unequal", x0="unconstrained", V0="zero", tinitx=0, diffuse=FALSE)
+    
   #This checks that what user passed in model list can be interpreted and converted to form marss
   #if no errors, it updates the model list by filling in missing elements with the defaults
   MARSS.call$model=checkModelList( MARSS.call$model, model.defaults, model.allowed )
@@ -70,14 +61,25 @@ MARSS.marxss=function(MARSS.call){
   fixed = free = list()
   
   model = MARSS.call$model
-  model.elem = c("Z","A","R","B","U","Q","x0","V0","D","d","C","c") 
-  dat = MARSS.call$data
+  model.elem = c("Z","A","R","B","U","Q","x0","V0") 
+  dat = MARSS.call[["data"]]
   if(is.vector(dat)) dat=matrix(dat,1,length(dat))
   n = dim(dat)[1]; TT = dim(dat)[2]
   if(is.null(rownames(dat))){
     Y.names = paste(seq(1, n), sep="") #paste("Y",seq(1, n),sep="")
     rownames(dat)=Y.names
-  }else{ Y.names = rownames(dat) }
+  }else{ 
+    Y.names = rownames(dat)
+    if(any(duplicated(Y.names))){
+      for(i in Y.names[duplicated(Y.names)]){
+        loc = (Y.names==i)
+        nn = sum(loc)
+        Y.names[loc]=paste(i,"-",1:nn,sep="")
+        rownames(dat)[loc] = Y.names[loc]
+        MARSS.call[["data"]] = dat
+      }
+    }
+  }
   
   ## Set m based on Z specification IF Z was specified; errors will be reported later if m conflicts with other parameters
   m = NA
@@ -103,25 +105,11 @@ MARSS.marxss=function(MARSS.call){
   if(is.null(X.names) & is.matrix(model$Z))
     if(is.identity(model$Z)) X.names=Y.names
   if(is.null(X.names)) X.names = paste(seq(1, m),sep="")  #paste("X",seq(1, m),sep="") 
-  
-  ## Set c1 based on C specification if C specified with a particular shape
-  ## error checking later will complain if C and c (or D and d) conflict
-  if (is.array(model$C)) c1 = dim(model$C)[2] else c1 = 1
-  if (is.array(model$D)) d1 = dim(model$D)[2] else d1 = 1
-  
-  for(el in c("c","d")){
-    thedim=get(paste(el,"1",sep=""))
-    if(identical(model[[el]], "zero")){ model[[el]]=matrix(0,thedim,1) }
-    #if(!any(is.na(model[[el]])) & all(model[[el]]==0)) model[[toupper(el)]]="zero"
-    if(is.vector(model[[el]])) model[[el]]=matrix(model[[el]],1,length(model[[el]]))
-  }
-  #Now set c1 and d1 based on c and d, which should now be a matrix of some sort.  This ensures that c1 and d1 are set
-  #if c and C or d and D conflict, this will be picked up the error checking because dims of C or D and model.dims won't match
-  c1=dim(model$c)[1]; d1=dim(model$d)[1]
+    
   #3rd dim of params are set to 1 and will be reset to correct value at end
-  model.dims = list(data=c(n,TT),x=c(m,TT),y=c(n,TT),w=c(m,TT),v=c(n,TT),Z=c(n,m,1),U=c(m,1,1),A=c(n,1,1),B=c(m,m,1),Q=c(m,m,1),R=c(n,n,1),x0=c(m,1,1),V0=c(m,m,1),D=c(n,d1,1), d=c(d1,1,1), C=c(m,c1,1), c=c(c1,1,1))
+  model.dims = list(data=c(n,TT),x=c(m,TT),y=c(n,TT),w=c(m,TT),v=c(n,TT),Z=c(n,m,1),U=c(m,1,1),A=c(n,1,1),B=c(m,m,1),Q=c(m,m,1),R=c(n,n,1),x0=c(m,1,1),V0=c(m,m,1))
   
-  ## Error-checking section that is specific to marxss form
+  ## Error-checking section that is specific to marss form
   # Note most error checking happens in checkMARSSInputs, checkModelList, and is.marssMLE
   #If a model elements passed in as a factors, make sure it is the correct length otherwise construction of marssMODEL object will break
   problem = FALSE
@@ -149,20 +137,20 @@ MARSS.marxss=function(MARSS.call){
   
   #Check that if A is scaling, then Z spec must lead to a design matrix
   if(identical(model$A,"scaling")){
-    if((!is.array(model$Z) & !is.factor(model$Z))) #if it is a string
-      if(!(model$Z %in% c("onestate","identity"))){
-        problem=TRUE
-        msg = c(msg, " If A is scaling(the default), then Z must be a design matrix:(0,1) and rowsums=1.\n")
-      }
-    if(is.matrix(model$Z) && !is.design(model$Z, zero.cols.ok = TRUE)) { #if it is a matrix
-      problem=TRUE
-      msg = c(msg, " If A is scaling(the default), then Z must be a time-constant design matrix:(0,1) and rowsums=1.\n")
-    }
     if(is.array(model$Z) & length(dim(model$Z))==3)
       if(dim(model$Z)[3]!=1 && !is.design(model$Z, zero.cols.ok = TRUE)) { #if it is a matrix
         problem=TRUE
+        msg = c(msg, " If A is scaling(the default), then Z must be a time-constant design matrix:(0,1) and rowsums=1.\nYou can construct a scaling A matrix and pass that in.")
+      }
+    if((!is.array(model$Z) & !is.factor(model$Z))) #if it is a string
+      if(!(model$Z %in% c("onestate","identity"))){
+        problem=TRUE
         msg = c(msg, " If A is scaling(the default), then Z must be a time-constant design matrix:(0,1) and rowsums=1.\n")
       }
+    if(is.matrix(model$Z) && !is.design(model$Z, zero.cols.ok = TRUE)) { #if it is a matrix, won't be array due to first test
+      problem=TRUE
+      msg = c(msg, " If A is scaling(the default), then Z must be a time-constant design matrix:(0,1) and rowsums=1.\n")
+    }
   }  
   if(is.array(model$x0) & length(dim(model$x0))==3)
     if(dim(model$x0)[3]!=1){
@@ -174,58 +162,21 @@ MARSS.marxss=function(MARSS.call){
       problem=TRUE
       msg = c(msg, " V0 cannot be time-varying thus if V0 in model arg is 3D, the 3rd dim must equal 1.\n")
     } 
-  #if C is diagonal and equal or diagonal and unequal, then d1=m
-  if(identical(model$C,"diagonal and equal") | identical(model$C,"diagonal and unequal"))
-    if(c1!=m){
-      problem=TRUE
-      msg = c(msg, " If C is diagonal, it must be square and c must be m x 1.\n")
-    }
-  #if D is diagonal and equal or diagonal and unequal, then d1=n
-  if(identical(model$D,"diagonal and equal") | identical(model$D,"diagonal and unequal"))
-    if(d1!=n){
-      problem=TRUE
-      msg = c(msg, " If D is diagonal, it must be square and d must be n x 1.\n")
-    }
-  #if c and d can't have any NAs or Infs
-  for(el in c("c","d"))
-    if(any(is.na(model[[el]])) | !is.numeric(model[[el]]) | any(is.infinite(model[[el]]))){
-      problem=TRUE
-      msg = c(msg, paste(" ",el,"must be numeric and have no NAs, NaNs, or Infs.\n"))
-    }
-  #c and d must be a 2D matrix and 2nd dim must be 1 or TT
-  for(el in c("c","d")){
-    if( length(dim(model[[el]]))!=2 ){
-      problem=TRUE
-      msg = c(msg, paste(" ",el,"must be a 2D matrix.\n"))
-    }else{
-      if( !(dim(model[[el]])[2] == 1 | dim(model[[el]])[2] == TT) ){
-        problem=TRUE
-        msg = c(msg, paste(" ",el,"must be a 2D matrix with 2nd dim equal to 1 or T (length of data).\n"))
-      }
-    }
-  }
   
   #If there are problems
   if(problem)  {
-    cat("\n","Errors were caught in MARSS.marxss \n", msg, sep="")
-    stop("Stopped in MARSS.marxss() due to problem(s) with model specification.\n", call.=FALSE)
+    cat("\n","Errors were caught in MARSS.marss \n", msg, sep="")
+    stop("Stopped in MARSS.marss() due to problem(s) with model specification.\n", call.=FALSE)
   }
   #end of error section  
-  
-  #Change c and d to array so that it can be handled by the normal fixed/free constructions
-  for(el in c("c","d")){
-    row.names=rownames(model[[el]])
-    model[[el]]=array(model[[el]],dim=c(dim(model[[el]])[1],1,dim(model[[el]])[2]))
-    rownames(model[[el]])=row.names
-  }
-  
+    
   
   ##Translate the text shortcuts into a marssMODEL object 
   ## Translate the model structure names (shortcuts) into fixed and free
   ## fixed is a dim(1)*dim(2) X 1 vector of the fixed (intercepts) values
   ## free is a dim(1)*dim(2) X p vector of the free (betas) values for the p estimated elements
   
-  model.elem = c("Z","A","R","B","U","Q","x0","V0","D","C","d","c")
+  model.elem = c("Z","A","R","B","U","Q","x0","V0")
   if(which(model.elem=="Z")>which(model.elem=="A")) model.elem=rev(model.elem) #Z must go first
   
   tmp=list()
@@ -267,11 +218,6 @@ MARSS.marxss=function(MARSS.call){
         col.name=1:model.dims[[el]][2]
         if(el %in% c("U","x0")) row.name=X.names
         if(el == "A") row.name=Y.names
-        if(el %in% c("C","D")){
-          if(el=="C") row.name=X.names
-          if(el=="D") row.name=Y.names
-          if(!is.null(rownames(model[[tolower(el)]]))) col.name=rownames(model[[tolower(el)]])
-        }
         for(i in 1:model.dims[[el]][1]){
           for(j in 1:model.dims[[el]][2]){
             if(model.dims[[el]][2]>1) tmp[[el]][i,j]=paste("(",row.name[i],",",col.name[j],")",sep="") #paste(el,"(",row.name[i],",",col.name[j],")",sep="")
@@ -310,35 +256,26 @@ MARSS.marxss=function(MARSS.call){
     #set the last dim of the model.dims since it was at a temp value to start
     model.dims[[el]][3]=max(dim(free[[el]])[3],dim(fixed[[el]])[3])
   }
+    
   
-  #save the row names for the inputs by setting in fixed
-  for(el in c("c","d")){
-    if(is.null(rownames(tmp[[el]]))) rownames(tmp[[el]])=paste(el,seq(1,dim(tmp[[el]])[1]),sep="")
-    rownames(fixed[[el]])=rownames(tmp[[el]])
-  }
-  
-  
-  #Set the marssMODEL form marxss
-  #This is the f+Dp form for the MARXSS model used for user displays, printing and such
-  marxss_object = list(fixed=fixed, free=free, data=dat, tinitx=model$tinitx, diffuse=model$diffuse)
+  #Set the marssMODEL form marss
+  #This is the f+Dp form for the MARSS model used for user displays, printing and such
+  marss_object = list(fixed=fixed, free=free, data=dat, tinitx=model$tinitx, diffuse=model$diffuse)
   #set the attributes
-  class(marxss_object) = "marssMODEL"
-  attr(marxss_object, "obj.elements")=c("fixed","free","data","tinitx","diffuse")
-  attr(marxss_object, "form")="marxss"
-  attr(marxss_object, "model.dims")=model.dims
+  class(marss_object) = "marssMODEL"
+  attr(marss_object, "obj.elements")=c("fixed","free","data","tinitx","diffuse")
+  attr(marss_object, "form")="marss"
+  attr(marss_object, "model.dims")=model.dims
   #par.names are what needs to be in fixed/free pair
-  attr(marxss_object, "par.names")=c("Z","A","R","B","U","Q","x0","V0","D","C","d","c")
-  attr(marxss_object, "X.names")=X.names
-  attr(marxss_object, "Y.names")=Y.names
-  attr(marxss_object, "equation")="x_{t}=B_{t}*x_{t-1}+U_{t}+C_{t}*c_{t}+w_{t}; w_{t}~MVN(0,Q_{t})\ny_{t}=Z_{t}*x_{t}+A_{t}+D_{t}*d_{t}+v_{t}; v_{t}~MVN(0,R_{t})"
+  attr(marss_object, "par.names")=c("Z","A","R","B","U","Q","x0","V0")
+  attr(marss_object, "X.names")=X.names
+  attr(marss_object, "Y.names")=Y.names
+  attr(marss_object, "equation")="x_{t}=B_{t}*x_{t-1}+U_{t}+w_{t}; w_{t}~MVN(0,Q_{t})\ny_{t}=Z_{t}*x_{t}+A_{t}+v_{t}; v_{t}~MVN(0,R_{t})"
   
-  #Put the marxss model into model since it is needed to convert from marss to marxss
-  MARSS.call$model = marxss_object
-  
-  ## Create marssMODEL(form=marss) object added to call
-  #when called with a marssMODEL object (as here), marxss_to_marss returns a marssMODEL object
-  MARSS.call$marss=marxss_to_marss(marxss_object)
-  
+  #Put the marss model into model and marss
+  MARSS.call$model = marss_object
+  MARSS.call$marss=marss_object
+    
   ## Return MARSS call list with $marss and $model added
   MARSS.call
 }
@@ -347,7 +284,7 @@ MARSS.marxss=function(MARSS.call){
 print_marss = function(x){ return(x) } 
 
 #the par element of a marssMLE object is already in form=marss.  No change needed
-coef_marxss = function(x){ return(x) } 
+coef_marss = function(x){ return(x) } 
 
 #MARSSinits needs a valid $par element with inits were marss form
 #so no need to change inits
