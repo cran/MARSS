@@ -239,7 +239,7 @@ kf.x0 = ifelse(modelObj[["tinitx"]]==1,"x10","x00")  #the initial conditions tre
     ################################################################
     #Start the testing for 0s along the diagonal of Q
     # For the degen test, I require that d is a design matrix;
-    if(control$allow.degen){
+    if(control[["allow.degen"]]){
       tmp=degen.test("Q", MLEobj.iter, iter) #this will test degeneracy and replace diags with 0s if needed
       MLEobj.iter=tmp$MLEobj; msg.kem=c(msg.kem, tmp$msg)
       if(tmp$set.degen){
@@ -257,6 +257,7 @@ kf.x0 = ifelse(modelObj[["tinitx"]]==1,"x10","x00")  #the initial conditions tre
       # If you treat x0 as at t=1 then 
       # S00 = 0; S11 = 0; S10 = 0; X1 = 0; X0 = 0; TT.numer = TT-1
       # Otherwise if x0 is at t=0 follow Shumway and Stoffer (S&S2006 Eqn 6.67-69)
+      
       dQ = sub3D(d$Q,t=1) #won't be all zeros due to !is.fixed
       B = par1$B
       U = par1$U
@@ -296,6 +297,7 @@ kf.x0 = ifelse(modelObj[["tinitx"]]==1,"x10","x00")  #the initial conditions tre
         sum1a = symm(sum1a) #enforce symmetry function from MARSSkf
         sum1 = sum1 + crossprod(dQ, vec(sum1a)) 
       }
+      
       #pcholinv because there might be all zero cols in dQ; won't equal matrix(0,1,1) since !is.fixed
       if(time.varying[["Q"]]){ 
           if(length(t.dQ.dQ)==1){ inv.dQ=1/t.dQ.dQ }else{ inv.dQ = pcholinv(t.dQ.dQ) }
@@ -858,7 +860,7 @@ kf.x0 = ifelse(modelObj[["tinitx"]]==1,"x10","x00")  #the initial conditions tre
   if(MLEobj.iter$conv.test$convergence<0){
     MLEobj.return$convergence = 62
     msg.conv=MLEobj.iter$conv.test$messages
-    if( catinfo ) cat(paste("Error! EM algorithm exited due to errors reported by log-log test function.).\n" ,sep=""))
+    if( catinfo ) cat(paste("Error! EM algorithm exited due to errors reported by log-log test function.\n" ,sep=""))
   }
   if(MLEobj.iter$conv.test$convergence==4){
     tmp.msg=paste("Warning! Reached maxit before parameters converged. Maxit was ",control$maxit,".\n",sep="")
@@ -951,7 +953,9 @@ loglog.conv.test = function(iter.record, iter, params.to.test=c("Z","U","x0","R"
     return( list(convergence=-1, messages=msg) )
   }else {
     if("logLik" %in% params.to.test){
-       iter.record.par = cbind(iter.record$par,logLik=exp(iter.record$logLik)) #exp because we don't want the log of the log
+       #exp because we don't want the log of the log and subtract mean so exp(LL) doesn't = Inf
+       #we are looking at slope so doesn't matter if we sub off the mean
+       iter.record.par = cbind(iter.record$par,logLik=exp(iter.record$logLik-mean(iter.record$logLik))) 
        #iter.record.par = cbind(iter.record$par,logLik=iter.record$logLik) 
        }else iter.record.par=iter.record$par 
     names.iter=colnames(iter.record.par)
@@ -1017,13 +1021,18 @@ degen.test = function(elem, MLEobj, iter){
     if( iter<=MLEobj$control$min.degen.iter ) return(list(MLEobj=MLEobj, msg=NULL, set.degen=FALSE))
     if( !is.design(MLEobj$marss$free[[elem]], zero.rows.ok=TRUE) )
        return(list(MLEobj=MLEobj, msg=NULL, set.degen=FALSE))  #strict, i.e. only 0 and 1
-    #not fixed, not time-varying, allow.degen set, iter>min iter and free is a design matrix
+    isDiag = function(x){ all(x[!diag(nrow(x))] == 0) }
+    if( !isDiag(coef(MLEobj, type="matrix", form="marss")[[elem]] ) )
+      return(list(MLEobj=MLEobj, msg=NULL, set.degen=FALSE))  #only allow setting of 0s if diagonal
+    
+    #diagonal, not fixed, not time-varying, allow.degen set, iter>min iter and free is a design matrix
     #So can proceed
     #if here then not time-varying
     degen.par= abs(MLEobj$par[[elem]]) < MLEobj$control$degen.lim
     msg.degen=NULL
     set.degen=FALSE
-    if(any(degen.par)){
+    dim.elem = attr(MLEobj$marss, "model.dims")[[elem]][1]
+     if(any(degen.par)){
       for(i in which(degen.par)){
         MLEobj.tmp=MLEobj
         #set corresponding par to 0 and corresponding col of free to 0
@@ -1031,7 +1040,6 @@ degen.test = function(elem, MLEobj, iter){
         MLEobj.tmp$marss$free[[elem]][,i,1]=0 #req not time-varying so set t=1
         #need to check that setting a R or Q diag to 0 doesn't lead to a improper model
         kemcheck=MARSSkemcheck(MLEobj.tmp)
-
         if(kemcheck$ok){
           new.kf = MARSSkf( MLEobj.tmp )
           loglike.old=MLEobj$logLik

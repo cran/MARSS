@@ -11,6 +11,7 @@ cat("You need to pass in a number or text to get info.
      8: Stopped at iter=xx in MARSSkem() because numerical errors were generated in MARSSkf
      9: iter=xx MARSSkf: logLik computation is becoming unstable.  Condition num. of Sigma[t=1] = Inf and of R = Inf.
     10: Warning: setting diagonal to 0 blocked at iter=X. logLik was lower in attempt to set 0 diagonals on X
+    11: MARSS seems to take a long, long, long time to converge
     21: MARSS complains about init values for V0
 ")
 return()
@@ -61,15 +62,21 @@ on your constraints in C or D that might not work.
 
 if(number==2 | number=="convergence")
 cat(
+  writeLines(
 strwrap("MARSS tests both the convergence of the log-likelihood and of the individual parameters.  If you just want the log-likelihood, say for model
 selection, and don't care too much about the parameter values, then you will be concerned mainly that the log-likelihood has converged.  Set abstol to something fairly small
-like 0.0001  (in your MARSS call pass in control=list(abstol=0.0001) ).  Then see if a warning about logLik being converged shows up.  If it doesn't, then your are
-probably fine.  The parameters are not at the MLE, but the log-likelihood has converged.  This indicates ridges or flat spots in the likelihood.  If you are concerned
+like 0.0001  (in your MARSS call pass in control=list(abstol=0.0001) ).  Then see if a warning about logLik being converged shows up.  If it doesn't, then you are
+probably fine.  The parameters are not at the MLE, but the log-likelihood has converged.  This indicates ridges or flat spots in the likelihood.
+\n\n
+If you are concerned
 about getting the MLEs for the parameters and they are showing up as not converged, then you'll need to run the algorithm longer (in your MARSS call pass in control=list(maxit=10000) ).
 But first think hard about whether you have created a model with ridges and flat spots in the likelihood.  Do you have parameters that can create essentially the
 same pattern in the data?  Then you may have created a model where the parameters are confounded.  Are you trying to fit a model that cannot fit the data?  That
-often causes problems.  It's easy to create a MARSS model that is logically inconsistent with your data.
+often causes problems.  It's easy to create a MARSS model that is logically inconsistent with your data.  Are you trying to estimate both B and U? That is often problematic.  Try demeaning 
+your data and setting U to zero.  Are you trying to estimate B and you set tinitx=0? tinit=0 is the default, so it is set to this if you did not pass in tinitx in the model list.
+You should set tinitx=1 when you are trying to estimate B.
 \n"))
+)
 
 if(number==3 | number=="degen")
   cat(
@@ -172,5 +179,28 @@ If your are fitting models with R=0 or some of the diagonals of R=0, then EM can
 AR-p models with R!=0 and rewritten as a MARSS model, then try using a vague prior on x0.  Set x0=matrix(0,1,m)
 (or some other appropriate fixed value instead of 0.) and V0=diag(1,m),
 where m=number of x's.  That can make it easier to estimate these AR-p with error models.\n"))
-  
+
+  if(number==11)
+    writeLines(
+      strwrap("First thing to do is set silent=2, so you see where MARSS() is taking a long time.  This will
+give you an idea of how long each EM iteration is taking so you can estimate how long it will take to get to a
+certain number of iterations.  When we get a comment about why the algorithm takes 10,000 iterations to converge, the user is either doing Dynamic
+Factor Analysis or they are estimating many variances and they set allow.degen=FALSE.  We'll talk about those two cases.
+\n\n
+Dynamic Factor Analysis (DFA): Why does this take so long?  By its nature DFA is often a difficult estimation problem
+because there are two almost equivalent solutions.  The model has a component that looks like this y=z*trend.
+This is equivalent to y=(z/a)*(a*trend).  That is there exist an an infinite number of trends (a*trend) that will
+give you the same answer.  However, the likelihood of the (a*trend)'s are not the same since we have a model for
+the trends---a random walk with variance = 1.  That's pretty flat though for a range of a.  When we have a fairly
+flat 2D likelihood surface---in this case (z/a)*(a*trend)---EM algorithms take a long time to converge.
+\n\n
+Variances going to zero: If you set allow.degen=FALSE, and one of your variances is going to zero then it
+its log is going to negative infinitity and it will take infinite number of iterations to get there (but
+MARSS() will complain about numerical instability before that).  The log-log convergence test in MARSS is
+checking for convergence of the log of all the parameters, and clearly the variance going to 0 will not
+pass this test.  However, you log-likelihood has long converged. So, you want to 'turn off' the convergence
+test for the parameters and use only the abstol test---which tests if the log-likelihood increased by less than 
+than some tolerance between iterations.  To do this, pass in a huge value for
+the slope of the log-log convergence test.  Pass this into your MARSS call: control=list(conv.test.slope.tol=1000)\n"))
+
 }

@@ -1,16 +1,16 @@
 ###################################################
 ### code chunk number 2: Cs01_read.in.data
 ###################################################
-# load the data
-# This loads in three lakeWAplankton datasets.  We want lakeWAplanktonTrans
+# load the data (there are 3 datasets contained here)
 data(lakeWAplankton)
-# this is a transformed dataset where the 0s are replaced with NAs and the data z-scored
-# use only the data from 1980 onward
-plankdat=lakeWAplanktonTrans
-plankdat=plankdat[plankdat[,"Year"]>=1980 & plankdat[,"Year"]<1990,]
+# we want lakeWAplanktonTrans, which has been transformed
+# so the 0s are replaced with NAs and the data z-scored
+dat = lakeWAplanktonTrans
+# use only the 10 years from 1980-1989
+plankdat = dat[dat[,"Year"]>=1980 & dat[,"Year"]<1990,]
 # create vector of phytoplankton group names
-phytoplankton = c("Cryptomonus", "Diatoms", "Greens",
-                   "Bluegreens", "Unicells", "Other.algae")
+phytoplankton = c("Cryptomonas", "Diatoms", "Greens",
+                  "Unicells", "Other.algae")
 # get only the phytoplankton
 dat.spp.1980 = plankdat[,phytoplankton]
 
@@ -55,8 +55,7 @@ Z.vals = list(
 "z21","z22",  0  ,
 "z31","z32","z33",
 "z41","z42","z43",
-"z51","z52","z53",
-"z61","z62","z63")
+"z51","z52","z53")
 Z = matrix(Z.vals, nrow=N.ts, ncol=3, byrow=TRUE)
 
 
@@ -76,12 +75,11 @@ Q = B = diag(1,3)
 ### code chunk number 9: Cs08_set.up
 ###################################################
 R.vals = list(
-"r11",0,0,0,0,0,
-0,"r22",0,0,0,0,
-0,0,"r33",0,0,0,
-0,0,0,"r44",0,0,
-0,0,0,0,"r55",0,
-0,0,0,0,0,"r66")
+"r11",0,0,0,0,
+0,"r22",0,0,0,
+0,0,"r33",0,0,
+0,0,0,"r44",0,
+0,0,0,0,"r55")
 
 R = matrix(R.vals, nrow=N.ts, ncol=N.ts, byrow=TRUE)
 
@@ -141,11 +139,11 @@ for(i in 1:length(spp)){
 
 
 ###################################################
-### code chunk number 20: Cs16_set.up.two.trends.echo (eval = FALSE)
+### code chunk number 20: Cs16_set.up.two.trends.echo
 ###################################################
-## model.list = list(m=2, R="diagonal and unequal")
-## kemz.2 = MARSS(dat.spp.1980, model=model.list,
-##     z.score=TRUE, form="dfa", control=cntl.list)
+model.list = list(m=2, R="diagonal and unequal")
+kemz.2 = MARSS(dat.spp.1980, model=model.list,
+    z.score=TRUE, form="dfa", control=cntl.list)
 
 
 ###################################################
@@ -160,11 +158,12 @@ print(cbind(model=c("3 trends", "2 trends"),
 ### code chunk number 23: Cs18_set.up.many.trends.echo (eval = FALSE)
 ###################################################
 ## # set new control params
-## cntl.list = list(minit=200, maxit=1200, allow.degen=FALSE)
+## cntl.list = list(minit=200, maxit=5000, allow.degen=FALSE)
 ## # set up forms of R matrices
 ## levels.R = c("diagonal and equal",
-##               "diagonal and unequal",
-##               "unconstrained")
+##              "diagonal and unequal",
+##              "equalvarcov",
+##              "unconstrained")
 ## model.data = data.frame()
 ## # fit lots of models & store results
 ## # NOTE: this will take a long time to run!
@@ -174,12 +173,12 @@ print(cbind(model=c("3 trends", "2 trends"),
 ##         kemz = MARSS(dat.z, model=dfa.model, control=cntl.list, 
 ##             form="dfa", z.score=TRUE)
 ##         model.data = rbind(model.data,
-##                             data.frame(R=R,
-##                                        m=m,
-##                                        logLik=kemz$logLik,
-##                                        K=kemz$num.params,
-##                                        AICc=kemz$AICc,
-##                                        stringsAsFactors=FALSE))
+##                            data.frame(R=R,
+##                                       m=m,
+##                                       logLik=kemz$logLik,
+##                                       K=kemz$num.params,
+##                                       AICc=kemz$AICc,
+##                                       stringsAsFactors=FALSE))
 ##         assign(paste("kemz", m, R, sep="."), kemz)
 ##         } # end m loop
 ##     } # end R loop
@@ -232,7 +231,7 @@ trends.rot = solve(H.inv) %*% best.fit$states
 spp = rownames(dat.z)
 minZ = 0.05
 ylims = c(-1.1*max(abs(Z.rot)), 1.1*max(abs(Z.rot)))
-par(mfrow=c(2,2), mar=c(2,4,1.5,0.5), oma=c(0.4,1,1,1))
+par(mfrow=c(ceiling(dim(trends.rot)[1]/2),2), mar=c(3,4,1.5,0.5), oma=c(0.4,1,1,1))
 for(i in 1:best.model$m) {
 	plot(c(1:N.ts)[abs(Z.rot[,i])>minZ], as.vector(Z.rot[abs(Z.rot[,i])>minZ,i]),
 		type="h", lwd=2, xlab="", ylab="", xaxt="n", ylim=ylims, xlim=c(0,N.ts+1))
@@ -297,7 +296,7 @@ TP = t(plankdat[,"TP",drop=FALSE])
 ###################################################
 ### code chunk number 34: Cs27_fit.covar.echo (eval = FALSE)
 ###################################################
-## model.list=list(m=4, R="unconstrained")
+## model.list=list(m=2, R="unconstrained")
 ## kemz.temp = MARSS(dat.spp.1980, model=model.list, z.score=TRUE,
 ## 	form="dfa", control=cntl.list, covariates=temp)
 ## kemz.TP = MARSS(dat.spp.1980, model=model.list, z.score=TRUE,
@@ -312,5 +311,20 @@ TP = t(plankdat[,"TP",drop=FALSE])
 print(cbind(model=c("no covars", "Temp", "TP", "Temp & TP"),
       AICc=round(c(best.fit$AICc, kemz.temp$AICc, kemz.TP$AICc,
       kemz.both$AICc))), quote=FALSE)
+
+
+###################################################
+### code chunk number 37: Cs29_plotbestcovarfits
+###################################################
+par.mat=coef(kemz.temp, type="matrix")
+fit.b = par.mat$Z %*% kemz.temp$states + matrix(par.mat$A, nrow=N.ts, ncol=TT)
+spp = rownames(dat.z)
+par(mfcol=c(3,2), mar=c(3,4,1.5,0.5), oma=c(0.4,1,1,1))
+for(i in 1:length(spp)){
+  plot(dat.z[i,],xlab="",ylab="abundance index",bty="L", xaxt="n", ylim=c(-4,3), pch=16, col="blue")
+  axis(1,12*(0:dim(dat.z)[2])+1,1980+0:dim(dat.z)[2])
+  lines(fit.b[i,], lwd=2)
+  title(spp[i])
+  }
 
 

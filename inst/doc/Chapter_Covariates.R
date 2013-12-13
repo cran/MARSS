@@ -91,6 +91,22 @@ kem = MARSS(dat, model=model.list)
 
 
 ###################################################
+### code chunk number 11: Covar_sec6_01_set-up-seasonal-dat
+###################################################
+years = fulldat[,"Year"]>=1965 & fulldat[,"Year"]<1975
+phytos = c("Diatoms", "Greens", "Bluegreens",
+           "Unicells", "Other.algae")
+dat = t(fulldat[years,phytos])
+
+# z.score data because we changed the mean when we subsampled
+the.mean = apply(dat,1,mean,na.rm=TRUE)
+the.sigma = sqrt(apply(dat,1,var,na.rm=TRUE))
+dat = (dat-the.mean)*(1/the.sigma)
+# number of time periods/samples
+TT = dim(dat)[2]
+
+
+###################################################
 ### code chunk number 12: Covar_sec6_02_set-up-month-factors
 ###################################################
 # number of "seasons" (e.g., 12 months per year)
@@ -234,22 +250,6 @@ data.frame(Model=c("Fixed", "Cubic", "Fourier"),
            AICc=round(c(seas.mod.1$AICc,
                         seas.mod.2$AICc,
                         seas.mod.3$AICc),1))
-
-
-###################################################
-### code chunk number 11: Covar_sec6_1_set-up-seasonal-dat
-###################################################
-years = fulldat[,"Year"]>=1965 & fulldat[,"Year"]<1975
-phytos = c("Diatoms", "Greens", "Bluegreens",
-           "Unicells", "Other.algae")
-dat = t(fulldat[years,phytos])
-
-# z.score data because we changed the mean when we subsampled
-the.mean = apply(dat,1,mean,na.rm=TRUE)
-the.sigma = sqrt(apply(dat,1,var,na.rm=TRUE))
-dat = (dat-the.mean)*(1/the.sigma)
-# number of time periods/samples
-TT = dim(dat)[2]
 
 
 ###################################################

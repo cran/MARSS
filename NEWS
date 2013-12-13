@@ -2,6 +2,21 @@ MARSS Development site
 ------------------------------------
 New work on MARSS before posting to CRAN is at ``http://fishbox.iugo-cafe.org/user/e2holmes/MARSS Dev Site''.  Notes on known issues are also posted there.
 
+CHANGES IN MARSS 3.7
+------------------------------------
+3.7 update required due to new version of KFAS that changed its API.
+
+- Changed dependency to new version of KFAS.  Updated NAMESPACE to only import the 3 KFAS functions used.
+- Created a versiontest.R file for comparing output from two different versions of MARSS.  It's in the doc directory.
+- Changes to the documentation. Mark made a few changes to the DFA chapter.  Got rid of Bluegreens in the example since that was mostly missing data.  Moved the info on the general MARSS equation from the Quick_Start guide to the chapter on algorithms.  Added a 'Tips and Tricks' section to the Quick_Start guide.
+- Cryptomonas misspelled in data files
+- The index file was out of date with old names for R scripts. Made some minor updates to the MARSS man file.
+- Exported the toLatex method for making a LaTex version (and pdf) of a marssMODEL object.
+
+bugs
+- fixed allow.degen bug that would set elements to zero, leading to non positive definite matrices. Test if Q and R are diagonal.  If not, don't allow degens to be set since that is likely to lead to non-pos def matrices.  I could test if the row/col covariance are 0s but that would be costly.
+- fixed loglog.conv.test bug that returned NAs when logLik > 720 due to exp(LL) call.  Changed to exp(LL-mean(LL))
+
 CHANGES IN MARSS 3.6
 ------------------------------------
 3.6 is mainly concerned with speeding up MARSS() for problems with large number of time series (n > 100) and where many R elements are being estimated (e.g. R="diagonal and unequal").  This comes up in dynamic factor analyses often.  The changes also improve speed for small R problems by about 25%, but speed increase is 10 fold for problems with R matrices that are 100x100 with 100 estimated R elements.
@@ -46,6 +61,7 @@ CHANGES IN MARSS 3.5
 - added dynamic linear model case study
 - revamped and extended the covariates case study
 - condensed the errors print-out to 10 errors; added more error info to MARSSinfo()
+- restructured the NAMESPACE and DESCRIPTION files to better control imports and dependencies so that user cannot break the package by detaching needed libraries or redefining needed base and stats functions.
 
 bugs
 - MARSSboot was out of date with newest version of MARSShessian's returned arguments.

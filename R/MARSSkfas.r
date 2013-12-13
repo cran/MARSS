@@ -135,11 +135,9 @@ MARSSkfas = function( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfa
     }
 
     if(!return.lag.one){
-      if(packageVersion("KFAS")=="0.9.11") kfas.model=SSModel(y=yt, Z=Zt, T=Tt, R=Rt, H=Ht, Q=Qt, a1=a1, P1=P1, P1inf=P1inf)
-      else kfas.model=SSModel(yt ~ -1+SSMcustom( Z=Zt, T=Tt, R=Rt, Q=Qt, a1=a1, P1=P1, P1inf=P1inf), H=Ht)
+      kfas.model=SSModel(yt ~ -1+SSMcustom( Z=Zt, T=Tt, R=Rt, Q=Qt, a1=a1, P1=P1, P1inf=P1inf), H=Ht)
     }else{
-      if(packageVersion("KFAS")=="0.9.11") kfas.model=SSModel(y=yt, Z=stack.Zt, T=stack.Tt, R=stack.Rt, H=Ht, Q=stack.Qt, a1=stack.a1, P1=stack.P1, P1inf=stack.P1inf)
-      else kfas.model=SSModel(yt ~ -1+SSMcustom( Z=stack.Zt, T=stack.Tt, R=stack.Rt, Q=stack.Qt, a1=stack.a1, P1=stack.P1, P1inf=stack.P1inf), H=Ht)
+      kfas.model=SSModel(yt ~ -1+SSMcustom( Z=stack.Zt, T=stack.Tt, R=stack.Rt, Q=stack.Qt, a1=stack.a1, P1=stack.P1, P1inf=stack.P1inf), H=Ht)
     }
     
     if(only.logLik){

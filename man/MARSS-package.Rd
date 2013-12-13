@@ -5,7 +5,7 @@
 Multivariate Autoregressive State-Space Model Estimation
 }
 \description{
-The MARSS package fits constrained and unconstrained multivariate autoregressive time-series models to multivariate time series data.  To open the user guide from the command line, type \code{RShowDoc("UserGuide",package="MARSS")}.  To open an overview page with package information, type \code{RShowDoc("index",package="MARSS")}.    
+The MARSS package fits constrained and unconstrained multivariate autoregressive time-series models to multivariate time series data.  To open the user guide from the command line, type \code{RShowDoc("UserGuide",package="MARSS")}.  To open an overview page with package information and links to the R scripts in the User Guide, type \code{RShowDoc("index",package="MARSS")}.    
 
 The main function is \code{\link{MARSS}} which is used to fit a specified model to data and estimate the model parameters.  MARSS model specification is based on "form" (an argument to a MARSS() call).  The form tells MARSS() what to expect in the model list (model is a MARSS argument) and how to translate that into the base model form used in the fitting algorithms.
 
@@ -60,7 +60,7 @@ Important MARSS functions:
 The MARSS user guide:  Holmes, E. E., E. J. Ward, and M. D. Scheuerell (2012) Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
 Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuide",package="MARSS")} to open a copy.
 
-Type \code{RShowDoc("index",package="MARSS")} to see all the package documentation, tutorials, and case study scripts.
+Type \code{RShowDoc("index",package="MARSS")} to see all the package documentation, tutorials, and R scripts from the User Guide.
 }
 
 \keyword{ package }

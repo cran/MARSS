@@ -67,3 +67,10 @@ A object of class \code{\link{marssMLE}}.  See \code{\link{print.marssMLE}} for 
 The user guide:  Holmes, E. E., E. J. Ward, and M. D. Scheuerell (2012) Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
 Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuide",package="MARSS")} to open a copy.          
 }
+\examples{
+\dontrun{
+#See the Dynamic Factor Analysis chapter in the User Guide
+RShowDoc("UserGuide",package="MARSS")
+}
+}
+

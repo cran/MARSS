@@ -3,15 +3,14 @@
 \alias{MARSSsettings}
 \title{ MARSS Model Specification and Estimation }
 \description{
-  This is the main MARSS function for fitting multivariate autoregressive state-space (MARSS) models.  To open the user guide from the command line, type \code{RShowDoc("UserGuide",package="MARSS")}. To open a guide to show you how to get started quickly, typ \code{RShowDoc("Quick_Start",package="MARSS")}.
-  To open an overview page with package information, type \code{RShowDoc("index",package="MARSS")} or go to \code{\link{MARSS-package}}.  To see a discussion of the various possible output, go to \code{\link{print.MARSS}}. If MARSS is throwing errors or warnings that you don't understand, try the Troubleshooting section of the user guide or type \code{MARSSinfo()} at the command line.
+  This is the main MARSS function for fitting multivariate autoregressive state-space (MARSS) models.  Scroll down to the bottom to see some short examples.  To open the user guide from the command line, type \code{RShowDoc("UserGuide",package="MARSS")}. To open a guide to show you how to get started quickly, type \code{RShowDoc("Quick_Start",package="MARSS")}.  To open an overview page with package information and how to find all the R code for the user guide chapters, type \code{RShowDoc("index",package="MARSS")}. To get info on the axillary functions (like for bootstrapping and confidence intervals) go to \code{\link{MARSS-package}}.  To see a discussion of how to get output from your model fits, go to \code{\link{print.MARSS}}. If MARSS() is throwing errors or warnings that you don't understand, try the Troubleshooting section of the user guide or type \code{MARSSinfo()} at the command line.
   
-This help page talks about fitting MARSS models in general form. This is probably not the help page you want.  You should go to the help page for the form of the model you are fitting.  Currently the MARSS package has two model forms: marxss and dfa.
+The background section on this page is focused on fitting MARSS models in vectorized form. This form will almost certainly look unfamilar.  MARSS works by converting the users' (more familiar model form) into the vectorized form which allows general linear constraints.  You should go to the help page for the form of the model you are fitting to get background on that model form.  Currently the MARSS package has two model forms: marxss and dfa.
 \describe{
 \item{\code{\link{MARSS.marxss}}}{This is the default form. X_t = B_t*X_t-1 + U_t + C_t*c_t + w_t; Y_t=Z_t*X_t + A_t + D_t*d_t + v_t. Any parameters can be set to zero. Most users will want this help page.}
 \item{\code{\link{MARSS.dfa}}}{This is a model form to allow easier specification of models for Dynamic Factor Analysis. X_t = X_t-1 + U_t + w_t; Y_t=Z_t*X_t + A_t + D_t*d_t + v_t. The Z parameters has a specific form and the Q is set at i.i.d with variance of 1.}
 }
-The rest of this help page discusses the vectorized form of a MARSS model and will be mostly of interest to those working on algorithms.  
+The rest of this help page discusses the vectorized form of a MARSS model.
 
 The MARSS package fits time-varying state-space models that can be transformed into the form (termed form=marss):
 \describe{
@@ -64,7 +63,7 @@ The default settings for the optional arguments are set in \code{MARSSsettings.R
       \item{\code{maxit}}{   Maximum number of iterations to be used in the maximization routine (if needed by method) (positive integer). }
       \item{\code{min.iter.conv.test}}{ Minimum iterations to run before testing convergence via the slope of the log parameter versus log iterations.} 
       \item{\code{conv.test.deltaT=9}}{ Number of iterations to use for the testing convergence via the slope of the log parameter versus log iterations. }
-      \item{\code{conv.test.slope.tol}}{ The slope of the log parameter versus log iteration to use as the cut-off for convergence.  The default is 0.5 which is a bit high.  For final analyses, this should be set lower. }
+      \item{\code{conv.test.slope.tol}}{ The slope of the log parameter versus log iteration to use as the cut-off for convergence.  The default is 0.5 which is a bit high.  For final analyses, this should be set lower.  If you want to only use abstol as your convergence test, then to something very large, for example conv.test.slope.tol=1000.  Type \code{MARSSinfo(11)} to see some comments of when you might want to do this.}
       \item{\code{abstol}}{ The logLik.(iter-1)-logLik.(iter) convergence tolerance for the maximization routine. To meet convergence both the abstol and slope tests must be passed.} 
       \item{\code{allow.degen}}{ Whether to try setting Q or R elements to zero if they appear to be going to zero. }
       \item{\code{trace}}{An integer specifying the level of information recorded and error-checking run during the algorithms.  trace=0, specifies basic error-checking and brief error-messages; trace>0 will print full error messages. In addition if trace>0, the Kalman filter output will be added to the outputted \code{marssMLE} object.  Additional information recorded depends on the method of maximization. For the EM algorithm, a record of each parameter estimate for each EM iteration will be added.   See \code{\link{optim}} for trace output details for the BFGS method.   trace=-1 will turn off most internal error-checking and most error messages.  The internal error checks are time expensive so this can speed up MARSS.  This is particularly useful for bootstrapping and simulation studies.}
@@ -193,5 +192,16 @@ sim.data=MARSSsimulate(kemfit, nsim=10, tSteps=10)
 kemfit.with.AICb = MARSSaic(kemfit, output = "AICbp")
 kemfit.with.AICb
 }
+
+\dontrun{
+#Many more short examples can be found in the
+#Quick Examples chapter in the User Guide
+RShowDoc("UserGuide",package="MARSS")
+
+#You can find the R scripts from the chapters by
+#going to the index page
+RShowDoc("index",package="MARSS")
+}
+
 }
 

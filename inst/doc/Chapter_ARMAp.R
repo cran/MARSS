@@ -45,18 +45,18 @@ arima(gappy.data,order=c(2,0,0),include.mean=FALSE)
 
 
 ###################################################
-### code chunk number 11: Cs_061_mar2.sim
-###################################################
-temp2=arima.sim(n=TT,list(ar=true.2[2:3]),sd=sqrt(true.2[4]))
-sim.mar2=rbind(temp1,temp2)
-
-
-###################################################
-### code chunk number 9: Cs_06_mar2.sim
+### code chunk number 9: Cs_060_mar2.sim
 ###################################################
 TT=50
 true.2=c(r=0,b1=-1.5,b2=-0.75,q=1)
 temp1=arima.sim(n=TT,list(ar=true.2[2:3]),sd=sqrt(true.2[4]))
+
+
+###################################################
+### code chunk number 11: Cs_061_mar2.sim
+###################################################
+temp2=arima.sim(n=TT,list(ar=true.2[2:3]),sd=sqrt(true.2[4]))
+sim.mar2=rbind(temp1,temp2)
 
 
 ###################################################
@@ -220,7 +220,6 @@ cat(i);cat("\n")
 if((i %% 25)==0) save(true.2ss,TT,params,file=file)
 }
 }
-file=paste("C:\\Users\\ELI~1.HOL\\Desktop\\",file,sep="")
 save(true.2ss,TT,params,file=file)
 
 

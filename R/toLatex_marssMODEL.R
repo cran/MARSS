@@ -1,8 +1,8 @@
-toLatex.marssMODEL = function(x,file=NULL,digits=2,greek=TRUE,orientation="landscape",math.sty="amsmath",output=c("pdf","tex"),replace=TRUE,simplify=TRUE){
+toLatex.marssMODEL = function(object, ..., file=NULL,digits=2,greek=TRUE,orientation="landscape",math.sty="amsmath",output=c("pdf","tex"),replace=TRUE,simplify=TRUE){
   #by default uses geometry package and amsmath
   require(Hmisc)
   require(stringr)
-  
+  x = object
   #set the environment of the subfunction to this function since I want them to have access to the passed in variables
   #environment(build.eqn.tex)=environment()
   #environment(get.mat.tex)=environment()
@@ -299,7 +299,10 @@ build.eqn.tex = function(eqn, eqn.special, x, greek, digits, simplify, headfoot,
           ######################################
           #if el2 is something like x, y, v or w
           ######################################
-          labs=attr(x,paste(toupper(eqn.name),".names",sep=""))
+          #if el2 is a eqn.name then use its names, otherwise it is a error name
+          if(el2 %in% eqn.special[seq(1,length(eqn.special),2)]){ el2.names = el2
+          }else{ el2.names = eqn.special[which(eqn.special==el2)-1] }
+          labs=attr(x,paste(toupper(el2.names),".names",sep=""))
           mat.body=paste(paste(el2,"_{",labs,"}",sep=""),collapse="\\\\\n")
           if(is.null(el2.time)) stop(paste("toLatex.marssMODEL: in the attribute, equation, ", el2, " is missing the time designation.  should look like _{t}.",sep=""))
           mat.tex=paste(mat.head,"\n",mat.body,"\n",mat.foot,"_",el2.time,sep="")
@@ -309,7 +312,13 @@ build.eqn.tex = function(eqn, eqn.special, x, greek, digits, simplify, headfoot,
           ######################################
           if(!is.null(colnames(free[[el2]]))) #this adds the parameter name to the element name, like B.1
             colnames(free[[el2]])=paste(el2,colnames(free[[el2]]),sep=".")
-          mat= fixed.free.to.formula(fixed[[el2]],free[[el2]],model.dims[[el2]])
+          if(model.dims[[el2]][3]==1){
+            mat= fixed.free.to.formula(fixed[[el2]],free[[el2]],model.dims[[el2]][1:2])
+          }else{
+            mat = array(NA, dim=model.dims[[el2]])
+            for(i in 1:model.dims[[el2]][3])
+              mat[,,i]=fixed.free.to.formula(fixed[[el2]],free[[el2]],model.dims[[el2]][1:2])
+          }
           #if simplify=TRUE only show mats that are not all 0 and that are not identity
           if(simplify) show.el=show.el&!(all(sapply(mat,identical,0)))
           if(simplify){
@@ -317,7 +326,7 @@ build.eqn.tex = function(eqn, eqn.special, x, greek, digits, simplify, headfoot,
             if(length(dim(mat))==2) show.el2=!is.identity(mat)
           }
           if(show.el2 & show.el){
-            #if mat is 2D then it is not time-varying to no time subscript
+            #if mat is 2D then it is not time-varying so no time subscript
             if(!is.matrix(mat)){ #then it is 3D
                #if mat is 3D but all the mats are equal, then it is not time-varying
               #The following tests for that
@@ -364,7 +373,7 @@ parameters.time.varying = function(eqn, eqn.special, x){
   }else{ model.dims=x$model.dims }
   model.el=names(fixed)
   
-  #this takes finds the bits between + in the equation
+  #this finds the bits between + in the equation
   for(el in strsplit(eqn,"[+]")[[1]]){
     for(el2 in strsplit(el,"[*]")[[1]]){ #this finds the bits between * in el
       if(str_detect(el2,"_")){
@@ -391,12 +400,13 @@ parameters.time.varying = function(eqn, eqn.special, x){
       if(el2 %in% eqn.special){ 
         next #ignore the specials.  They always are time-varying
       } 
-      mat= fixed.free.to.formula(fixed[[el2]],free[[el2]],model.dims[[el2]])
-      if(is.matrix(mat)) next # it is not time-varying
-      ##reform to be 2D and test if time-varying
-      mat2D=array(mat,dim=c(dim(mat)[1]*dim(mat)[2],dim(mat)[3])) 
-      #test equality within row; will return TRUE if dim 3 = 1
-      if(all(apply(mat,1,all.equal.vector))){ #not time-varying 
+      if(model.dims[[el2]][3]==1) next # it is not time-varying
+      #Even if 3D, it might not be time-varying if all elements are the same
+      testtv=FALSE
+      if(!all(apply(fixed[[el2]],1,all.equal.vector))) testtv=TRUE #time-varying
+      mat2D=array(free[[el2]],dim=c(dim(free[[el2]])[1]*dim(free[[el2]])[2],dim(free[[el2]])[3]))
+      if(!all(apply(mat2D,1,all.equal.vector))) testtv=TRUE #time-varying
+      if(!testtv){ #not time-varying 
         next
       }else{
         if(is.null(el2.time)) stop(paste("toLatex.marssMODEL: something is wrong. ",el2," in the equation attributes has no time subscript, yet it is time-varying in the marssMODEL object.\nCannot make latex because the correct time-subscript label is unknown.\n",sep=""))

@@ -89,7 +89,7 @@ The default MARSS model (\verb@form="marxss"@) is written as follows:
 \end{equation}
 $\cc$ and $\dd$ are inputs (aka, exogenous variables or covariates or indicator variables) and must have no missing values.  They are not treated as `data' in the likelihood but as inputs.  The MARSS package is designed to handle linear constraints within the parameter matrices (the $\BB$, $\uu$, $\CC$, $\QQ$, $\ZZ$, $\aa$, $\DD$, $\RR$, $\pipi$, and $\LAM$)).  Linear constraint means you can write the elements of the matrix as a linear equation of all the other elements, although typically each matrix element is just a fixed or estimated value.
 
-Model specification is based one-to-one on the MARSS equation above.  Many of the parameter elements will be fixed or zero and others will be shared (equal) within a matrix.  The following shows an example of a mean-reverting random walk model with three observation time series:
+The following shows an example of a mean-reverting random walk model with three observation time series written as a MARSS model:
 \begin{gather*}
 \begin{bmatrix}x_1\\ x_2\end{bmatrix}_t
 = \begin{bmatrix}b&0\\ 0&b\end{bmatrix}
@@ -106,7 +106,7 @@ Model specification is based one-to-one on the MARSS equation above.  Many of th
  \begin{bmatrix}r_{11}&0&0\\ 0&r&0\\ 0&0&r\end{bmatrix} \end{pmatrix} 
 \end{gather*}
 
-To fit this with MARSS, we translate this model as written mathematically into an equivalent matrix (or array if time-varying) in R. Matrices that combine fixed and estimated values are specified using a list matrix with numerical values for fixed values and  character names for the estimated values. The following shows how to specify the model above.
+To fit this with MARSS, we translate this model into equivalent matrices (or arrays if time-varying) in R. Matrices that combine fixed and estimated values are specified using a list matrix with numerical values for fixed values and  character names for the estimated values. The following shows how for the model above.
 <<model.spec, eval=FALSE>>=
 B1=matrix(list("b",0,0,"b"),2,2)
 U1=matrix(0,2,1)
@@ -117,7 +117,7 @@ R1=matrix(list("r11",0,0,0,"r",0,0,0,"r"),3,3)
 pi1=matrix(0,2,1); V1=diag(1,2)
 model.list=list(B=B1,U=U1,Q=Q1,Z=Z1,A=A1,R=R1,x0=pi1,V0=V1,tinitx=0)
 @
-Try printing these out and you will see the one-to-one correspondence between the model in R and the math version of the model.  BTW, your model can have simple linear constraints within the matrix elements.  In that case, your matrix element might have $1+2a+3b$ and you specify this  using \verb@"1+2*a+3*b"@, instead of simply a numerical value or name of an estimated value.
+Try printing these out and you will see the one-to-one correspondence between the model in R and the math version of the model.  BTW, your model can have simple linear constraints within the matrix elements.  In that case, your matrix element might have $1+2a-3b$ and you specify this  using \verb@"1+2*a+-3*b"@, instead of simply a numerical value or name of an estimated value (yes $+$'s join parts so $+-$ for subtraction).
 
 For \verb@form="marxss"@ (the default), matrix names in the model list must be B, U, C, c, Q, Z, A, D, d, R, x0, and V0, just like in equation \eqref{eqn:marss}.  The \verb@tinitx@ element tells MARSS whether the initial state for $x$ is at $t=1$ (\verb@tinitx=1@) or $t=0$ (\verb@tinitx=0@).   The data must be entered as a $n \times T$ matrix; a dataframe is not a matrix nor is a vector nor is a time-series object.  MARSS has a number of text shortcuts for common parameter forms, such as ``diagonal and unequal''; see the User Guide for the possible shortcuts. You can leave off matrix names and the defaults will be used. Type ?MARSS.marxss to see the defaults for \verb@form="marxss"@.
 
@@ -125,7 +125,7 @@ The call to MARSS is
 <<marss.call, eval=FALSE>>=
 fit=MARSS(data, model=model.list)
 @
-The \verb@R@, \verb@Q@ and \verb@V0@ variances can be set to zero to specify partially deterministic systems.  This allows you to write MAR-p models in MARSS form for example. See the User Guide for examples.  Type \verb@?MARSS@ at the command line for more info.
+The \verb@R@, \verb@Q@ and \verb@V0@ variances can be set to zero to specify partially deterministic systems.  This allows you to write MAR-p models in MARSS form for example. See the User Guide for examples. 
 
 \section*{Important}
 \begin{itemize}
@@ -161,46 +161,16 @@ Inputs are specified in exactly the same manner.  $\CC$ and $\DD$ are the estima
 C1=matrix(c("temp1","temp2"),2,1)
 model.list=list(B=B1,U=U1,C=C1,c=temp,Q=Q1,Z=Z1,A=A1,R=R1,x0=pi1,V0=V1,tinitx=0)
 @
-If you want a factor effect, then you'll need to recode your factor as a matrix with $T$ columns and a row for each factor.  Then you have 0 or 1 if that factor applies in time period $t$.  $\CC$ then has a column for each estimated factor effect.
+If you want a factor effect, then you'll need to recode your factor as a matrix with $T$ columns and a row for each factor.  Then you have 0 or 1 if that factor applies in time period $t$.  $\CC$ then has a column for each estimated factor effect.  See the Covariate chapter in the user guide.
 
 \section*{Showing the model fits and getting the parameters}
-There \verb@print@, \verb@coef@ and \verb@residuals@ functions for marssMLE objects.  However, a good place to start is to look at \verb@?print.MARSS@.  This will show you how to get a lot of standard output from your fitted model objects (marssMLE objects). It will also show you alternative ways to get that output and where that output is stored in the marssMLE object.  Type \verb@?coef.MARSS@ to see the different formats for displaying the estimated parameters.
- 
-\section*{The full time-varying model used in the MARSS EM algorithm}
-Expectation-Maximization algorithms for unconstrained MARSS models have been around for many years.  What makes the EM algorithm in MARSS different is that it is a constrained algorithm.  In mathematical form, the model that is being fit with the package is
-\begin{equation}\label{qeq:MARSS.ex.vec}
-\begin{gathered}
-\xx_t = (\xx_{t-1}^\top \otimes \II_m)\vec(\BB_t) + (\uu_t^\top \otimes \II_m)\vec(\UU_t) + \ww_t, \quad
-\WW_t \sim \MVN(0,\QQ_t)\\
-\yy_t = (\xx_t^\top \otimes \II_n)\vec(\ZZ_t) + (\aa_t^\top \otimes \II_n)\vec(\AA_t) + \vv_t, \quad
-\VV_t \sim \MVN(0,\RR_t)\\
-\xx_{t_0} = \pipi+\FF\ll, 
-\LL \sim \MVN(0,\LAM)
-\end{gathered}
-\end{equation}
+There are \verb@print@, \verb@coef@ and \verb@residuals@ functions for marssMLE objects.  However, a good place to start is to look at \verb@?print.MARSS@.  This will show you how to get standard output from your fitted model objects (marssMLE objects). It will also show you alternative ways to get that output and where that output is stored in the marssMLE object.  Type \verb@?coef.MARSS@ to see the different formats for displaying the estimated parameters.
 
-Each model parameter matrix, $\BB_t$, $\UU_t$, $\QQ_t$, $\ZZ_t$, $\AA_t$, and $\RR_t$, is written as a time-varying linear model, $\ff_t+\DD_t\mm$, where $\ff$ and $\DD$ are fully-known (not estimated and no missing values) and $\mm$ is a column vector of the estimates elements of the parameter matrix:
-\begin{gather*}
-\vec(\BB_t) = \ff_{t,b} + \DD_{t,b}\bbeta\quad
-\vec(\UU_t) = \ff_{t,u} + \DD_{t,u}\uupsilon\quad
-\vec(\QQ_t) = \ff_{t,q} + \DD_{t,q}\qq\\
-\vec(\ZZ_t) = \ff_{t,z} + \DD_{t,z}\zzeta\quad
-\vec(\AA_t) = \ff_{t,a} + \DD_{t,a}\aalpha\quad
-\vec(\RR_t) = \ff_{t,r} + \DD_{t,r}\rr\\
-\vec(\LAM)= \ff_\lambda+\DD_\lambda\llambda \quad
-\vec(\pipi)= \ff_\pi+\DD_\pi\pp
-\end{gather*}
-
-The internal MARSS model specification (form=marss) is a list with the $\ff_t$ and $\DD_t$ matrices for each parameter.   
-The output from fitting are the vectors, $\bbeta$, $\uupsilon$, etc.  The trick is to rewrite the user's linear multivariate problem into the general form (equation \ref{qeq:MARSS.ex.vec}).  MARSS does this using functions that take more familiar arguments as input and then constructs the $\ff_t$ and $\DD_t$ matrices.  Because the $\ff_t$ and $\DD_t$ can be whatever the user wants (assuming they are the right shape), this allows users to include covariates, trends (linear, sinusoidal, etc) or indicator variables in a variety of ways.  It also means that terms like $1+b+2c$ can appear in the parameter matrices.
-  
-Although the above form looks unusual, it is equivalent to the commonly seen form but leads to a log-likelihood function where all terms have form 
-$\MM\mm$, where $\MM$ is a matrix and $\mm$ is a column vector of only the different estimated values.  This makes it easy to do the partial differentiation with respect
-to $\mm$ necessary for the EM algorithm and as a result, easy to impose linear constraints and structure on the elements in a parameter matrix.
-See \href{http://cran.r-project.org/web/packages/MARSS/vignettes/EMDerivation.pdf}{Holmes (2012)} for a discussion of the general form of MARSS models being fit by the EM algorithm in the MARSS package.
+\section*{Tips and Tricks}
+Try \verb@MARSSinfo()@ if you get errors you don't understand or MARSS is taking a long time to converge.  \verb@MARSSinfo()@ discusses some common causes of problems.  Set \verb@silent=2@ to see what MARSS() is doing.  This puts it in verbose mode.   Use \verb@fit=FALSE@ to set up a model without fitting. Let's say you do \verb@foo=MARSS(..., fit=FALSE)@.  Now you can do \verb@summary(foo$model)@ to see what MARSS thinks you are trying to fit.  You can also try \verb@toLatex(foo$model)@ which will make a LaTex file and pdf version of your model (the file is saved in the working directory).  This loads the Hmisc package (and all its dependencies) and requires that you are able to process LaTex files.
 
 \section*{Need more information?}
-The MARSS User Guide starts with some tutorials on MARSS models and walks through a bunch of simple examples so you get used to framing multivariate time-series models in matrix form.  Then it has a series of vignettes: how to write AR(p) models in state-space form, dynamic linear models (regression models where the regression parameters are AR(p)), multivariate regression models with regression parameters that are time-varying and enter the non-AR part of your model or the AR part, detecting breakpoints using state-space models, and dynamic factor analysis.  All of these can be written in MARSS form.  It also has a series of case studies of analyzing multivariate biological data.
+The MARSS User Guide starts with some tutorials on MARSS models and walks through many examples showing how to write multivariate time-series models in MARSS form.  The user guide also has a series of vignettes: how to write AR(p) models in state-space form, dynamic linear models (regression models where the regression parameters are AR(p)), multivariate regression models with regression parameters that are time-varying and enter the non-AR part of your model or the AR part, detecting breakpoints using state-space models, and dynamic factor analysis.  All of these can be written in MARSS form.  It also has a series of vignettes on analysis of multivariate biological data.  Background on the algorithms used in MARSS is included in the user guide.
 
 <<Reset, echo=FALSE>>=
 options(prompt="> ", continue="+ ")
