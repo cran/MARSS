@@ -26,6 +26,10 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
   # control is a list which holds options for the estimation function (see help file)
   # silent controls whether a progress bar is shown
   
+  #load needed package globals
+  kem.methods=get("kem.methods", envir=pkg_globals)
+  optim.methods=get("optim.methods", envir=pkg_globals) 
+  
   ###### Error-checking on the arguments
   msg=NULL
   if(!is.numeric(nboot))
@@ -163,7 +167,7 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
     for(i in 1:nboot) {
       if( param.gen == "MLE" ) {
 	        newmod = marss.model #marss form     
-	        newmod[["data"]] = array(boot.data[,,i], dim=dim(boot.data)[1:2])  
+	        newmod[["data"]] = array(boot.data[,,i], dim=dim(boot.data)[1:2], dimnames=dimnames(marss.model$data))
           mle.object[["marss"]]=newmod #we are resetting the marss object
 	        if(mle.object[["method"]] %in% kem.methods) boot.model = MARSSkem(mle.object) 
 	        if(mle.object[["method"]] %in% optim.methods) boot.model = MARSSoptim(mle.object) 
@@ -171,14 +175,12 @@ MARSSboot = function(MLEobj, nboot=1000, output="parameters", sim="parametric",
       } #if MLE
 
       if( param.gen == "hessian" ) {
-        #any variances will be in the chol transformation
+        if(any(is.na(MLEobj.hessian$parSigma))) stop("Stopped in MARSSboot(): The variance-covariance matrix (parSigma) returned by MARSShessian() has NAs.  See MARSSinfo(\"HessianNA\").\n", call.=FALSE)
         hess.params = rmvnorm(1, mean=MLEobj.hessian$parMean, sigma=MLEobj.hessian$parSigma, method="chol")
-        
-        #back transform to non-chol form
-        boot.params[,i] = MARSShessian.backtrans(MLEobj.hessian, hess.params)        
+        boot.params[,i] = hess.params       
       }   #if hessian   
     
-      # Draw the progress bar if silent=F and time library is installed
+      # Draw the progress bar if silent=FALSE and time library is installed
     	if(drawProgressBar) prev <- progressBar(i/nboot,prev)
       }    #end nboot loop
     } # end if parameters in output

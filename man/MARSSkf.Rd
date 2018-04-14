@@ -13,7 +13,7 @@ MARSSkfas( MLEobj, only.logLik=FALSE, return.lag.one=TRUE, return.kfas.model=FAL
 }
 \arguments{
   \item{ MLEobj }{ A \code{\link{marssMLE}} object with the \code{par} element of estimated parameters, \code{marss} element with the model description (in marss form) and data, and \code{control} element for the fitting algorithm specificitions.  \code{control$debugkf} specifies that detailed error reporting will be returned (only used by \code{MARSSkf}).  \code{model$diffuse=TRUE} specifies that a diffuse prior be used (only used by \code{MARSSkfas}). See KFAS documentation. When the diffuse prior is set, V0 should be non-zero since the diffuse prior variance is V0*kappa, where kappa goes to infinity.}
-  \item{ only.logLik }{ Used by \code{MARSSkfas}.  If set, only the log-likelihood is returned using the KFAS function \code{\link[KFAS]{logLik}}.  This is much faster if only the log-likelihood is needed. }
+  \item{ only.logLik }{ Used by \code{MARSSkfas}.  If set, only the log-likelihood is returned using the KFAS function \code{\link[KFAS]{logLik.SSModel}}.  This is much faster if only the log-likelihood is needed. }
   \item{ return.lag.one }{ Used by \code{MARSSkfas}.  If set to FALSE, the smoothed lag-one covariance  values are not returned (Vtt1T is set to NULL).  This speeds up \code{MARSSkfas} because to return the smoothed lag-one covariance a stacked MARSS model is used with twice the number of state vectors---thus the state matrices are larger and take more time to work with. }
   \item{ return.kfas.model }{ Used by \code{MARSSkfas}.  If set to TRUE, it returns the MARSS model in KFAS model form (class \code{\link[KFAS]{SSModel}}).  This is useful if you want to use other KFAS functions or write your own functions to work with \code{\link{optim}} to do optimization.  This can speed things up since there is a bit of code overhead in \code{\link{MARSSoptim}} associated with the \code{\link{marssMODEL}} model specification needed for the constrained EM algorithm (but not strictly needed for \code{\link{optim}}; useful but not required.). }
 }
@@ -49,26 +49,25 @@ A list with the following components (m is the number of state processes). "V" e
   \item{errors}{ Any error messages. }
 }
 \references{
-A. C. Harvey (1989).  Chapter 5, Forecasting, Structural Time Series Models and the Kalman Filter.  Cambridge University Press.
+A. C. Harvey (1989).  Chapter 5, Forecasting, structural time series models and the Kalman filter.  Cambridge University Press.
 
-R. H. Shumway and D. S. Stoffer (2006).  Time Series Analysis and its Applications: With R Examples.  Second Edition. Springer-Verlag, New York.
+R. H. Shumway and D. S. Stoffer (2006).  Time series analysis and its applications: with R examples.  Second Edition. Springer-Verlag, New York.
 
 Ghahramani, Z. and Hinton, G.E. (1996) Parameter estimation for linear dynamical systems.  University of Toronto Technical Report CRG-TR-96-2.
 
 Holmes, E. E. (2012).  Derivation of the EM algorithm for constrained and unconstrained multivariate autoregressive
 state-space (MARSS) models.  Technical Report. arXiv:1302.3919 [stat.ME] \code{RShowDoc("EMDerivation",package="MARSS")} to open a copy.
 
-Jouni Helske (2012). KFAS: Kalman Filter and Smoother for Exponential Family State Space Models. R package version
+Jouni Helske (2012). KFAS: Kalman filter and smoother for exponential family state space models. R package version
   0.9.11. \code{http://CRAN.R-project.org/package=KFAS}
   
 Koopman, S.J. and Durbin J. (2000). Fast filtering and smoothing for non-stationary time series models, Journal of American Statistical Assosiation, 92, 1630-38.
 
-Koopman, S.J. and Durbin J. (2001). Time Series Analysis by State Space Methods. Oxford: Oxford University Press.
+Koopman, S.J. and Durbin J. (2001). Time series analysis by state space methods. Oxford: Oxford University Press.
 
 Koopman, S.J. and Durbin J. (2003). Filtering and smoothing of state vector for diffuse state space models, Journal of Time Series Analysis, Vol. 24, No. 1.
 
-The user guide:  Holmes, E. E., E. J. Ward, and M. D. Scheuerell (2012) Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
-Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuide",package="MARSS")} to open a copy.     
+The user guide:  Holmes, E. E., E. J. Ward, and M. D. Scheuerell (2012) Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuide",package="MARSS")} to open a copy.     
 
 }
 \author{ 
@@ -80,14 +79,14 @@ Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuid
 }
 
 \examples{
-  dat = t(harborSeal)
-  dat = dat[2:nrow(dat),]
+  dat <- t(harborSeal)
+  dat <- dat[2:nrow(dat),]
   #you can use MARSS to construct a MLEobj
   #MARSS calls MARSSinits to construct default initial values
-  MLEobj = MARSS(dat, fit=FALSE)
+  MLEobj <- MARSS(dat, fit=FALSE)
   #MARSSkf needs a marss MLE object with the par element set
-  MLEobj$par=MLEobj$start
+  MLEobj$par <- MLEobj$start
   #Compute the kf output at the params used for the inits 
-  kfList = MARSSkfas( MLEobj )
+  kfList <- MARSSkfas( MLEobj )
 }
 

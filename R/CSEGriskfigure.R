@@ -1,6 +1,6 @@
 CSEGriskfigure=function(data, te=100, absolutethresh=FALSE, threshold=0.1, datalogged=FALSE, silent=FALSE, return.model=FALSE, CI.method="hessian", CI.sim=1000) {
 if(!(CI.method %in% c("hessian","parametric","innovations","none"))) 
-  stop("Stopped in CSEGriskfigure because allowed CI methods are none, hessian, parametric, and innovations.\n", call.=FALSE)
+  stop("Stopped in CSEGriskfigure(): Allowed values of 'CI.method' are \"none\", \"hessian\", \"parametric\", and \"innovations\".\n", call.=FALSE)
 
 if(!silent){
 if(datalogged) cat("Analysis assumes that data and threshold are already logged")
@@ -40,7 +40,7 @@ plot(a[,1],a[,2],type="p", bty="L", xaxp=c(a[1,1],a[nyr,1],nyr-1),
 xlab="", ylab="Pop. Estimate", ylim=c(.9*min(a[,2],na.rm=TRUE),1.1*max(a[,2],na.rm=TRUE)), xlim=c(a[1,1]-1,a[nyr,1]+1))
 lines(a[,1],exp(kem$states[1,]),col="red")
 title(
-  paste("u est = ",format(kem$par$U,digits=2)," (95% CIs ",format(kem$par.lowCI[["U.U"]],digits=2),", ", format(kem$par.upCI[["U.U"]],digits=2),")", "\n","Q est = ",format(kem$par$Q,digits=2)),cex.main=.9)
+  paste("u est = ",format(kem$par$U,digits=2)," (95% CIs ",format(kem$par.lowCI[["U"]],digits=2),", ", format(kem$par.upCI[["U"]],digits=2),")", "\n","Q est = ",format(kem$par$Q,digits=2)),cex.main=.9)
 
 #PANEL #2 plot the cdf of extinction
 tyrs = 1:te 
@@ -48,15 +48,15 @@ kal.cdf  = matrix(0,nrow=te)
 N0 = exp(kem$states[1,length(dat)])
 if(!absolutethresh) thresh = threshold*N0 else thresh=threshold
 xd = log(N0) - log(thresh)
-kal.u = kem$par$U 
-kal.Q = kem$par$Q
+kal.u = as.vector(kem$par$U)
+kal.Q = as.vector(kem$par$Q) # to create scalar from 1x1 matrix
 if(kal.u<=0) p.ever = 1 else p.ever = exp(-2*kal.u*xd/kal.Q) 
 if(N0 <= thresh){ kal.cdf = rep(1,te) 
   }else{
   if(is.finite(exp(2*xd*abs(kal.u)/kal.Q))){
 	 sec.part = exp(2*xd*abs(kal.u)/kal.Q) * pnorm((-xd - abs(kal.u)* tyrs)/sqrt(kal.Q*tyrs))
     }else sec.part=0      
-  kal.cdf = p.ever*pnorm(( -xd + abs(kal.u)*tyrs)/ sqrt(kal.Q*tyrs)) + sec.part
+  kal.cdf = p.ever*(pnorm(( -xd + abs(kal.u)*tyrs)/ sqrt(kal.Q*tyrs)) + sec.part)
 }
 
 plot(tyrs,kal.cdf,xlab="time steps into future",ylab="probability to hit threshold",ylim=c(0,1),bty="l",type="l")
@@ -70,10 +70,13 @@ plotCI=TRUE
 if(CI.method=="hessian"){
   plotCI=FALSE
   kem=MARSShessian(kem)
+  #The R and Q are chol transformed so = sqrt(R) and sqrt(Q) respectively
   boot.params=try(rmvnorm(n=nsim, mean=kem$parMean, sigma=kem$parSigma, method="chol"), silent=TRUE)
     if(!inherits(boot.params, "try-error")) {
     plotCI=TRUE
     boot.params=boot.params[boot.params[,which(substr(colnames(boot.params),1,1)=="Q")]>0,]
+    boot.params[,which(substr(colnames(boot.params),1,1)=="Q")]=boot.params[,which(substr(colnames(boot.params),1,1)=="Q")]^2
+    boot.params[,which(substr(colnames(boot.params),1,1)=="R")]=boot.params[,which(substr(colnames(boot.params),1,1)=="R")]^2
     }
   }
 if(CI.method=="parametric")

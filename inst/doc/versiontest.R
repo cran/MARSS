@@ -1,24 +1,34 @@
 # ###########################################
 # This compares output from two different MARSS versions using the R code in the doc folder
 # How to run
-# Install one version of MARSS into the base R library
-# Install a second version into the local R library
+# Install one version of MARSS into the base R library R_HOME
+# Install a second version into the local R library R_LIBS_USER
+# RStudio will use R_LIBS_USER if it exists.  It does not by default so
+#  you might have to create this folder to hav a local library.
 # Open the unit test.R file
 # RShowDoc("versiontest.R", package="MARSS")
 # Change working directory to a directory where many test files can be stored (sandbox)
 # Source the code.
-# Note: Using 'build and reload' from RStudio builds the package into the local
-# library but does not install the doc or help files
+# IMPORTANT: Using 'build and reload' from RStudio builds the package into the local
+# library but does not install the doc folder (which is needed for this test)
 # Use Install from zip and install from a .tar.gz file instead
+# cd to folder with the source code (e.g. GitHub)
+# R CMD build MARSS (build the tar.gz file)
+
 # ###########################################
 
-#make sure MARSS isn't loaded
-try(detach(package:MARSS),silent=TRUE)
+setwd("C:/Users/Eli.Holmes/Dropbox/MARSS unit tests 2018")
 
-#New version should be in the local library
+#make sure MARSS isn't loaded
+try(detach("package:MARSS", unload=TRUE),silent=TRUE)
+
+#One version should be in the local library
+#if building from RStudio, you can set to build to local
 lib.loc = Sys.getenv("R_LIBS_USER")
 unittestvrs=packageVersion("MARSS", lib.loc = lib.loc)
+unittestvrs #this should be new version
 library(MARSS, lib.loc = lib.loc)
+zscore.fun = zscore #3.9 does not have this
 
 #Get whatever code files are in the doc directory; these are tested
 unittestfiles = dir(path=paste(lib.loc,"/MARSS/doc",sep=""), pattern="*[.]R$", full.names = TRUE)
@@ -27,7 +37,7 @@ unittestfiles = unittestfiles[unittestfiles!=paste(lib.loc,"/MARSS/doc/versionte
 cat("Running code with MARSS version", as.character(unittestvrs), "\n")
 for(unittestfile in unittestfiles){
   #clean the workspace but keep objects needed for the unit test
-  rm(list = ls()[!(ls()%in%c("unittestfile","unittestfiles","unittestvrs"))])
+  rm(list = ls()[!(ls()%in%c("unittestfile","unittestfiles","unittestvrs","zscore.fun"))])
   #set up name for log files
   tag=strsplit(unittestfile,"/")[[1]]
   tag=tag[length(tag)]
@@ -42,34 +52,38 @@ for(unittestfile in unittestfiles){
   sink()
   #make a list of objects created by the test code
   funs=sapply(ls(),function(x){isTRUE(class(get(x))=="function")})
-  test.these = ls()[!(ls()%in%c("unittestfile","unittestfiles","unittestvrs")) & !funs]
+  ls.not.funs = ls()[ls()!="funs"]
+  test.these = ls.not.funs[!(ls.not.funs%in%c("unittestfile","unittestfiles","unittestvrs")) & !funs]
   testNew = mget(test.these)
   save(testNew,file=paste(tag,unittestvrs,".Rdata",sep=""))
 }
-#detach the new version
-detach(package:MARSS)
+#detach the version
+detach("package:MARSS", unload=TRUE)
 
-#Repeat for an older version of MARSS which is in the R library (no local library)
+#Old version of MARSS is in the R library (no local library)
 lib.loc = paste(Sys.getenv("R_HOME"),"/library",sep="")
 unittestvrs=packageVersion("MARSS", lib.loc = lib.loc)
+unittestvrs
 library(MARSS, lib.loc = lib.loc)
 cat("\n\nRunning code with MARSS version", as.character(unittestvrs), "\n")
 for(unittestfile in unittestfiles){
-  rm(list = ls()[!(ls()%in%c("unittestfile","unittestfiles","unittestvrs"))])
+  rm(list = ls()[!(ls()%in%c("unittestfile","unittestfiles","unittestvrs","zscore.fun"))])
   tag=strsplit(unittestfile,"/")[[1]]
   tag=tag[length(tag)]
   tag=strsplit(tag,"[.]")[[1]][1]
+  if(!exists("zscore")){zscore=zscore.fun}
   cat("Running ",unittestfile, "\n")
   sink(paste("outputOld-",tag,".txt",sep=""))
   set.seed(10)
   try(source(unittestfile))
   sink()
   funs=sapply(ls(),function(x){isTRUE(class(get(x))=="function")})
-  test.these = ls()[!(ls()%in%c("unittestfile","unittestfiles","unittestvrs")) & !funs]
+  ls.not.funs = ls()[ls()!="funs"]
+  test.these = ls.not.funs[!(ls.not.funs%in%c("unittestfile","unittestfiles","unittestvrs")) & !funs]
   testOld = mget(test.these)
   save(testOld,file=paste(tag,unittestvrs,".Rdata",sep=""))
 }
-detach(package:MARSS)
+detach("package:MARSS", unload=TRUE)
 
 #Now start comparing the lists made using different versions of MARSS
 cat("\n\nStarting object comparisons\n")
@@ -93,7 +107,19 @@ for(unittestfile in unittestfiles){
   }
   good=rep(TRUE,length(names(testNew)))
   for(ii in 1:length(names(testNew))){
-    if(!identical(testNew[[ii]], testOld[[ii]])) good[ii] = FALSE
+    if(!identical(testNew[[ii]], testOld[[ii]])){
+      good[ii] = FALSE
+      if(class(testNew[[ii]])=="marssMLE"){
+        for(iii in names(testNew[[ii]][["par"]])){
+          if(iii %in% c("G","H","L")) next
+          if(!identical(testNew[[ii]][["par"]][iii], testOld[[ii]][["par"]][iii])){
+            cat("Warning:", names(testNew)[ii],"par",iii,"not identical\n")
+          }else{
+            cat(names(testNew)[ii],"par",iii,"identical\n")
+          }
+        }
+      }
+    }
   }
   if(!all(good)){
     cat("ERROR: The following objects are not identical\n")

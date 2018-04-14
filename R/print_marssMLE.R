@@ -2,14 +2,18 @@
 #  Print method for class marssMLE. 
 ##############################################################################################################################################
 print.marssMLE <- function (x, digits = max(3, getOption("digits")-4), ..., what="fit", form=NULL, silent=FALSE) {
-#First make sure specified equation form has a corresponding function to do the conversion to marssMODEL object
+#load needed package globals
+  kem.methods=get("kem.methods", envir=pkg_globals)
+  optim.methods=get("optim.methods", envir=pkg_globals) 
+  
+  #First make sure specified equation form has a corresponding function to do the conversion to marssMODEL object
   return.obj=list()
   what.to.print = what
   orig.x=x
   if(class(x$model)[1]!="marssMODEL"){
     cat("\nThe model element of your marssMLE object is not class marssMODEL.\n")
     cat("Are you using a marssMLE object from a MARSS version before 3.5?\n")
-    cat("Type MARSSinfo(20) for help.\n")
+    cat("Type MARSSinfo(\"modelclass\") for help.\n")
     return()
   }
     
@@ -38,7 +42,6 @@ print.marssMLE <- function (x, digits = max(3, getOption("digits")-4), ..., what
       if (!is.null(x[["par"]])) {
       cat("\nMARSS fit is\n")
       cat(paste("Estimation method:", x$method, "\n"))
-	    if(x$control$MCInit) cat("Monte Carlo initialization with", x$controlnumInits, "random starts. \n")
       if( x$method %in% kem.methods ) 
         cat(paste("Convergence test: conv.test.slope.tol = ", x$control$conv.test.slope.tol,", abstol = ", x$control$abstol, "\n", sep=""))
 	    if(x$convergence==0){
@@ -117,13 +120,15 @@ print.marssMLE <- function (x, digits = max(3, getOption("digits")-4), ..., what
 	}
 	#printCoefmat(cmat, digits=digits)
 	print(cmat, digits=digits)
-      
+  if(x$model$tinitx==1) cat("Initial states (x0) defined at t=1\n")
+  else cat("Initial states (x0) defined at t=0\n")
+  
   cat("\n")
   if(is.null(x[["par.se"]])) cat("Standard errors have not been calculated. \n")
   if(!is.null(x[["par.lowCI"]]) & !is.null(x[["par.upCI"]])){
-    cat(paste("CIs calculated at alpha = ", x$par.CI.alpha, " via method=", x$par.CI.method, sep=""), "\n")
-    if( x$par.CI.method=="hessian" & ( any(is.na(x[["par.lowCI"]])) | any(is.na(x[["par.upCI"]])) | any(is.na(x[["par.se"]])) ) ){
-      cat("There are NAs in the Hessian matrix. Type MARSSinfo() for details.\n")
+    cat(paste("CIs calculated at alpha = ", x$par.CI.info$alpha, " via method=", x$par.CI.info$method, sep=""), "\n")
+    if( x$par.CI.info$method=="hessian" & ( any(is.na(x[["par.lowCI"]])) | any(is.na(x[["par.upCI"]])) | any(is.na(x[["par.se"]])) ) ){
+      cat("There are NAs in the Hessian matrix. Type MARSSinfo(\"HessianNA\") for details.\n")
     }
     }else cat("Use MARSSparamCIs to compute CIs and bias estimates.\n")
 	if(!is.null(x[["par.bias"]])){cat(paste("Bias calculated via",x$par.CI.method,"bootstrapping with",x$par.CI.nboot,"bootstraps. \n"))
@@ -165,7 +170,7 @@ print.marssMLE <- function (x, digits = max(3, getOption("digits")-4), ..., what
     }
     if(what=="par"){
       if(!silent){ cat("List of the estimated values in each parameter matrix\n"); print(x$par); cat("\n") }
-      return.obj[[what]]=coef(orig.x,type="vector")
+      return.obj[[what]]=x$par
     }
     if(what=="logLik"){
       if(!silent){ cat(paste("Log-likelihood: ",x$logLik,sep="")); cat("\n") }

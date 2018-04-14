@@ -1,6 +1,88 @@
 MARSS Development site
 ------------------------------------
-New work on MARSS before posting to CRAN is at ``http://fishbox.iugo-cafe.org/user/e2holmes/MARSS Dev Site''.  Notes on known issues are also posted there.
+New work on MARSS before posting to CRAN is at ``https://nwfsc-timeseries.github.io/MARSS/''.  Notes on known issues are also posted there.
+
+
+CHANGES IN MARSS 3.10
+------------------------------------
+
+The main changes have to do with residuals and confidence intervals calculations.  
+
+BUGS
+
+residuals.marssMLE()
+* Erroneous standardized residuals when Z was non-diagonal (and thus also > 1 row). Also changed residuals.MARSSMLE so it returns residuals (which would be equal to 0) when there are 0s on the diagonal of Q or R
+* If t=1 and x0 was fixed, residuals were not returned.
+* The wrong residuals were returned if there were any missing values.  Fix involved implementing the missing values modifications for the Kalman filter described in Shumway and Stoffer.
+
+inits functions
+* in MARSSinits_marxss() function would give error if U, A, C, or D fixed and user passed in inits.  inits ignored in this case so should not throw error.
+* alldefaults could be updated by form.  A few functions were neglecting to (re)load alldefaults or to ressign alldefaults when updated: is_marssMLE(), MARSSinits.marxss(), MARSSinits().  The variables in the pkg_globals environment should be (and only be) loaded when needed by a function and only loaded into the function environment.
+
+kalman filter functions
+* MARSSkf() was not passing optional function args to MARSSkfas().
+* MARSSkfss() mis-counting num data points when R=0, V0=0, and tinitx=1.  When Ft[,,1]=0 (e.g. when R=0, V0=0, and tinitx=1), MARSSkfss was including the y[1] associated with Ft[,,1]=0 in the # number of data points.  These should be excluded since they don't affect x10.
+
+Confidence intervals and std error for R and Q
+  MARSSparamCIs() gave the wrong s.e. for variances and covariances when method="hessian".  It also gave the wrong CIs for variances and covariances when var-cov matrix was non-diagonal. There were a series of issues related to back-transforming from the hessian of a chol-transformed var-cov matrix ( Sigma=chol%*%t(chol) ).
+
+  MARSSparamCIs(), vrs 3.9 was getting the hessian numerically using a var-cov matrix that had been transformed with a Cholesky decomposition to ensure it stays positive-definite.  The upper and lower CIs were computed from the s.e.'s. I back-transformed the Hessian to the original (non-chol) scale the same way I back transformed a var-covariance matrix.  But the variance of s^2 is not the var(s)^2, which is what I was doing, essentially. So the s.e. for R and Q were wrong in all cases.  Note, using a Hessian to estimate CIs for variance-covariance matrices is generally a bad idea anyhow however.
+  
+  For non-diagonal matrices.  There was a bug in MARSShessian() in subscripting the d matrix when doing the chol transform.  Caused NAs for cases with non-diagonal matrices.  However, had the se been returned, they would be wrong for non-diagonal matrices because the elements of the chol transformed matrices do not correspond one-to-one to the non-transformed matrices.  E.g. the untransformed [2,2]^2 is chol transformed [1,2]^2+[2,2]^2.  The hessian used was for the chol-transformation and the curvature of the LL surface for the chol-transformed values is different than the curvature for the untransformed var-cov elements.
+
+Fix: I completely abandoned working with the chol transformed variance-covariance matrices for the Hessian calculation.  The chol transformation was not necessary for computing the Hessian since the Hessian is computed at the MLEs and localized.  
+
+#1 Created a new function MARSSharveyobsFI() which uses the Harvey (1989) recursion to analyticallycompute the observed Fisher Information matrix. This is the Hessian for the untransformed var-cov parameters.  So CIs on variances can be negative since the variance of the MLE is being approximated by a MVN (which can lead to negative lower CIs).
+
+#2 Harvey1989 is now the default function when method='hessian'.
+
+#3 The user can also select method='hessian' and hessian.fun='fdHess' or hessian.fun='optim'.  This will compute the Hessian (of the log-LL function at the MLEs) numerically using these functions.  The variance-covariance matrices are NOT chol transformed.  These are numerically estimated Hessians of the untransformed variance-covariance matrices.
+
+#4 Added MARSSinfo(26) which discusses the reason for NAs in the Hessian.
+
+Misc minor bugs
+* MARSShatyt() was setting ytt1 (expected value of y(t) conditioned on data up to t-1) to y(t), which is incorrect. Expected value of y(t) conditioned on y up to t-1 is Z xtt1 + a
+* CSEGriskfigure() panel 2 was wrong when mu>0 (increasing population).
+* CSEGriskfigure() panel 2 CIs were wrong when CI method=hessian since Q had not been back transformed (so was using sqrt(Q)).
+* MARSSkemcheck()'s test that fixed B is in unit circle failed when B was time-varying and some fixed and others estimated. Also when the eigenvalues were complex, it should test the real part only.
+* coef.marssMLE() was not stopping when illegal "what: arg passed in.  man page did not say what happens when type=parameter.
+* passing in method not in allowed.methods was causing errors since model conversion and testing happening before checkMARSSinputs and model testing is algorithm dependent (some forms not allowed by BFGS).  Added check for method at top of MARSS function.
+
+
+IMPROVEMENTS
+* w(t) and v(t) can be specified as G(t)*w(t) and H(t)*v(t) where G and H are fixed matrices (not estimated).  In version 3.10, G and H are restricted to being 0 or identity, however the code is in place for other values.
+  - changes to MARSS.marxss and MARSS.marss to allow G, H, and L passed in
+  - change to MARSSkem to specifiy star lists with G, H, and L (mathbb(elem) in EM Derivation)
+  - changed MARSSkss to use Q*=G Q t(G), R*=H R t(H) and V0*=L V0 t(L)
+* added Multivariate linear regression chapter
+* added chapter on estimating a Leslie matrix from stage time series using a MARSS model.
+* removed the function MARSSmcinits and added chapter on searching over the initial conditions into the User Guide.  As the MARSS models that MARSS() can fit expanded, MARSSmcinits was increasing obsolete and it was impossible to come up with good searching distributions.  Because MARSSmcinits was removed, control$MCInits list item was removed also from defaults and from accepted input.
+* added default inits for c and d in marxss form so that user can pass in inits using coef(fit); was balking because this includes d and c which didn't have defaults.  Removed msg referring to need that model be in marss form for inits (not true).
+* changed MARSS.marxss() to allow c and d to be 3D arrays.  This allows one to use inits=fit to set inits and not get a d (or c) must be 2D error.
+* adding info to MARSSinfo(4) regarding errors about R=0 and x0 not fixed. Added info to the error warnings to direct user to MARSSinfo().
+* changed order of MARSS args to be MARSS(y, model= , inits=, ...)
+* added pchol and psolve functions to return the chol or inverse via solve when there are 0s on the diagonal
+* added information to print.marssMODEL on summary.marssMODEL.  Added silent argument to summary.marssMODEL to block printing to the console.
+* print.marssMLE(x, what="par") returned a vector of estimated values instead of the list of par.  Changed to return the list.
+* added E[y(t), x(t+1)] to MARSShatyt output.  Needed for residuals.marssMLE().
+* added code to is.validvarcov() so that it returns an error if the user specifies a structurally illegal variance-covariance matrix.  Added info to MARSSinfo(25).
+* added a model.frame method for marssMODEL and marssMLE
+* added broom augment, tidy and glance functions for marssMLE
+* added logLik method for marssMLE objects
+* added fitted method for marssMLE objects to return Z xtT + u (model fitted value of y)
+* added plot method with diagnostics
+
+MISC
+* moved info in MARSSsettings.R to .onLoad function.
+* added suppressWarnings() wrapper to KFAS call when R=0 in MARSSkfas since update to KFAS package produces warning messages when R=0.
+* Typo in Eqn 124 of EMDerivation.pdf.  \beta should have been ^{-1}. Typo in Eqns 133 and 134.  vec parentheses should have been in front of R in second summation.  R in first line of eqn 133, was not referring to R (the var-cov matrix).  It should have had a new symbol.  Switched to T.  Eqn 134 was not R but this 'T'.
+* added safe to control list in man file MARSS.Rd   Left off accidentally.
+* Small change to DLM chapter to clarify that rotation matrix only exists if Z has more than 2 columns.
+* All subfunctions for a function moved into the main functions so they are hidden to the rest of the functions.
+* The logLik function was using the logLik, samp.size and df attributes from the MLE object, but this is prone to creating errors.  The user may have changed the model structure or data in a MLE object and is trying to get the new logLik.  Changed to recompute the logLik.
+* removed use of stringr package; did not need
+* Poor name choice. y.se was not the standardard error of ytT since sqrt(OtT) not sqrt(OtT-ytT^2) was being returned.  Changed name of y.se to ytT.se
+
 
 CHANGES IN MARSS 3.9
 ------------------------------------
@@ -27,7 +109,7 @@ CHANGES IN MARSS 3.8
 - bugs
 * in MARSSkfss. When Z was not square (num rows > num cols), OmgRVtt was not getting set.  OmgRVtt sets Vtt diagonals (and corresponding cols and row) to zero when R had 0s on the diagonal.
 * in MARSSkfas. Was returning $Innov and $Sigma using $v and $F, but as detailed in the KFS help page (KFAS package), the ones returned by KFS are not the same as the standard innovations and Sigma for multivariate data.  Now, MARSSkfas() returns a text message to use MARSSkfss to get these.
-* residuals.marssMLE & MARSSinnovationsboot that was not running MARSSkfss to get Innov, Kt, and Sigma when R was not diagonal.  Problem occurred after I changed MARSSkfss() to return text error instead of NULL for these.
+* residuals.marssMLE & MARSSinnovationsboot were not running MARSSkfss to get Innov, Kt, and Sigma when R was not diagonal.  Problem occurred after I changed MARSSkfss() to return text error instead of NULL for these.
 * bug introduced in 3.6 that printed no absol convergence when convergence=10.  Should have printed abstol convergence only.
 * bug in MARSSoptim (method=BFGS) that lead to only diagonal var-cov matrices when anything other than a diagonal var-cov matrix was selected.
 * same bug affected attempt to compute CIs for non-diagonal var-cov matrices with Hessian.
@@ -213,7 +295,7 @@ CHANGES IN MARSS 2.8 (2012-01-23)
 - error in MARSSkf when there were 0s on diagonal of Q. The algorithm only worked if B was diagonal.  Fix required changes to Kalman smoother bit of MARSSkf. I rewrote the pertinent section in EMDerivation.pdf.
 - cleaned up degenerate derivation in EMDerivation.pdf
 - added option to force use of MARSSkf function instead of MARSSkfas. If kf.x0="x10", default was to use MARSSkfas function which is much faster, but it doesn't like 0s on B diagonal if V0 is 0.  So I added the option to force use of slower MARSSkf function using method="BFGSkf". Reguired adding stuff to MARSSsettings.r and MARSSoptim.r.  This is mainly for debugging since MARSSoptim will now check if optim failed and try using MARSSkf if MARSSkfas was used.  Added line to output that says which function used for likelihood calculation; again for debugging.
-- edited MARSSmcinit to improve random B generation. There is nothing to guarantee that random Bs in mcinit routine will be within the unit circle, however it is probably a good idea if they are.   Default bounds for B changed to -1,1 and random B matrix rescaled by dividing by max(abs(eigen(B))/runif(1) to get the max abs eigenvalue between 0 and 1.  This works unless the user has fixed some B values to non-zero values.  This required change to is\_marssMLE.r also to remove constraint that B bounds be greater than 0.
+- edited MARSSmcinit to improve random B generation. There is nothing to guarantee that random Bs in mcinit routine will be within the unit circle, however it is probably a good idea if they are.   Default bounds for B changed to -1,1 and random B matrix rescaled by dividing by max(abs(Re(eigen(B)))/runif(1) to get the max abs eigenvalue between 0 and 1.  This works unless the user has fixed some B values to non-zero values.  This required change to is\_marssMLE.r also to remove constraint that B bounds be greater than 0.
 - edited MARSSmcinit to allow fixed and shared values in random Qs and Rs. The random Wishart draw is rescaled based on the fixed and shared structure in R or Q.  As part of this, I cleaned up how fixed and shared values are specified in the random draws of other parameters.  This change doesn't change the end effect, but the code is cleaner.
 
 

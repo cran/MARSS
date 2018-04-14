@@ -1,5 +1,5 @@
 ###########################################################################################################################
-#   diag helper functions
+#   utility functions
 ###########################################################################################################################
 #fast diagonal calc
 isDiag = function(x){ all(x[!diag(nrow(x))] == 0) }
@@ -8,7 +8,7 @@ takediag = function(x)
   ############# Function to take the diagonal; deals with R trying to think too much with diag()
 {
   if(length(x)==1) return(x)
-  if(!is.matrix(x)) stop("takediag: function requires a 2D matrix")
+  if(!is.matrix(x)) stop("Stopped in MARSS internal function takediag(): function requires a 2D matrix.\n", call.=FALSE)
   d1=dim(x)[1]
   return(x[1 + 0:(d1 - 1)*(d1 + 1)])  #faster diag
 }
@@ -22,7 +22,7 @@ makediag = function(x,nrow=NA)
     return(diag(c(x),nrow))
   }
   if((is.matrix(x) | is.array(x)))
-    if(!(dim(x)[1]==1 | dim(x)[2]==1))  stop("makediag: error in call to makediag; x is not vector")
+    if(!(dim(x)[1]==1 | dim(x)[2]==1))  stop("Stopped in MARSS internal function makediag(): error in call to makediag; x is not vector.\n", call.=FALSE)
   if(is.na(nrow)) nrow=length(x)
   return(diag(c(x),nrow))
 }
@@ -73,12 +73,12 @@ is.diagonal = function(x, na.rm=FALSE) {
 is.identity = function(x, dim=NULL) {
   #works on 2D numeric, character or list matrices; "1" is not identical to 1 however
   #if dim!=NULL, it means that a vec version of the matrix was passed in so dim specifies what the dim of the original matrix is
-  if(!is.matrix(x)) stop("is.identity: argument must be a matrix") #x must be 2D matrix; is.matrix returns false for 3D array
+  if(!is.matrix(x)) stop("Stopped in MARSS internal function is.identity(): argument must be a matrix.\n", call.=FALSE) #x must be 2D matrix; is.matrix returns false for 3D array
   if(!is.null(dim)){
-    if(length(dim)!=2) stop("is.identity: dim must be length 2 vector")
-    if(!is.numeric(dim)) stop("is.identity: dim must be numeric")
-    if(!all(sapply(dim, is.wholenumber)) | !all(dim>=0)) stop("is.identity: dim must be positive whole number")
-    if(length(x)!=(dim[1]*dim[2])) stop("is.identity: dim is not the right size.  length(x)=dim1*dim2")
+    if(length(dim)!=2) stop("Stopped in MARSS internal function is.identity(): dim must be length 2 vector.\n", call.=FALSE)
+    if(!is.numeric(dim)) stop("Stopped in MARSS internal function is.identity(): dim must be numeric.\n", call.=FALSE)
+    if(!all(sapply(dim, is.wholenumber)) | !all(dim>=0)) stop("Stopped in MARSS internal function is.identity(): dim must be positive whole number.\n", call.=FALSE)
+    if(length(x)!=(dim[1]*dim[2])) stop("Stopped in MARSS internal function is.identity(): dim is not the right size.  length(x)=dim1*dim2", call.=FALSE)
     x=unvec(x,dim=dim)
   }
   if(!is.diagonal(x)) return(FALSE)
@@ -114,22 +114,28 @@ is.validvarcov = function(x, method="kem"){
   #this tests the blocks to see if there is mixing of fixed and estimated elements
   #makes a lists of the block estimates to test that blocks with shared values are identical
   tmpx = x
+  tmpr = 1:nr
   blocks=list()
   blockvals=list()
-  isdiag = c()
+  blockrows=list() #this will keep track of the rows assoc with each block
+  isdiag = isfixed = c()
   for(i in 1:nr){
     block = which(!sapply(tmpx[1,,drop=FALSE],identical,0))
     blocks=c(blocks,list(block))
+    blockrows=c(blockrows, list(tmpr[block]))
     this.block=tmpx[block,block,drop=FALSE]
     vals = this.block[upper.tri(this.block, diag=TRUE)]
-    #within a block, you cannot have fixed and estimated values.  They have to be one or the other
+    if(length(block)!=1){ #Skip if 1x1 because is so block is automatically ok
+      #within a block, you cannot have fixed and estimated values.  They have to be one or the other
     if(!(all(unlist(lapply(vals, is.numeric))) | all(unlist(lapply(vals, is.character)))))
-      return(list(ok=FALSE, error="numeric (fixed) and estimated values cannot mixed in a varcov matrix "))
-    #if method="BFGS", then blocks must be diagonal or unconstrained, if estimated
+      return(list(ok=FALSE, error="numeric (fixed) and estimated values cannot mixed within blocks in a varcov matrix "))
+    #if method="BFGS", then blocks must be diagonal or block unconstrained, if estimated
     if(method=="BFGS" & is.character(vals[[1]])){ #only test first since all the same class
-      if(any(duplicated(unlist(vals)))) return(list(ok=FALSE, error="when method=BFGS, no constraints can be put on varcov blocks except being diagonal "))
+      if(any(duplicated(unlist(vals)))) return(list(ok=FALSE, error="when method=BFGS, blocks in var-cov matrices much either be diagonal (shared values allowed) or unconstrained (no shared values) "))
     }
-    if(is.numeric(vals[[1]])){ #then the block is numeric and must be positive definite
+    #if the block is numeric, it must be positive definite
+    if(is.numeric(vals[[1]])){  
+      #only need to test one val since all numeric if numeric
       pos.flag=FALSE
       test.block = matrix(as.numeric(this.block),dim(this.block)[1],dim(this.block)[2])
       tmp = try( eigen(test.block, only.values=TRUE), silent=TRUE )
@@ -139,14 +145,52 @@ is.validvarcov = function(x, method="kem"){
       if(pos.flag){
         return(list(ok=FALSE, error="One of the fixed blocks within the varcov matrix is not positive-definite "))
       }
+    }else{
+      #if not numeric, then it must be valid.
+      diag.vals=unlist(takediag(this.block))
+      diag.val.locs=as.numeric(as.factor(diag.vals)) #vals given unique numbers
+      diag.facs=unique(diag.val.locs) #the unique numbers w no dups
+      test.comb=rbind(diag.facs,diag.facs)
+      cov.vals=c()
+      if(length(diag.facs)!=1) test.comb=cbind(test.comb,combn(diag.facs,2))
+      num.req.cov.vals = dim(test.comb)[2]
+      for(j in 1:dim(test.comb)[2]){ #Go through each pair that needs to be identical
+        sub.block.r=which(diag.val.locs==test.comb[1,j])
+        sub.block.c=which(diag.val.locs==test.comb[2,j])
+        if(test.comb[1,j]==test.comb[2,j]){ #this is a cov within equal var
+          if(length(sub.block.r)==1){
+            num.req.cov.vals = num.req.cov.vals-1 #there is no cov for this variance since only 1
+            next #1x1 sub.block; no covs
+          }
+          this.sub.block = this.block[sub.block.r,sub.block.c,drop=FALSE]
+          sub.vals = this.sub.block[upper.tri(this.sub.block, diag=FALSE)]
+          if(length(unique(sub.vals))!=1)
+            return(list(ok=FALSE, error=" Shared variances on the diagonal must all have shared covariances on the off diagonal "))
+          cov.vals = c(cov.vals, unique(sub.vals))
+          }else{
+          this.sub.block = this.block[sub.block.r,sub.block.c,drop=FALSE]
+          cov.val = unique(as.vector(this.sub.block))
+          if(length(cov.val)!=1)
+            return(list(ok=FALSE, error=" Covariances between the same 2 variance pairs must be equal "))
+          cov.vals = c(cov.vals, cov.val)
+        }
       }
-    isdiag= c(isdiag, length(block)==1)
+      if(length(unique(cov.vals))!=num.req.cov.vals)
+        return(list(ok=FALSE, error=" Covariances cannot be shared across pairs of unequal variances "))
+      if(any(diag.vals %in% cov.vals))
+        return(list(ok=FALSE, error=" Covariances and variances cannot be shared "))
+   }
+    }
+    #record whether the block is diagonal; needed later
+    isdiag=c(isdiag, length(block)==1)
     blockvals=c(blockvals, list( unlist(vals[unlist(lapply(vals,is.character))] )))
     notblock = which(sapply(tmpx[1,,drop=FALSE],identical,0))
     if(length(notblock)==0) break
     tmpx=tmpx[notblock,notblock,drop=FALSE]
+    tmpr=tmpr[notblock]
     dim(tmpx) = c(length(notblock),length(notblock))
   }
+  #make sure there are not shared values across non-identical blocks
   for(i in 1:length(blocks)){
     #find blocks where there are shared values
     shared = unlist(lapply(blockvals, function(x){any(x %in% blockvals[[i]])}))
@@ -160,7 +204,12 @@ is.validvarcov = function(x, method="kem"){
     #it'll be a list, so unlist
     if(!all(unlist(tmp))) return(list(ok=FALSE, error="there are shared elements across non-identical blocks "))
   }
-
+  
+  #Check that each block that is not diagonal is valid.  That fixed and free are not combined is checked earlier.
+  #Now we must check that each non-diagonal block is either unconstrained or equalvarcov.  Those are the only legal
+  #blocks besides fixed.
+  for(i in 1:length(blocks)){
+  }
   return(list(ok=TRUE, error=NULL)) #got through the check without returning FALSE, so OK
   
 }
@@ -199,15 +248,15 @@ is.design = function(x, strict=TRUE, dim=NULL, zero.rows.ok=FALSE, zero.cols.ok=
   #zero.rows.ok means that the rowsums can be 0 (if that row is fixed, say)
   #if dim not null it means a vec-ed version of the matrix was passed in so dim is dim of orig matrix
   #can be a list matrix; 
-  if(!is.array(x)) stop("is.design: function requires a 2D or 3D matrix") #x can be 2D or 3D matrix
+  if(!is.array(x)) stop("Stopped in MARSS internal function is.design(): function requires a 2D or 3D matrix.\n", call.=FALSE) #x can be 2D or 3D matrix
   if(length(dim(x))==3)
-    if(dim(x)[3]!=1){ stop("is.design: if 3D, 3rd dim of matrix must be 1")
+    if(dim(x)[3]!=1){ stop("Stopped in MARSS internal function is.design(): if 3D, 3rd dim of matrix must be 1.\n", call.=FALSE)
     }else{ x=matrix(x, dim(x)[1], dim(x)[2]) }
   if(!is.null(dim)){
-    if(length(dim)!=2) stop("is.design: dim must be length 2 vector")
+    if(length(dim)!=2) stop("Stopped in MARSS internal function is.design(): dim must be length 2 vector.\n", call.=FALSE)
     if(!is.numeric(dim)) stop("is.design: dim must be numeric")
-    if(!all(sapply(dim, is.wholenumber)) | !all(dim>=0)) stop("is.design: dim must be positive whole number")
-    if(length(x)!=(dim[1]*dim[2])) stop("is.design: dim is not the right size.  length(x)=dim1*dim2")
+    if(!all(sapply(dim, is.wholenumber)) | !all(dim>=0)) stop("Stopped in MARSS internal function is.design(): dim must be positive whole number.\n", call.=FALSE)
+    if(length(x)!=(dim[1]*dim[2])) stop("Stopped in MARSS internal function is.design(): dim is not the right size.  length(x)=dim1*dim2.\n", call.=FALSE)
     x=unvec(x,dim=dim)
   }
   x=as.matrix(unname(x)) #so that all.equal doesn't fail
@@ -215,9 +264,9 @@ is.design = function(x, strict=TRUE, dim=NULL, zero.rows.ok=FALSE, zero.cols.ok=
   if(!is.numeric(x)) return(FALSE)  #must be numeric
   if(any(is.nan(x))) return(FALSE)
   if(!strict){
-      is.zero = !x
-#     is.zero = sapply(lapply(x,all.equal,0),isTRUE) #funky to use near equality
-      x[!is.zero]=1 
+    is.zero = !x
+    #     is.zero = sapply(lapply(x,all.equal,0),isTRUE) #funky to use near equality
+    x[!is.zero]=1 
   } 
   if(!all(x %in% c(1,0))) return(FALSE)  #above ensured that all numeric
   if(!zero.cols.ok & dim(x)[1]<dim(x)[2]) return(FALSE) #if fewer rows than columns then not design
@@ -232,10 +281,10 @@ is.design = function(x, strict=TRUE, dim=NULL, zero.rows.ok=FALSE, zero.cols.ok=
 
 is.fixed = function(x, by.row=FALSE) { #expects the D (free) matrix; can be 3D or 2D; can be a numeric list matrix
   #by.row means it reports whether each row is fixed 
-  if(!is.array(x)) stop("is.fixed: function requires a 2D or 3D free(D) matrix")
-  if(!(length(dim(x)) %in% c(2,3))) stop("is.fixed: function requires a 2D or 3D free(D) matrix")
-  if(!is.numeric(x)) stop("is.fixed: free(D) must be numeric")  #must be numeric
-  if(any(is.na(x)) | any(is.nan(x))) stop("is.fixed: free(D) cannot have NAs or NaNs")
+  if(!is.array(x)) stop("Stopped in MARSS internal function is.fixed(): function requires a 2D or 3D free(D) matrix.\n", call.=FALSE)
+  if(!(length(dim(x)) %in% c(2,3))) stop("Stopped in MARSS internal function is.fixed(): function requires a 2D or 3D free(D) matrix.\n", call.=FALSE)
+  if(!is.numeric(x)) stop("Stopped in MARSS internal function is.fixed(): free(D) must be numeric.\n", call.=FALSE)  #must be numeric
+  if(any(is.na(x)) | any(is.nan(x))) stop("Stopped in MARSS internal function is.fixed(): free(D) cannot have NAs or NaNs.\n", call.=FALSE)
   if(dim(x)[2]==0){ 
     if(!by.row){ return(TRUE) }else{ return(rep(TRUE,dim(x)[1])) }
   }
@@ -279,7 +328,9 @@ unvec = function(x,dim=NULL){
   return(matrix(x,dim[1],dim[2]))
 }
 
-parmat = function( MLEobj, elem=c("B","U","Q","Z","A","R","x0","V0"), t=1, dims=NULL, model.loc="marss" ){
+# model.loc tells parmat which model the pars element is matched to.
+# normally this is $marss.  but for coef() the MLEobj is modified so the pars matches $model
+parmat = function( MLEobj, elem=c("B","U","Q","Z","A","R","x0","V0","G","H","L"), t=1, dims=NULL, model.loc="marss" ){
   #returns a list where each el in elem is an element.  Returns a 2D matrix.
   #needs MLEobj$marss and MLEobj$par
   #dims is an optional argument to pass in to tell parmat the dimension of elem (if it is not a MARSS model)
@@ -288,7 +339,7 @@ parmat = function( MLEobj, elem=c("B","U","Q","Z","A","R","x0","V0"), t=1, dims=
   pars=MLEobj[["par"]]
   f=model[["fixed"]]
   d=model[["free"]]
-  if(!all(elem %in% names(f))) stop("parmat: one of the elem not one of the model parameter names.")
+  if(!all(elem %in% names(f))) stop("parmat: one of the elem is not one of the marss parameter names.")
   par.mat=list()
   if(is.null(dims)) dims = attr(model, "model.dims")
   if(!is.list(dims) & length(elem)!=1) stop("parmat: dims needs to be a list if more than one elem passed in")
@@ -568,7 +619,27 @@ pcholinv = function(x){
   return(inv.x)
 }
 
-#pseudoinverse based on thin svd; x%*%x*%*%x =  x; x%*%x* not nec. I
+pchol=function (x) 
+{
+  dim.x = dim(x)[1]
+  diag.x = x[1 + 0:(dim.x - 1) * (dim.x + 1)]
+  if (any(diag.x == 0)) {
+    if (any(diag.x != 0)) {
+      b = chol(x[diag.x != 0, diag.x != 0])
+      OMG.x = diag(1, dim.x)[diag.x != 0, , drop = FALSE]
+      inv.x = t(OMG.x) %*% b %*% OMG.x
+    }
+    else {
+      inv.x = matrix(0, dim.x, dim.x)
+    }
+  }
+  else {
+    inv.x = chol(x)
+  }
+  return(inv.x)
+}
+
+#pseudoinverse based on thin svd; x %*% x* %*% x =  x; x%*%x* not nec. I
 pinv = function(x){
   dimx=dim(x)
   b=svd(x)
@@ -581,6 +652,23 @@ pinv = function(x){
   return(xinv)
 }
 
+#replace 0 diags with 0 row/cols; no error checking. For non-symm matrices. Use pcholinv for symm.
+psolve = function(x){
+  dim.x=dim(x)[1]
+  diag.x=x[1 + 0:(dim.x - 1)*(dim.x + 1)]
+  if(any(diag.x==0)){
+    if(any(diag.x!=0)){
+      b=solve(x[diag.x!=0,diag.x!=0])
+      OMG.x=diag(1,dim.x)[diag.x!=0,,drop=FALSE]
+      inv.x=t(OMG.x)%*%b%*%OMG.x
+    }else{
+      inv.x=matrix(0,dim.x,dim.x)
+    }
+  }else{
+    inv.x=solve(x)
+  }
+  return(inv.x)
+}
 #report on whether the linear system y=Ax is underconstrained, overconstrained, or 1 unique solution
 is.solvable = function(A,y=NULL){
   dimA=dim(A)
@@ -599,4 +687,82 @@ is.solvable = function(A,y=NULL){
 
 all.equal.vector = function(x){
   all(sapply( as.list(x[-1]), FUN=function(z) {identical(z, unlist(x[1]))}))
+}
+
+######################################################################################
+## String manipulation functions
+## Needed for the build.eqn.tex function
+######################################################################################
+str_detect=function(string, pattern){
+  if (length(pattern) == 1) {
+    results <- grepl(pattern, string)
+  }
+  else {
+    results <- unlist(mapply("grepl", pattern, string))
+  }
+  results
+}
+
+str_replace_all=function(string, pattern, replacement){
+  if (length(pattern) == 1 && length(replacement) == 1) {
+    gsub(pattern, replacement, string)
+  }
+  else {
+    unlist(mapply("gsub", pattern, replacement, string))
+  }
+}
+
+str_trim=function(string){
+  pattern <- "^\\s+|\\s+$"
+  str_replace_all(string, pattern, "")
+}
+
+str_sub=function (string, start = 1L, end = -1L) 
+{
+  if (length(string) == 0L || length(start) == 0L || length(end) == 
+        0L) {
+    return(vector("character", 0L))
+  }
+  n <- max(length(string), length(start), length(end))
+  string <- rep(string, length = n)
+  start <- rep(start, length = n)
+  end <- rep(end, length = n)
+  len <- str_length(string)
+  neg_start <- !is.na(start) & start < 0L
+  start[neg_start] <- start[neg_start] + len[neg_start] + 1L
+  neg_end <- !is.na(end) & end < 0L
+  end[neg_end] <- end[neg_end] + len[neg_end] + 1L
+  substring(string, start, end)
+}
+
+str_length=function(string){
+  nc <- nchar(string, allowNA = TRUE)
+  is.na(nc) <- is.na(string)
+  nc
+}
+
+str_replace=function(string, pattern, replacement) 
+{
+  if (length(pattern) == 1 && length(replacement) == 1) {
+    sub(pattern, replacement, string)
+  }
+  else {
+    unlist(mapply("sub", pattern, replacement, string))
+  }
+}
+
+################################################################
+
+zscore = function(x){
+  ismat = is.matrix(x) #else is vector
+  if(ismat){
+    Sigma = sqrt(apply(x, 1, var, na.rm=TRUE))
+    x.bar = apply(x, 1, mean, na.rm=TRUE)
+  }else{
+    Sigma = sqrt(var(x, na.rm=TRUE))
+    x.bar = mean(x, na.rm=TRUE)
+  }
+  x.z = (x - x.bar) * (1/Sigma)
+  if(ismat) rownames(x.z) = rownames(x)
+  x.z
 }

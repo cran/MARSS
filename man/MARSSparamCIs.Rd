@@ -5,7 +5,8 @@
 Computes standard errors, confidence intervals and bias for the maximum-likelihood estimates of MARSS model parameters.  If you what confidence intervals on the estimated hidden states, see \code{\link{print.marssMLE}} and look for "states.cis".
 }
 \usage{
-MARSSparamCIs(MLEobj, method = "hessian", alpha = 0.05, nboot=1000)
+MARSSparamCIs(MLEobj, method = "hessian", alpha = 0.05, nboot =
+                 1000, silent = TRUE, hessian.fun = "Harvey1989")
 }
 
 \arguments{
@@ -13,9 +14,11 @@ MARSSparamCIs(MLEobj, method = "hessian", alpha = 0.05, nboot=1000)
   \item{method}{ Method for calculating the standard errors: "hessian", "parametric", and "innovations" implemented currently. }
   \item{alpha}{ alpha level for the 1-alpha confidence intervals. }
   \item{nboot}{ Number of bootstraps to use for "parametric" and "innovations" methods. }
+  \item{hessian.fun}{ The function to use for computing the Hessian.  See \code{\link{MARSShessian}}.}
+  \item{silent}{ If false, a progress bar is shown for "parametric" and "innovations" methods. }
 }
 \details{
-  Approximate confidence intervals (CIs) on the model parameters may be calculated from the Hessian matrix (the matrix of partial 2nd derivatives of the parameter estimates) or parametric or non-parametric (innovations) bootstrapping using \code{nboot} bootstraps.  The Hessian CIs are based on the asymptotic normality of MLE parameters under a large-sample approximation.  The Hessian computation for variance-covariance matrices is done on these matrices in their equivalent Cholesky decomposition form (see \code{\link{MARSShessian}}. Bootstrap estimates of parameter bias are reported if method "parametric" or "innovations" is specified.
+  Approximate confidence intervals (CIs) on the model parameters may be calculated from the Hessian matrix (the matrix of partial 2nd derivatives of the parameter estimates) or parametric or non-parametric (innovations) bootstrapping using \code{nboot} bootstraps.  The Hessian CIs are based on the asymptotic normality of MLE parameters under a large-sample approximation.  The Hessian computation for variance-covariance matrices is a symmetric approximation and the lower CIs for variances might be negative.  Using a Hessian approximation for variances is approximate. Bootstrap estimates of parameter bias are reported if method "parametric" or "innovations" is specified.
   
 Note, these are added to the par (etc) elements of a marssMLE object but are in marss form not marxss form. Thus the MLEobj$par.upCI and related elements that are added to the marssMLE object may not look familiar to the user.  Instead the user should extract these elements using \code{print(MLEobj)} and passing in the argument \code{what} set to "par.se","par.bias","par.lowCIs", or "par.upCIs".  See \code{\link{print.marssMLE}}.
 }
@@ -34,11 +37,11 @@ Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuid
 \seealso{ \code{\link{MARSSboot}} \code{\link{MARSSinnovationsboot}} \code{\link{MARSShessian}}
  }
 \examples{
-  dat = t(harborSealWA)
-  dat = dat[2:4,]
-  kem = MARSS(dat, model=list(Z=matrix(1,3,1), 
+  dat <- t(harborSealWA)
+  dat <- dat[2:4,]
+  kem <- MARSS(dat, model=list(Z=matrix(1,3,1), 
      R="diagonal and unequal"))
-  kem.with.CIs.from.hessian = MARSSparamCIs(kem)
+  kem.with.CIs.from.hessian <- MARSSparamCIs(kem)
   kem.with.CIs.from.hessian
 }
 

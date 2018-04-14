@@ -1,5 +1,11 @@
 ###################################################
-### code chunk number 2: Covar_sec2_1_load-plankton-data
+### code chunk number 2: Covar_sec0_required_libraries
+###################################################
+library(MARSS)
+
+
+###################################################
+### code chunk number 3: Covar_sec2_1_load-plankton-data
 ###################################################
 fulldat = lakeWAplanktonTrans
 years = fulldat[,"Year"]>=1965 & fulldat[,"Year"]<1975
@@ -10,27 +16,25 @@ dat = (dat-the.mean)*(1/the.sigma)
 
 
 ###################################################
-### code chunk number 3: Covar_sec2_2_z-score-covar-data
+### code chunk number 4: Covar_sec2_2_z-score-covar-data
 ###################################################
 covariates = rbind(
    Temp = fulldat[years,"Temp"],
    TP = fulldat[years,"TP"])
    
 # z.score the covariates
-the.mean = apply(covariates,1,mean,na.rm=TRUE)
-the.sigma = sqrt(apply(covariates,1,var,na.rm=TRUE))
-covariates = (covariates-the.mean)*(1/the.sigma)
+covariates = zscore(covariates)
 
 
 ###################################################
-### code chunk number 4: Covar_sec2_3_plot-dat
+### code chunk number 5: Covar_sec2_3_plot-dat
 ###################################################
 LWA <- ts(cbind(Year=fulldat[years,"Year"], t(dat), t(covariates)), start=c(1965,1), end=c(1974,12), freq=12)
 plot.ts(LWA[,c("Greens","Bluegreens", "Temp", "TP")], main="", yax.flip=TRUE)
 
 
 ###################################################
-### code chunk number 5: Covar_sec3_1_covar-model-0
+### code chunk number 6: Covar_sec3_1_covar-model-0
 ###################################################
 Q = U = x0 = "zero"; B = Z = "identity"
 d = covariates
@@ -42,7 +46,7 @@ kem = MARSS(y, model=model.list)
 
 
 ###################################################
-### code chunk number 6: Covar_sec3_2_covar-model-0b
+### code chunk number 7: Covar_sec3_2_covar-model-0b
 ###################################################
 Q = "unconstrained"
 B = "diagonal and unequal"
@@ -50,14 +54,14 @@ A = U = x0 = "zero"
 R = "diagonal and equal"
 d = covariates
 D = "unconstrained"
-y = dat # to show the relation between dat & the model equations
+y = dat 
 model.list = list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,D=D,d=d,x0=x0)
 control.list = list(maxit=1500)
 kem = MARSS(y, model=model.list, control=control.list)
 
 
 ###################################################
-### code chunk number 7: Covar_sec4_1_covar-model-1
+### code chunk number 8: Covar_sec4_1_covar-model-1
 ###################################################
 R = A = U = "zero"; B = Z = "identity"
 Q = "equalvarcov"
@@ -68,18 +72,9 @@ kem = MARSS(x, model=model.list)
 
 
 ###################################################
-### code chunk number 8: Covar_sec4_2_covar-model-1c
+### code chunk number 9: Covar_sec4_2_covar-model-1c
 ###################################################
 model.list$B = "diagonal and unequal"
-kem = MARSS(dat, model=model.list)
-
-
-###################################################
-### code chunk number 9: Covar_sec4_3_covar-model-2
-###################################################
-x0 = dat[,1,drop=FALSE]
-model.list$tinitx = 1
-model.list$x0 = x0
 kem = MARSS(dat, model=model.list)
 
 
@@ -96,14 +91,12 @@ kem = MARSS(dat, model=model.list)
 years = fulldat[,"Year"]>=1965 & fulldat[,"Year"]<1975
 phytos = c("Diatoms", "Greens", "Bluegreens",
            "Unicells", "Other.algae")
-dat = t(fulldat[years,phytos])
+dat = t(fulldat[years, phytos])
 
-# z.score data because we changed the mean when we subsampled
-the.mean = apply(dat,1,mean,na.rm=TRUE)
-the.sigma = sqrt(apply(dat,1,var,na.rm=TRUE))
-dat = (dat-the.mean)*(1/the.sigma)
+# z.score data again because we changed the mean when we subsampled
+dat = zscore(dat)
 # number of time periods/samples
-TT = dim(dat)[2]
+TT = ncol(dat)
 
 
 ###################################################
@@ -140,7 +133,7 @@ C = "unconstrained"
 ###################################################
 # Each taxon has unique density-dependence
 B = "diagonal and unequal"
-# Assume independent process errors
+# Independent process errors
 Q = "diagonal and unequal"
 # We have demeaned the data & are fitting a mean-reverting model
 # by estimating a diagonal B, thus
@@ -149,10 +142,10 @@ U = "zero"
 Z = "identity" 
 # The data are demeaned & fluctuate around a mean
 A = "zero" 
-# We assume observation errors are independent, but they
+# Observation errors are independent, but they
 # have similar variance due to similar collection methods
 R = "diagonal and equal"
-# We are not including covariate effects in the obs equation
+# No covariate effects in the obs equation
 D = "zero"
 d = "zero"
 
@@ -161,7 +154,7 @@ d = "zero"
 ### code chunk number 16: Covar_sec6_06_fit-month-factor-with-MARSS
 ###################################################
 model.list = list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,C=C,c=c.in,D=D,d=d)
-seas.mod.1 = MARSS(dat,model=model.list,control=list(maxit=1500))
+seas.mod.1 = MARSS(dat, model=model.list,control=list(maxit=1500))
 
 # Get the estimated seasonal effects
 # rows are taxa, cols are seasonal effects

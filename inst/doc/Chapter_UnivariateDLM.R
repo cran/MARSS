@@ -1,25 +1,20 @@
 ###################################################
-### code chunk number 2: Cs_01_read.in.data
+### code chunk number 2: Cs_01_readindata
 ###################################################
-# load the data
 data(SalmonSurvCUI)
-# get time indices
 years = SalmonSurvCUI[,1]
-# number of years of data
 TT = length(years)
-# get response data: logit(survival)
+# response data: logit(survival)
 dat = matrix(SalmonSurvCUI[,2],nrow=1)
 
 
 ###################################################
-### code chunk number 3: Cs_02_z.score
+### code chunk number 3: Cs_02_zscore
 ###################################################
-# get regressor variable
-CUI = SalmonSurvCUI[,3]
-# z-score the CUI
-CUI.z = matrix((CUI - mean(CUI))/sqrt(var(CUI)), nrow=1)
-# number of regr params (slope + intercept)
-m = dim(CUI.z)[1] + 1
+CUI = SalmonSurvCUI[,"CUI.apr"]
+CUI.z = zscore(CUI)
+# number of state = # of regression params (slope(s) + intercept)
+m = 1 + 1
 
 
 ###################################################
@@ -33,7 +28,7 @@ mtext("Year of ocean entry", 1, line=3)
 
 
 ###################################################
-### code chunk number 5: Cs_031_univ.DLM.proc
+### code chunk number 5: Cs_031_univDLMproc
 ###################################################
 # for process eqn
 B = diag(m)                   # 2x2; Identity
@@ -43,7 +38,7 @@ diag(Q) = c("q1","q2")        # 2x2; diag = (q1,q2)
 
 
 ###################################################
-### code chunk number 6: Cs_04_univ.DLM.obs
+### code chunk number 6: Cs_04_univDLMobs
 ###################################################
 # for observation eqn
 Z = array(NA, c(1,m,TT))   # NxMxT; empty for now
@@ -54,7 +49,7 @@ R = matrix("r")            # 1x1; scalar = r
 
 
 ###################################################
-### code chunk number 7: Cs_05_univ.DLM.list
+### code chunk number 7: Cs_05_univDLM-list
 ###################################################
 # only need starting values for regr parameters
 inits.list = list(x0=matrix(c(0, 0), nrow=m))
@@ -63,9 +58,8 @@ mod.list = list(B=B, U=U, Q=Q, Z=Z, A=A, R=R)
 
 
 ###################################################
-### code chunk number 8: Cs_06_univ.DLM.fit
+### code chunk number 8: Cs_06_univDLM-fit
 ###################################################
-# fit univariate DLM
 dlm1 = MARSS(dat, inits=inits.list, model=mod.list)
 
 
@@ -90,7 +84,7 @@ mtext("Year of ocean entry", 1, line=3)
 
 
 ###################################################
-### code chunk number 10: Cs_08_univ.DLM.fore.mean
+### code chunk number 10: Cs_08_univDLM-fore-mean
 ###################################################
 # get list of Kalman filter output
 kf.out = MARSSkfss(dlm1)
@@ -104,7 +98,7 @@ for(t in 1:TT) {
 
 
 ###################################################
-### code chunk number 11: Cs_09_univ.DLM.fore.Var
+### code chunk number 11: Cs_09_univDLM-fore-Var
 ###################################################
 # variance of regr parameters; 1x2xT array
 Phi = kf.out$Vtt1
