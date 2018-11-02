@@ -226,9 +226,10 @@ MARSSkfss = function( MLEobj ) {
         B = parmat(MLEobj, "B", t=t)$B  #t since in 6.49, B[t] appears
         if(m==1) t.B=B else t.B = matrix(B,m,m,byrow=TRUE) 
       }
-      if("Q" %in% time.varying){
-        Q = parmat(MLEobj, "Q", t=t)$Q
-        if(m==1){ diag.Q=unname(Q) }else{ diag.Q = unname(Q)[1 + 0:(m - 1)*(m + 1)] } 
+      if("Q" %in% time.varying | "G" %in% time.varying){
+        Q = parmat(MLEobj, "Q", t=t)$Q; G = parmat(MLEobj, "G", t=t)$G
+        Q=tcrossprod(G %*% Q, G)
+        if(m==1){ diag.Q=unname(Q) }else{ diag.Q = unname(Q)[1 + 0:(m - 1)*(m + 1)] }
       }
       #deal with any 0s on diagonal of Vtt1; these can arise due to 0s in V0, B, + Q
       #0s on diag of Vtt1 will break the Kalman smoother if t>1
@@ -286,7 +287,7 @@ MARSSkfss = function( MLEobj ) {
       }
       J0 = V0%*%t.B%*%Vinv  # eqn 6.49 and 1s on diag when Q=0; Here it is t.B[1]
       x0T = x0 + J0%*%(xtT[,1,drop=FALSE]-xtt1[,1,drop=FALSE]);          # eqn 6.47
-      V0T = V0 + J0%*%(VtT[,,1]-Vtt1[,,1])*t(J0)   # eqn 6.48
+      V0T = V0 + J0%*%(VtT[,,1]-Vtt1[,,1])%*%t(J0)   # eqn 6.48
       V0T = symm(V0T) #enforce symmetry
     }
     if(init.state=="x10") { #Ghahramani treatment of initial states; LAM and pi defined for x_1

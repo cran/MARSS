@@ -11,7 +11,7 @@ legendnames = (unlist(dimnames(dat)[1]))
 
 #estimate parameters
 Z.model = factor(c(1,1,1,1,1))
-R.model = "diagonal and unequal" 
+R.model = "diagonal and equal" 
 kem1 = MARSS(dat, model=list(Z=Z.model, R=R.model))
 
 #make figure
@@ -39,7 +39,7 @@ kem1$AIC  #show the AIC
 #Code to fit the single population model with independent and unequal errors 
 
 Z.model = factor(c(1,1,1,1,1))
-R.model = "diagonal and equal" 
+R.model = "diagonal and unequal" 
 kem2 = MARSS(dat, model=list(Z=Z.model, R=R.model))
 
 coef(kem2) #the estimated parameter elements
@@ -68,7 +68,7 @@ par(mfrow=c(1,1))
 Z.model = factor(c(1,1,2,2,2))
 U.model = "equal" 
 Q.model = "diagonal and equal"
-R.model = "diagonal and equal" 
+R.model = "diagonal and unequal" 
 kem3 = MARSS(dat, model=list(Z=Z.model, 
   R=R.model, U=U.model, Q=Q.model))
 #plot residuals

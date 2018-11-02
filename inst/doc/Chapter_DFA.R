@@ -349,8 +349,8 @@ for(i in 1:N.ts) {
 ###################################################
 ### code chunk number 36: Cs25d_plotwithaugment
 ###################################################
-library(broom)
-library(ggplot2)
+require(broom)
+require(ggplot2)
 theme_set(theme_bw()) 
 d <- augment(the.fit, interval="confidence")
 ggplot(data = d) + 

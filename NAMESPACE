@@ -20,16 +20,19 @@ export(
   MARSSparamCIs,
   MARSSsimulate,
   MARSSFisherI,
-  zscore,
-  augment.marssMLE,
-  tidy.marssMLE,
-  glance.marssMLE
+  zscore
 )
 
 #these are part of base, but user could unattach them and then MARSS wouldn't work
 import(stats)
 import(utils)
 import(graphics)
+
+## Imports; I am only using these functions from these packages
+importFrom(mvtnorm, rmvnorm)
+importFrom(nlme, fdHess)
+importFrom(KFAS, SSModel, SSMcustom, KFS)
+importFrom("grDevices", "contourLines")
 
 ## register S3 methods
 S3method(print, marssMODEL)
@@ -43,9 +46,26 @@ S3method(coef, marssMLE)
 S3method(residuals, marssMLE)
 S3method(model.frame, marssMODEL)
 S3method(model.frame, marssMLE)
+if(getRversion() >= "3.6.0") {
+  S3method(broom::augment, marssMLE)
+  S3method(broom::glance, marssMLE)
+  S3method(broom::tidy, marssMLE)
+  S3method(ggplot2::autoplot, marssMLE)
+}else{
+export(
+  augment.marssMLE,
+  glance.marssMLE,
+  tidy.marssMLE,
+  autoplot.marssMLE
+)
+}
 
-## Imports; I am only using these functions from these packages
-importFrom(mvtnorm, rmvnorm)
-importFrom(nlme, fdHess)
-importFrom(KFAS, SSModel, SSMcustom, KFS)
-importFrom("grDevices", "contourLines")
+# Another approach for the broom and ggplot2 S3 methods is 
+# to put broom and ggplot2 in imports
+# importFrom(broom, augment, glance, tidy)
+# importFrom(ggplot2, autoplot)
+# S3method(augment, marssMLE)
+# S3method(glance, marssMLE)
+# S3method(tidy, marssMLE)
+# S3method(autoplot, marssMLE)
+

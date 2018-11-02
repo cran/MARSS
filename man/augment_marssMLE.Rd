@@ -18,7 +18,7 @@
   
   \item{conf.level}{Confidence level.}
   
-  \item{form}{If you want the augment function to use a different augment function than augment.form.  This might be useful if you manually specified a DFA model and want to use augment.dfa for rotating.}
+  \item{form}{If you want the augment function to use a different augment function than augment_form.  This might be useful if you manually specified a DFA model and want to use augment.dfa for rotating.}
 
 }
 \description{
