@@ -1,5 +1,7 @@
 \name{SalmonSurvCUI}
 \alias{SalmonSurvCUI}
+\keyword{datasets}
+
 \docType{data}
 \title{ Salmon Survial Indices }
 \description{
@@ -17,4 +19,4 @@ Scheuerell, Mark D., and John G. Williams. "Forecasting climate-induced changes 
 \examples{
 str(SalmonSurvCUI)
 }
-\keyword{datasets}
+

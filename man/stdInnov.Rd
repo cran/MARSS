@@ -1,5 +1,7 @@
 \name{stdInnov}
 \alias{stdInnov}
+\keyword{internal}
+
 \title{ Standardized Innovations }
 \description{
   Standardizes Kalman filter innovations. This is a helper function called by \code{\link{MARSSinnovationsboot}} in the \code{\link{MARSS-package}}. Not exported.
@@ -26,7 +28,7 @@ Stoffer, D. S., and K. D. Wall. 1991. Bootstrapping state-space models: Gaussian
 
   eli(dot)holmes(at)noaa(dot)gov, eric(dot)ward(at)noaa(dot)gov
 }
-\seealso{  \code{\link{MARSSboot}} \code{\link{MARSSkf}} \code{\link{MARSSinnovationsboot}}
+\seealso{  \code{\link{MARSSboot}}, \code{\link{MARSSkf}}, \code{\link{MARSSinnovationsboot}}
 }
 \examples{
   \dontrun{

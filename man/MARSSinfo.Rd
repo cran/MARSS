@@ -1,6 +1,6 @@
 \name{MARSSinfo}
 \alias{MARSSinfo}
-\title{ Information for MARSS Error Messages and Warnings }
+\title{ MARSS Error Messages and Warnings }
 \description{
   Prints out more information for MARSS error messages and warnings.
 }
@@ -18,4 +18,8 @@ MARSSinfo(number)
   Eli Holmes, NOAA, Seattle, USA.  
 
   eli(dot)holmes(at)noaa(dot)gov
+}
+\examples{
+# Show all the info options
+MARSSinfo()
 }

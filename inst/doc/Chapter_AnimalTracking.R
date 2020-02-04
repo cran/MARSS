@@ -129,6 +129,21 @@ legend("bottomright",c("bad locations", "estimated true location",
 
 
 ###################################################
+### code chunk number 12: Cs09b_GCDF
+###################################################
+GCDF <- function(lon1, lon2, lat1, lat2, degrees=TRUE, units="miles") {
+   temp = ifelse(degrees==FALSE, 
+     acos(sin(lat1)*sin(lat2)+cos(lat1)*cos(lat2)*cos(lon2-lon1)), 
+     acos(sin(lat1/57.2958)*sin(lat2/57.2958)+cos(lat1/57.2958)*cos(lat2/57.2958)
+       *cos(lon2/57.2958-lon1/57.2958)))
+   r=3963.0 # (statute miles) , default
+   if("units"=="nm") r=3437.74677 # (nautical miles)
+   if("units"=="km") r=6378.7 # (kilometers)
+   return (r * temp)
+}
+
+
+###################################################
 ### code chunk number 13: Cs10_distance (eval = FALSE)
 ###################################################
 ## distance[i-1]=GCDF(pred.lon[i-1],pred.lon[i],

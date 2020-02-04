@@ -3,11 +3,13 @@
 \alias{is.marssMODEL_marss}
 \alias{is.marssMODEL_marxss}
 \alias{is.marssMODEL_dfa}
+\keyword{internal}
+
 \title{ Test Model Objects }
 \description{
-These are model objects and utility functions for model objects in the package \code{\link{MARSS-package}}.  Users would not normally work directly with these functions.
+These are model objects and utility functions for model objects in the package \code{\link{MARSS-package}}.  
   \code{is.marssMODEL()} ensures model consistency.
-  \code{MARSS_formname()} translates a model list as passed in call to MARSS() into a marssMODEL model object.
+  \code{MARSS_formname()} translates a model list as passed in call to \code{\link{MARSS}()} into a marssMODEL model object.
 }
 \usage{
 is.marssMODEL(MODELobj, method="kem")
@@ -48,7 +50,7 @@ The first dimension for f (\code{fixed}) and D (\code{free}) must be:
     \item{A}{ n x 1 }
     \item{R}{ n x n }
   }
-  The third dimension of f (\code{fixed}) and D (\code{free}) is either 1 (if not time-varying) or TT (if time-varying).   The second dimension of f (\code{fixed}) is always 1, while the second dimension of D  (\code{free}) depends on how many values are being estimated for a matrix.  It can be 0 (if the matrix is fixed) or up to the size of the matrix (if all elements are being estimated).
+  The third dimension of f (\code{fixed}) and D (\code{free}) is either 1 (if not time-varying) or T (if time-varying).   The second dimension of f (\code{fixed}) is always 1, while the second dimension of D  (\code{free}) depends on how many values are being estimated for a matrix.  It can be 0 (if the matrix is fixed) or up to the size of the matrix (if all elements are being estimated).
 
 }
 \value{

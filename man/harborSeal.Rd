@@ -1,6 +1,8 @@
 \name{harborSeal}
 \alias{harborSeal}
 \alias{harborSealWA}
+\keyword{datasets}
+
 \docType{data}
 \title{ Harbor Seal Population Count Data (Log counts) }
 \description{

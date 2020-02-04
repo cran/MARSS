@@ -1,8 +1,10 @@
 \name{MARSSvectorizeparam}
 \alias{MARSSvectorizeparam}
+\keyword{internal}
+
 \title{ Vectorize or Replace the par List }
 \description{
-  Converts \code{MLEobj[["what"]]} to a vector or assigns a vector to \code{MLEobj[["what"]]}.  This is a utility function in the \code{\link{MARSS-package}} for marssMODEL objects of form="marss" and is not exported.  Users achieve this functionality with \code{\link{coef.marssMLE}}.
+  Converts \code{MLEobj[["what"]]} to a vector or assigns a vector to \code{MLEobj[["what"]]}.  This is a utility function in the \code{\link{MARSS-package}} for \code{\link{marssMODEL}} objects of form="marss" and is not exported.  Users achieve this functionality with \code{\link{coef.marssMLE}}.
 }
 \usage{
 MARSSvectorizeparam(MLEobj, parvec = NA, what="par")
@@ -25,10 +27,10 @@ MARSSvectorizeparam(MLEobj, parvec = NA, what="par")
 }
 \seealso{ \code{\link{marssMLE}} }
 \examples{
-  dat <- t(harborSealWA)
-  dat <- dat[2:4,]
-  kem <- MARSS(dat)
-  paramvec = MARSS:::MARSSvectorizeparam(kem)
-  paramvec
+dat <- t(harborSealWA)
+dat <- dat[2:4, ]
+kem <- MARSS(dat)
+paramvec <- MARSS:::MARSSvectorizeparam(kem)
+paramvec
 }
 

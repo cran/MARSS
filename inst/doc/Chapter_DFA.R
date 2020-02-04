@@ -287,6 +287,9 @@ for(i in 1:dim(ts.trends)[2]) {
 ###################################################
 ### code chunk number 33: Cs25_func_get_DFA_fits
 ###################################################
+# If there were no missing values, this function will return the fits and CIs
+# Use tidy.marssMLE() to return the general fits and CIs
+# for the missing values case
 getDFAfits <- function(MLEobj, alpha=0.05, covariates=NULL) {
   fits <- list()
   Ey <- MARSShatyt(MLEobj) # for var() calcs

@@ -1,6 +1,8 @@
 \name{loggerhead}
 \alias{loggerhead}
 \alias{loggerheadNoisy}
+\keyword{datasets}
+
 \docType{data}
 \title{ Loggerhead Turtle Tracking Data }
 \description{
@@ -32,4 +34,3 @@ data(loggerheadNoisy)
 str(loggerhead)
 str(loggerheadNoisy)
 }
-\keyword{datasets}

@@ -6,11 +6,11 @@
   Generates simulated data from a MARSS model with specified parameter estimates. This is a base function in the \code{\link{MARSS-package}}.
 }
 \usage{
-MARSSsimulate(MLEobj, tSteps = NULL, nsim = 1, silent = TRUE, 
+MARSSsimulate(object, tSteps = NULL, nsim = 1, silent = TRUE, 
   miss.loc = NULL)
 }
 \arguments{
-  \item{MLEobj}{ A fitted \code{\link{marssMLE}} object, as output by \code{\link{MARSS}}. }
+  \item{object}{ A fitted \code{\link{marssMLE}} object, as output by \code{\link{MARSS}()}. }
   \item{tSteps}{ Number of time steps in each simulation. If left off, it is taken to be consistent with \code{MLEobj}.}
   \item{nsim}{ Number of simulated data sets to generate. }
   \item{silent}{ Suppresses progress bar. }
@@ -24,7 +24,7 @@ MARSSsimulate(MLEobj, tSteps = NULL, nsim = 1, silent = TRUE,
   \item{sim.states}{ Array (dim m x tSteps x nsim) of state processes simulated from parameter estimates. m is the number of states (rows in X).}
   \item{sim.data}{ Array (dim n x tSteps x nsim) of data simulated from parameter estimates. n is the number of rows of data (Y).}
   \item{MLEobj}{ The \code{\link{marssMLE}} object from which the data were simulated. }
-  \item{miss.loc}{ Matrix identifying where missing values were placed. }
+  \item{miss.loc}{ Matrix identifying where missing values were placed. It should be exactly the same dimensions as the data matrix. The location of NAs in the miss.loc matrix indicate where the missing values are. }
   \item{tSteps}{ Number of time steps in each simulation. }
   \item{nsim}{ Number of simulated data sets generated. }
 }
@@ -34,20 +34,19 @@ MARSSsimulate(MLEobj, tSteps = NULL, nsim = 1, silent = TRUE,
   eli(dot)holmes(at)noaa(dot)gov, eric(dot)ward(at)noaa(dot)gov
 }
 \seealso{ 
-  \code{\link{marssMODEL}} \code{\link{marssMLE}} \code{\link{MARSSboot}} 
+  \code{\link{marssMODEL}}, \code{\link{marssMLE}}, \code{\link{MARSSboot}} 
 }
 \examples{
-  d = harborSeal[,c(2,11)]
-  dat = t(d)
-  MLEobj = MARSS(dat)
+d <- harborSeal[, c(2, 11)]
+dat <- t(d)
+MLEobj <- MARSS(dat)
 
-  #simulate data that are the 
-  #same length as original data and no missing data
-  sim.obj = MARSSsimulate(MLEobj, tSteps=dim(d)[1], nsim=5)
-  
-  #simulate data that are the 
-  #same length as original data and have missing data in the same location
-  sim.obj = MARSSsimulate(MLEobj, tSteps=dim(d)[1], nsim=5, miss.loc=dat)
+# simulate data that are the
+# same length as original data and no missing data
+sim.obj <- MARSSsimulate(MLEobj, tSteps = dim(d)[1], nsim = 5)
 
+# simulate data that are the
+# same length as original data and have missing data in the same location
+sim.obj <- MARSSsimulate(MLEobj, tSteps = dim(d)[1], nsim = 5, miss.loc = dat)
 }
 

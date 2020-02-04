@@ -5,6 +5,8 @@
 # Install a second version into the local R library R_LIBS_USER
 # RStudio will use R_LIBS_USER if it exists.  It does not by default so
 #  you might have to create this folder to hav a local library.
+#  look at Sys.getenv("R_LIBS_USER"). Click Install under Packages tab and see
+#  where it is installing
 # Open the unit test.R file
 # RShowDoc("versiontest.R", package="MARSS")
 # Change working directory to a directory where many test files can be stored (sandbox)
@@ -17,27 +19,37 @@
 
 # ###########################################
 
-setwd("C:/Users/Eli.Holmes/Dropbox/MARSS unit tests 2018")
+if(Sys.info()['sysname']=="Windows"){
+  setwd("C:/Users/Eli.Holmes/Dropbox/MARSS unit tests 2019")
+  lib.new <- "C:/Program Files/R/R-3.6.2/library"
+}
+if(Sys.info()['sysname']=="Darwin"){
+  setwd("~/Dropbox/MARSS unit tests 2019")
+  lib.new <- "/Library/Frameworks/R.framework/Versions/3.6/Resources/library"
+}
+lib.old <- Sys.getenv("R_LIBS_USER")
+
+# to install MARSS to correct locations if needed
+# install.packages("MARSS", lib.old) #install from CRAN
+# Mac: install.packages("~/Dropbox/MARSS_3.10.12.tar.gz", lib=lib.new, repos=NULL)
+# Win: install.packages("C:/Users/Eli.Holmes/Dropbox/MARSS_3.10.12.tar.gz", lib=lib.new, repos=NULL)
 
 #make sure MARSS isn't loaded
 try(detach("package:MARSS", unload=TRUE),silent=TRUE)
 
-#One version should be in the local library
-#if building from RStudio, you can set to build to local
-lib.loc = Sys.getenv("R_LIBS_USER")
-unittestvrs=packageVersion("MARSS", lib.loc = lib.loc)
-unittestvrs #this should be new version
-library(MARSS, lib.loc = lib.loc)
-zscore.fun = zscore #3.9 does not have this
+#Load new and get the R files
+unittestfiles = dir(path=paste(lib.new,"/MARSS/doc",sep=""), pattern="*[.]R$", full.names = TRUE)
+unittestfiles = unittestfiles[unittestfiles!=paste(path.expand(lib.new),"/MARSS/doc/versiontest.R",sep="")]
 
-#Get whatever code files are in the doc directory; these are tested
-unittestfiles = dir(path=paste(lib.loc,"/MARSS/doc",sep=""), pattern="*[.]R$", full.names = TRUE)
-unittestfiles = unittestfiles[unittestfiles!=paste(lib.loc,"/MARSS/doc/versiontest.R",sep="")]
+unittestvrs=packageVersion("MARSS", lib.loc = lib.new)
+unittestvrs #this should be new version
+library(MARSS, lib.loc = lib.new)
+zscore.fun = zscore #3.9 does not have this
 
 cat("Running code with MARSS version", as.character(unittestvrs), "\n")
 for(unittestfile in unittestfiles){
   #clean the workspace but keep objects needed for the unit test
-  rm(list = ls()[!(ls()%in%c("unittestfile","unittestfiles","unittestvrs","zscore.fun"))])
+  rm(list = ls()[!(ls()%in%c("unittestfile","unittestfiles","unittestvrs","zscore.fun","lib.new","lib.old"))])
   #set up name for log files
   tag=strsplit(unittestfile,"/")[[1]]
   tag=tag[length(tag)]
@@ -51,7 +63,7 @@ for(unittestfile in unittestfiles){
   try(source(unittestfile))
   sink()
   #make a list of objects created by the test code
-  funs=sapply(ls(),function(x){isTRUE(class(get(x))=="function")})
+  funs=sapply(ls(),function(x){isTRUE(class(get(x))[1]=="function")})
   ls.not.funs = ls()[ls()!="funs"]
   test.these = ls.not.funs[!(ls.not.funs%in%c("unittestfile","unittestfiles","unittestvrs")) & !funs]
   testNew = mget(test.these)
@@ -60,14 +72,13 @@ for(unittestfile in unittestfiles){
 #detach the version
 detach("package:MARSS", unload=TRUE)
 
-#Old version of MARSS is in the R library (no local library)
-lib.loc = paste(Sys.getenv("R_HOME"),"/library",sep="")
-unittestvrs=packageVersion("MARSS", lib.loc = lib.loc)
+#Load old version of MARSS
+unittestvrs=packageVersion("MARSS", lib.loc = lib.old)
 unittestvrs
-library(MARSS, lib.loc = lib.loc)
+library(MARSS, lib.loc = lib.old)
 cat("\n\nRunning code with MARSS version", as.character(unittestvrs), "\n")
 for(unittestfile in unittestfiles){
-  rm(list = ls()[!(ls()%in%c("unittestfile","unittestfiles","unittestvrs","zscore.fun"))])
+  rm(list = ls()[!(ls()%in%c("unittestfile","unittestfiles","unittestvrs","zscore.fun","lib.new","lib.old"))])
   tag=strsplit(unittestfile,"/")[[1]]
   tag=tag[length(tag)]
   tag=strsplit(tag,"[.]")[[1]][1]
@@ -77,7 +88,7 @@ for(unittestfile in unittestfiles){
   set.seed(10)
   try(source(unittestfile))
   sink()
-  funs=sapply(ls(),function(x){isTRUE(class(get(x))=="function")})
+  funs=sapply(ls(),function(x){isTRUE(class(get(x))[1]=="function")})
   ls.not.funs = ls()[ls()!="funs"]
   test.these = ls.not.funs[!(ls.not.funs%in%c("unittestfile","unittestfiles","unittestvrs")) & !funs]
   testOld = mget(test.these)
@@ -93,10 +104,9 @@ for(unittestfile in unittestfiles){
   tag=tag[length(tag)]
   tag=strsplit(tag,"[.]")[[1]][1]
   #Load in the 2 lists, testNew and testOld
-  vrs=packageVersion("MARSS", lib.loc = Sys.getenv("R_LIBS_USER"))
+  vrs=packageVersion("MARSS", lib.loc = lib.new)
   load(file=paste(tag,vrs,".Rdata",sep=""))
-  lib.loc = paste(Sys.getenv("R_HOME"),"/library",sep="")
-  vrs=packageVersion("MARSS", lib.loc = lib.loc)
+  vrs=packageVersion("MARSS", lib.loc = lib.old)
   load(file=paste(tag,vrs,".Rdata",sep=""))
   
   #Compare the lists and report any differences
@@ -107,16 +117,95 @@ for(unittestfile in unittestfiles){
   }
   good=rep(TRUE,length(names(testNew)))
   for(ii in 1:length(names(testNew))){
+    if(inherits(testNew[[ii]], "marssMLE")){
+      for(kk in c("model", "marss")){
+      attr(testNew[[ii]][[kk]], "equation") <- NULL
+      attr(testOld[[ii]][[kk]], "equation") <- NULL
+      }
+      if(inherits(testNew[[ii]]$call$inits, "marssMLE")){
+        for(kk in c("model", "marss")){
+          attr(testNew[[ii]]$call$inits[[kk]], "equation") <- NULL
+          attr(testOld[[ii]]$call$inits[[kk]], "equation") <- NULL
+        }
+      }
+    }
+    if(inherits(testNew[[ii]], "marssMODEL")){
+        attr(testNew[[ii]], "equation") <- NULL
+        attr(testOld[[ii]], "equation") <- NULL
+    }
+    if(inherits(testNew[[ii]], "list")){
+      for(iii in 1:length(testNew[[ii]])){
+        if(inherits(testNew[[ii]][[iii]], "marssMLE")){
+          for(kk in c("model", "marss")){
+            attr(testNew[[ii]][[iii]][[kk]], "equation") <- NULL
+            attr(testOld[[ii]][[iii]][[kk]], "equation") <- NULL
+          }
+          if(inherits(testNew[[ii]][[iii]]$call$inits, "marssMLE")){
+            for(kk in c("model", "marss")){
+              attr(testNew[[ii]][[iii]]$call$inits[[kk]], "equation") <- NULL
+              attr(testOld[[ii]][[iii]]$call$inits[[kk]], "equation") <- NULL
+            }
+          }
+        }
+        if(inherits(testNew[[ii]][[iii]], "marssMODEL")){
+          attr(testNew[[ii]][[iii]], "equation") <- NULL
+          attr(testOld[[ii]][[iii]], "equation") <- NULL
+        }
+      }
+    }
     if(!identical(testNew[[ii]], testOld[[ii]])){
       good[ii] = FALSE
-      if(class(testNew[[ii]])=="marssMLE"){
+      if(inherits(testNew[[ii]], "marssMLE")){
         for(iii in names(testNew[[ii]][["par"]])){
           if(iii %in% c("G","H","L")) next
           if(!identical(testNew[[ii]][["par"]][iii], testOld[[ii]][["par"]][iii])){
             cat("Warning:", names(testNew)[ii],"par",iii,"not identical\n")
           }else{
-            cat(names(testNew)[ii],"par",iii,"identical\n")
+            #cat(names(testNew)[ii],"par",iii,"identical\n")
           }
+        }
+        for(iii in names(testNew[[ii]][["call"]])){
+          if(!identical(testNew[[ii]][["call"]][iii], testOld[[ii]][["call"]][iii])){
+            cat("Warning:", names(testNew)[ii],"call",iii,"not identical\n")
+          }else{
+            #cat(names(testNew)[ii],"call",iii,"identical\n")
+          }
+        }
+        for(iii in names(testNew[[ii]])){
+          if(!identical(testNew[[ii]][iii], testOld[[ii]][iii])){
+            cat("Warning:", names(testNew)[ii],iii,"not identical\n")
+          }else{
+            #cat(names(testNew)[ii],iii,"identical\n")
+          }
+        }
+      }
+      if(inherits(testNew[[ii]], "list")){
+        for(kk in 1:length(testNew[[ii]])){
+          if(inherits(testNew[[ii]][[kk]], "marssMLE")){
+            for(iii in names(testNew[[ii]][[kk]][["par"]])){
+              if(iii %in% c("G","H","L")) next
+              if(!identical(testNew[[ii]][[kk]][["par"]][iii], testOld[[ii]][[kk]][["par"]][iii])){
+                cat("Warning:", names(testNew)[[ii]][kk],"par",iii,"not identical\n")
+              }else{
+                #cat(names(testNew)[ii],"par",iii,"identical\n")
+              }
+            }
+            for(iii in names(testNew[[ii]][[kk]][["call"]])){
+              if(!identical(testNew[[ii]][[kk]][["call"]][iii], testOld[[ii]][[kk]][["call"]][iii])){
+                cat("Warning:", names(testNew)[[ii]][kk],"call",iii,"not identical\n")
+              }else{
+                #cat(names(testNew)[ii],"call",iii,"identical\n")
+              }
+            }
+            for(iii in names(testNew[[ii]][[kk]])){
+              if(!identical(testNew[[ii]][[kk]][iii], testOld[[ii]][[kk]][iii])){
+                cat("Warning:", names(testNew)[[ii]][kk],iii,"not identical\n")
+              }else{
+                #cat(names(testNew)[ii],iii,"identical\n")
+              }
+            }
+          }
+          
         }
       }
     }

@@ -1,14 +1,16 @@
 \name{MARSS.marxss}
 \alias{MARSS.marxss}
+\keyword{appendix}
+
 \title{ Multivariate AR-1 State-space Model with Inputs }
 \description{
-The argument \code{form="marxss"} in a MARSS() function call specifies a MAR-1 model with eXogenous variables model.  This is a MARSS(1) model of the form:
-\describe{
-\item{x(t) = B(t) x(t-1) + u(t) + C(t)c(t) + G(t)w(t), where w(t) ~ MVN(0,Q(t))}{}
-\item{y(t) = Z(t) x(t) + a(t) + D(t)d(t) + H(t)v(t), where v(t) ~ MVN(0,R(t))}{}
-\item{x(0) ~ MVN(x0, V0)}{} 
-}
-Note, marxss is a model form.  A model form is defined by a collection of form functions discussed in \code{\link{marssMODEL}}.  These functions are not exported to the user, but are called by MARSS() using the argument \code{form}.  
+The argument \code{form="marxss"} in a \code{\link{MARSS}()} function call specifies a MAR-1 model with eXogenous variables model.  This is a MARSS(1) model of the form:
+\deqn{x(t+1) = B(t) x(t) + U(t) + C(t) c(t) + G(t) w(t), where w(t) ~ MVN(0,Q(t))}
+\deqn{y(t) = Z(t) x(t) + A(t) + D(t) d(t) + H(t) v(t), where v(t) ~ MVN(0,R(t))}
+\deqn{x(1) ~ MVN(x0, V0) or x(0) ~ MVN(x0, V0) }
+Note, by default \eqn{V0} is a matrix of all zeros and thus \eqn{x(1)} or \eqn{x(0)} is treated as an estimated parameter not a diffuse prior.
+
+Note, "marxss" is a model form.  A model form is defined by a collection of form functions discussed in \code{\link{marssMODEL}}.  These functions are not exported to the user, but are called by \code{\link{MARSS}()} using the argument \code{form}.  
 }
 \section{Usage}{
 \code{MARSS(y, 
@@ -44,7 +46,7 @@ The argument \code{model} must be a list.  The elements in the list specify the 
   }       
 All parameters except x0 and V0 may be time-varying.  If time-varying, then text shortcuts cannot be used.  Enter as an array with the 3rd dimension being time.   Time dimension must be 1 or equal to the number of time-steps in the data.    See Quick Start guide (\code{RShowDoc("Quick_Start",package="MARSS")}) or the User Guide (\code{RShowDoc("UserGuide",package="MARSS")}) for  examples.Valid model structures for \code{method="BFGS"} are the same as for \code{method="kem"}.  See  \code{\link{MARSSoptim}} for the allowed options for this method.
 
- The default estimation method, \code{method="kem"}, is the EM algorithm described in the user guide.  The default settings for the control and inits arguments are set via \code{MARSS:::alldefaults$kem} in \code{MARSSsettings.R}.  The defaults for the model argument are set in \code{MARSS_marxss.R} For this method, they are:
+ The default estimation method, \code{method="kem"}, is the EM algorithm described in the MARSS User Guide.  The default settings for the control and inits arguments are set via \code{MARSS:::alldefaults$kem} in \code{MARSSsettings.R}.  The defaults for the model argument are set in \code{MARSS_marxss.R} For this method, they are:
 \itemize{
     \item{inits = list(B=1, U=0, Q=0.05, Z=1, A=0, R=0.05, x0=-99, V0=0.05, G=0, H=0, L=0, C=0, D=0, c=0, d=0)}
     \item{model = list(Z="identity", A="scaling", R="diagonal and equal", B="identity", U="unconstrained", Q="diagonal and unequal", x0="unconstrained", V0="zero", C="zero",D="zero",c=matrix(0,0,1), d=matrix(0,0,1), tinitx=0, diffuse=FALSE)}
@@ -64,7 +66,7 @@ A object of class \code{\link{marssMLE}}.  See \code{\link{print.marssMLE}} for 
   Eli Holmes, NOAA, Seattle, USA.
 
   }
-\seealso{ \code{\link{marssMODEL}} \code{\link{MARSS.dfa}} } 
+\seealso{ \code{\link{marssMODEL}}, \code{\link{MARSS.dfa}} } 
 \examples{
 \dontrun{
 #See the MARSS man page for examples

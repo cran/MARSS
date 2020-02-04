@@ -1,4 +1,5 @@
-\name{graywhales}
+\name{population-count-data}
+\alias{population-count-data}
 \alias{graywhales}
 \alias{grouse}
 \alias{prairiechicken}
@@ -7,6 +8,8 @@
 \alias{okanaganRedds}
 \alias{kestrel}
 \alias{redstart}
+\keyword{datasets}
+
 \docType{data}
 \title{ Population Data Sets }
 \description{
@@ -48,4 +51,4 @@ str(kestrel)
 str(okanaganRedds)
 str(rockfish)
 }
-\keyword{datasets}
+

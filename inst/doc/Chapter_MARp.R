@@ -237,7 +237,7 @@ arima(noisy.data,order=c(2,0,2),include.mean=FALSE)
 # This is the code used to make the figure comparing different ways to estimate 
 # AR parameters from AR with noise data
 # sims.exist is just a flag.  Set to FALSE to run the code
-if(!exists("sims.exist")){ sims.exist=TRUE } 
+if(!exists("sims.exist")){ sims.exist=FALSE } 
 if(!sims.exist) {
 nsim=200; TT=100
 file=paste("AR2SS",TT,".RData",sep="")
@@ -263,7 +263,7 @@ noise=rnorm(TT,0,sqrt(true.2ss[1]))
 noisy.data=sim.ar+noise
 noisy.data=as.vector(noisy.data-mean(noisy.data)) #demean
 test.it=try(arima(noisy.data[2:TT],order=c(2,0,2),include.mean=FALSE))
-while(class(test.it)=="try-error"){
+while(inherits(test.it, "try-error")){
 temp=arima.sim(n=TT,list(ar=true.2ss[2:3]),sd=sqrt(true.2ss[4]))
 sim.ar=matrix(temp,nrow=1)
 noise=rnorm(TT,0,sqrt(true.2ss[1]))

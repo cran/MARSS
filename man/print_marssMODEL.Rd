@@ -1,10 +1,10 @@
 \name{print.marssMODEL}
 \alias{print.marssMODEL}
 \alias{summary.marssMODEL}
-\alias{describe.marssMODEL}
+
 \title{ Printing marssMODEL Objects }
 \description{
-  \code{print(marssMODEL)}, where \code{\link{marssMODEL}} is a marssMODEL object, will print out information on the model in short form (e.g. 'diagonal and equal').
+  \code{print(MODELobj)}, where \code{MODELobj} is a \code{\link{marssMODEL}} object, will print out information on the model in short form (e.g. 'diagonal and equal').
   
   \code{summary(marssMODEL)}, where \code{\link{marssMODEL}} is a marssMODEL object, will print out detailed information on each parameter matrix showing where the estimated values (and their names) occur.
 }
@@ -31,11 +31,11 @@
   eli(dot)holmes(at)noaa(dot)gov
 }
 \examples{ 
-  dat <- t(harborSeal)
-  dat <- dat[c(2,11),]
-  MLEobj <- MARSS(dat)
+dat <- t(harborSeal)
+dat <- dat[c(2, 11), ]
+MLEobj <- MARSS(dat)
 
-  print(MLEobj$model)
-  #this is identical to 
-  print(MLEobj, what="model")
+print(MLEobj$model)
+# this is identical to
+print(MLEobj, what = "model")
 }

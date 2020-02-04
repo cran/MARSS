@@ -1,14 +1,16 @@
 \name{MARSS.dfa}
 \alias{MARSS.dfa}
+\keyword{internal}
+
 \title{ Multivariate Dynamic Factor Analysis }
+
 \description{
 The Dynamic Factor Analysis model in MARSS is
-\describe{
-\item{x(t+1) = x(t) + w(t), where w(t) ~ MVN(0,I)}{}
-\item{y(t) = Z(t) x(t) + D(t)d(t) + v(t), where v(t) ~ MVN(0,R(t))}{}
-\item{x(1) ~ MVN(0, 5*I)}{} 
-}
-Passing in \code{form="dfa"} to MARSS() invokes a helper function to create that model and creates the Z matrix for the user.  Q is by definition identity, x0 is zero and V0 is diagonal with large variance (5). U is zero, A is zero, and covariates only enter the Y equation.  Because U and A are 0, the data should have mean 0 (de-meaned) otherwise one is likely to be creating a structurally inadequate model (i.e. the model implies that the data have mean = 0, yet data do not have mean = 0 ).
+\deqn{x(t+1) = x(t) + w(t), where w(t) ~ MVN(0,I)}
+\deqn{y(t) = Z(t) x(t) + D(t) d(t) + v(t), where v(t) ~ MVN(0,R(t))}
+\deqn{x(1) ~ MVN(0, 5*I)}
+
+Passing in \code{form="dfa"} to \code{\link{MARSS}()} invokes a helper function to create that model and creates the Z matrix for the user.  Q is by definition identity, x0 is zero and V0 is diagonal with large variance (5). U is zero, A is zero, and covariates only enter the Y equation.  Because U and A are 0, the data should have mean 0 (de-meaned) otherwise one is likely to be creating a structurally inadequate model (i.e. the model implies that the data have mean = 0, yet data do not have mean = 0 ).
 }
 \section{Usage}{
 \code{MARSS(y, 
@@ -34,14 +36,14 @@ In addition to these, form="dfa" has some special arguments that can be passed i
     \item \code{z.score}  Logical.  Default is TRUE, which means the data will be z-scored (demeaned and variance standardized to 1).
     }
 
-The \code{model} argument of the \code{\link{MARSS}} call is constrained in terms of what parameters can be changed and how they can be changed.  See details below. An additional element, \code{m}, can be passed into the \code{model} argument that specifies the number of hidden state variables.  It is not necessariy for the user to specify \code{Z} as the helper function will create a \code{Z} appropriate for a DFA model.
+The \code{model} argument of the \code{\link{MARSS}()} call is constrained in terms of what parameters can be changed and how they can be changed.  See details below. An additional element, \code{m}, can be passed into the \code{model} argument that specifies the number of hidden state variables.  It is not necessariy for the user to specify \code{Z} as the helper function will create a \code{Z} appropriate for a DFA model.
 }
 \details{
 The \code{model} argument is a list. The following details what list elements can be passed in:
     \itemize{
-    \item \code{B}  "Identity". Can be "identity", "diagonal and equal", or "diagonal and unequal".
+    \item \code{B}  "Identity". The standard (and default) DFA model has B="identity". However it can be "identity", "diagonal and equal", "diagonal and unequal"  or a time-varying fixed or estimated diagonal matrix.
     \item \code{U}  "Zero". Cannot be changed or passed in via model argument.
-    \item \code{Q}  "Identity". Can be "identity", "diagonal and equal", or "diagonal and unequal".
+    \item \code{Q}  "Identity". The standard (and default) DFA model has Q="identity". However, it can be "identity", "diagonal and equal", "diagonal and unequal" or a time-varying fixed or estimated diagonal matrix.
     \item \code{Z}  Can be passed in as a (list) matrix if the user does not want a default DFA \code{Z} matrix.  There are many equivalent ways to construct a DFA \code{Z} matrix.  The default is Zuur et al.'s form (see User Guide).
     \item \code{A}  Default="zero". Can be "unequal", "zero" or a matrix.
     \item \code{R}  Default="diagonal and equal". Can be set to "identity", "zero", "unconstrained", "diagonal and unequal", "diagonal and equal", "equalvarcov", or a (list) matrix to specify general forms.
@@ -60,16 +62,16 @@ A object of class \code{\link{marssMLE}}.  See \code{\link{print.marssMLE}} for 
   Eli Holmes, NOAA, Seattle, USA. 
   }
 
-\seealso{ \code{\link{MARSS}} \code{\link{MARSS.marxss}} } 
+\seealso{ \code{\link{MARSS}}, \code{\link{MARSS.marxss}} } 
 
 \references{ 
-The user guide:  Holmes, E. E., E. J. Ward, and M. D. Scheuerell (2012) Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
+The MARSS User Guide:  Holmes, E. E., E. J. Ward, and M. D. Scheuerell (2012) Analysis of multivariate time-series using the MARSS package. NOAA Fisheries, Northwest Fisheries Science
 Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuide",package="MARSS")} to open a copy.          
 }
 \examples{
 \dontrun{
-#See the Dynamic Factor Analysis chapter in the User Guide
-RShowDoc("UserGuide",package="MARSS")
+# See the Dynamic Factor Analysis chapter in the User Guide
+RShowDoc("UserGuide", package = "MARSS")
 }
 }
 
