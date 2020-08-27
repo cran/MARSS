@@ -71,10 +71,12 @@ for(i in 1:length(Z.models)){
      fit.model = c(list(Z=Z.models[[i]], Q=Q.model), model.constant)
      fit = MARSS(sealData, model=fit.model,
             silent=TRUE, control=list(maxit=1000))
-    out=data.frame(H=names(Z.models)[i], Q=Q.model, U=U.model,
-            logLik=fit$logLik, AICc=fit$AICc, num.param=fit$num.params,
-            m=length(unique(Z.models[[i]])),
-            num.iter=fit$numIter, converged=!fit$convergence)
+    out=data.frame(
+          H=names(Z.models)[i], Q=Q.model, U=U.model,
+          logLik=fit$logLik, AICc=fit$AICc, num.param=fit$num.params,
+          m=length(unique(Z.models[[i]])),
+          num.iter=fit$numIter, converged=!fit$convergence,
+          stringsAsFactors = FALSE)
     out.tab=rbind(out.tab,out)
     fits=c(fits,list(fit))
     if(i==5) next #one m for panmictic so only run 1 Q
@@ -122,7 +124,7 @@ print(out.tab.1[,c("H","Q","delta.AICc","AIC.weight")], row.names=FALSE)
 ### code chunk number 20: Cs11_fignorthsouth
 ###################################################
 best.fit=fits[min.AICc][[1]]
-matplot(years, t(best.fit$states-best.fit$states[,1]), 
+graphics::matplot(years, t(best.fit$states-best.fit$states[,1]), 
         xlab="abundance index", ylab="",
         type="l",lwd=2,col="black")
 legend("topleft",c("North Coastal","Inland Straits","Puget Sound","South Coastal"),lwd=2,lty=c(1:4),bty="n")
@@ -140,7 +142,8 @@ for(i in 1:length(Z.models)){
        out=data.frame(H=names(Z.models)[i], Q=Q.model, U=U.model,
             logLik=fit$logLik, AICc=fit$AICc, num.param=fit$num.params,
             m=length(unique(Z.models[[i]])),
-            num.iter=fit$numIter, converged=!fit$convergence)
+            num.iter=fit$numIter, converged=!fit$convergence,
+            stringsAsFactors = FALSE)
        out.tab=rbind(out.tab,out)
        fits=c(fits,list(fit))
     }
@@ -248,7 +251,8 @@ for(i in 1:length(Z.models.hc)){
     out=data.frame(H=names(Z.models.hc)[i], Q=names(Q.models)[j], U=U.model,
             logLik=fit$logLik, AICc=fit$AICc, num.param=fit$num.params,
             m=length(unique(Z.models.hc[[i]])),
-            num.iter=fit$numIter, converged=!fit$convergence)
+            num.iter=fit$numIter, converged=!fit$convergence,
+            stringsAsFactors = FALSE)
     out.tab.hc=rbind(out.tab.hc, out)
     fits.hc=c(fits.hc,list(fit))
   }

@@ -13,7 +13,7 @@ MARSSkem <- function(MLEobj) {
 
   # The model will be form = marss, so use base function for that form here
   constr.type <- describe_marss(MODELobj)
-  # Check that model is allowed given the EM algorithm constaints; returns some info on the model structure
+  # Check that model is allowed given the EM algorithm constraints; returns some info on the model structure
   if (MLEobj[["control"]][["trace"]] != -1) {
     errhead <- "\nErrors were caught in MARSSkemcheck \n"
     errmsg <- " Try using foo=MARSS(..., fit=FALSE), then summary(foo$model) to see what model you are trying to fit.\n"
@@ -138,7 +138,7 @@ MARSSkem <- function(MLEobj) {
       if (control$trace > 0) {
         msg.kem <- c(msg.kem, paste("iter=", iter, " LogLike DROPPED.  old=", loglike.old, " new=", MLEobj.iter$logLik, "\n", sep = ""))
       } else {
-        msg.kem <- "MARSSkem: The soln became unstable and logLik DROPPED.\n"
+        msg.kem <- "MARSSkem: The solution became unstable and logLik DROPPED.\n"
       }
     }
 
@@ -622,7 +622,7 @@ MARSSkem <- function(MLEobj) {
       # ~~~~~~~~Error checking
       if (any(eigen(par1$V0, symmetric = TRUE, only.values = TRUE)$values < 0)) {
         tmp <- ""
-        if (any(abs(Re(eigen(par1$B, only.values = TRUE)$values) > 1))) tmp <- "Your B matrix is outside the unit circle.  This is likely the problem.\n"
+        if (!is.unitcircle(par1$B)) tmp <- "Your B matrix is outside the unit circle.  This is likely the problem.\n"
         stop.msg <- paste("Stopped at iter=", iter, " in MARSSkem: solution became unstable. V0 update is not positive definite.\n", tmp, sep = "")
         stopped.with.errors <- TRUE
         break
@@ -899,7 +899,7 @@ MARSSkem <- function(MLEobj) {
         if (Ck > condition.limit) msg.kem <- c(msg.kem, paste("iter=", iter, " Unstable B estimate because P_{t-1,t-1} is ill-conditioned. C =", round(Ck), "\n", sep = ""))
         for (i in 1:max(dim(f$B)[3], dim(d$B)[3])) {
           parB <- parmat(MLEobj.iter, "B", t = i)$B
-          if (any(abs(Re(eigen(parB, only.values = TRUE)$values)) > 1)) msg.kem <- c(msg.kem, paste("iter=", iter, ",t=", i, " B update is outside the unit circle.", "\n", sep = ""))
+          if (!is.unitcircle(parB)) msg.kem <- c(msg.kem, paste("iter=", iter, ",t=", i, " B update is outside the unit circle.", "\n", sep = ""))
         }
       }
     } # if !is.fixed B
@@ -1174,7 +1174,7 @@ rerun.kf <- function(elem, MLEobj, iter) { # Start~~~~~~~~Error checking
     if (MLEobj$control$trace > 0) {
       msg.kem <- paste("iter=", iter, " LogLike DROPPED in ", elem, " update. logLik old=", loglike.old, " new=", loglike.new, "\n", sep = "")
     } else {
-      msg.kem <- paste("MARSSkem: The soln became unstable and logLik DROPPED in the", elem, "updates.\n")
+      msg.kem <- paste("MARSSkem: The solution became unstable and logLik DROPPED in the", elem, "updates.\n")
     }
   }
   return(list(kf = kf, msg.kem = msg.kem, msg.kf = msg.kf, ok = TRUE))

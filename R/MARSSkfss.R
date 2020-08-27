@@ -8,16 +8,16 @@ MARSSkfss <- function(MLEobj) {
   condition.limit <- 1E10
   condition.limit.Ft <- 1E5 # because the Ft is used to compute LL and LL drop limit is about 2E-8
 
-  MODELobj <- MLEobj$marss
+  MODELobj <- MLEobj[["marss"]]
   debugkf <- MLEobj$control$trace
-  n <- dim(MODELobj$data)[1]
-  TT <- dim(MODELobj$data)[2]
-  m <- dim(MODELobj$fixed$x0)[1]
+  n <- dim(MODELobj[["data"]])[1]
+  TT <- dim(MODELobj[["data"]])[2]
+  m <- dim(MODELobj[["fixed"]][["x0"]])[1]
 
   # create the YM matrix
-  YM <- matrix(as.numeric(!is.na(MODELobj$data)), n, TT)
+  YM <- matrix(as.numeric(!is.na(MODELobj[["data"]])), n, TT)
   # Make sure the missing vals in y are zeroed out if there are any
-  y <- MODELobj$data
+  y <- MODELobj[["data"]]
   y[YM == 0] <- 0
 
   if (MODELobj$tinitx == 1) {
@@ -231,7 +231,7 @@ MARSSkfss <- function(MLEobj) {
     Vtt[, , t] <- OmgRVtt.t %*% Vtt[, , t] %*% OmgRVtt.t
 
     # Variables needed for the likelihood calculation; see comments above
-    R_mod <- (I.n - Mt) + Mt %*% R %*% Mt # not in S&S; see MARSS documention per LL calc when missing values; R here is R[t]
+    R_mod <- (I.n - Mt) + Mt %*% R %*% Mt # not in S&S; see MARSS documentation per LL calc when missing values; R here is R[t]
     Ft[, , t] <- Zt %*% Vtt1[, , t] %*% t.Zt + R_mod # need to hold on to this for loglike calc ; 1 on diagonal when y is missing
     if (n != 1) Ft[, , t] <- symm(Ft[, , t]) # to ensure its symetric
 
@@ -257,7 +257,7 @@ MARSSkfss <- function(MLEobj) {
     if (any(diag.Vtt < 0)) {
       return(list(
         ok = FALSE,
-        errors = paste("Stopped in MARSSkfss: soln became unstable and negative values appeared on the diagonal of Vtt at t=", t, ".\n", sep = "")
+        errors = paste("Stopped in MARSSkfss: solution became unstable and negative values appeared on the diagonal of Vtt at t=", t, ".\n", sep = "")
       ))
     }
     ####### End Error-checking
@@ -293,7 +293,7 @@ MARSSkfss <- function(MLEobj) {
     if (any(diag.Vtt1 < 0)) { # abandon if problems like this
       return(list(
         ok = FALSE,
-        errors = paste("Stopped in MARSSkfss: soln became unstable and negative values appeared on the diagonal of Vtt1.\n")
+        errors = paste("Stopped in MARSSkfss: solution became unstable and negative values appeared on the diagonal of Vtt1.\n")
       ))
     }
 
@@ -303,7 +303,7 @@ MARSSkfss <- function(MLEobj) {
       Q0s <- all(which(diag.Vtt1 == 0) %in% which(diag.Q == 0))
       # Q0s=identical(which(diag.Q==0),which(diag.Vtt1==0))
       if (!Q0s && (init.state == "x00" || (init.state == "x10" && t > 1))) {
-        return(list(ok = FALSE, errors = paste("Stopped in MARSSkfss: soln became unstable when zeros appeared on the diagonal of Vtt1 at t=", t, ".\n")))
+        return(list(ok = FALSE, errors = paste("Stopped in MARSSkfss: solution became unstable when zeros appeared on the diagonal of Vtt1 at t=", t, ".\n")))
       }
     }
     if (m == 1) {
@@ -342,18 +342,20 @@ MARSSkfss <- function(MLEobj) {
       # deal with 0s that are ok if there are corresponding 0s on Q diagonal
       Q0s <- identical(which(diag.Q == 0), which(diag.Vtt1 == 0))
       if (!Q0s && (init.state == "x00" || (init.state == "x10" && t > 1))) {
-        return(list(ok = FALSE, errors = paste("Stopped in MARSSkfss: soln became unstable when zeros appeared on the diagonal of Vtt1 at t=1.\n")))
+        return(list(ok = FALSE, errors = paste("Stopped in MARSSkfss: solution became unstable when zeros appeared on the diagonal of Vtt1 at t=1.\n")))
       }
     }
-    if (m == 1) {
-      Vinv <- pcholinv(matrix(Vtt1[, , 1], 1, 1)) # pcholinv doesn't like vectors
-    } else {
-      Vinv <- pcholinv(Vtt1[, , 1])
-      Vinv <- symm(Vinv) # to enforce symmetry after chol2inv call
+    Vtt1.1 <- sub3D(Vtt1, t = 1)
+    if(any(takediag(Vtt1.1)==0)){
+      Vinv <- pcholinv(Vtt1.1, chol=FALSE)
+      if (m != 1) Vinv <- symm(Vinv) # to enforce symmetry after chol2inv call
+      J0 <- V0 %*% t.B %*% Vinv # eqn 6.49 and 1s on diag when Q=0; Here it is t.B[1]
+    }else{
+      t.J0 <- solve(matrix(Vtt1.1, m, m, byrow = TRUE), B%*%V0)
+      if (m==1) J0 <- t.J0 else J0 <- matrix(t.J0, m, m, byrow = TRUE)
     }
-    J0 <- V0 %*% t.B %*% Vinv # eqn 6.49 and 1s on diag when Q=0; Here it is t.B[1]
     x0T <- x0 + J0 %*% (xtT[, 1, drop = FALSE] - xtt1[, 1, drop = FALSE]) # eqn 6.47
-    V0T <- V0 + J0 %*% (VtT[, , 1] - Vtt1[, , 1]) %*% t(J0) # eqn 6.48
+    V0T <- V0 + tcrossprod(J0 %*% (VtT[, , 1] - Vtt1[, , 1]), J0) # eqn 6.48
     V0T <- symm(V0T) # enforce symmetry
   }
   if (init.state == "x10") { # Ghahramani treatment of initial states; LAM and pi defined for x_1
@@ -392,12 +394,20 @@ MARSSkfss <- function(MLEobj) {
   if (init.state == "x10") Vtt1T[, , 1] <- NA
 
   ###########################################################
-  # Calculate log likelihood, see eqn 6.62
-  # Innovations form of the likelihood
   rtn.list <- list(
     xtT = xtT, VtT = VtT, Vtt1T = Vtt1T, x0T = x0T, V0T = V0T, Vtt = Vtt,
     Vtt1 = Vtt1, J = J, J0 = J0, Kt = Kt, xtt1 = xtt1, xtt = xtt, Innov = vt, Sigma = Ft
   )
+
+  # apply names
+  MODELobj <- MLEobj[["marss"]]
+  X.names <- attr(MODELobj, "X.names")
+  Y.names <- attr(MODELobj, "Y.names")
+  for(el in c("xtT", "xtt1", "xtt", "x0T")) rownames(rtn.list[[el]]) <- X.names
+  rownames(rtn.list[["Innov"]]) <- Y.names
+
+    # Calculate log likelihood, see eqn 6.62
+  # Innovations form of the likelihood
   loglike <- -sum(YM) / 2 * log(2 * base::pi) # sum(YM) is the number of data points
   for (t in 1:TT) {
     if (n == 1) diag.Ft <- Ft[, , t] else diag.Ft <- unname(Ft[, , t])[1 + 0:(n - 1) * (n + 1)]
@@ -421,10 +431,10 @@ MARSSkfss <- function(MLEobj) {
         } else {
           # when R(i,i) is 0 then vt_t(i) will be zero and Sigma[i,i,1] will be 0 if V0=0.
           # OmgF1 makes sure we don't try to take 1/0
-          if (length(OmgF1 %*% Ft[, , t] %*% t(OmgF1)) == 1) {
-            detFt <- OmgF1 %*% Ft[, , t] %*% t(OmgF1)
+          if (length(OmgF1 %*% tcrossprod(Ft[, , t], OmgF1)) == 1) {
+            detFt <- OmgF1 %*% tcrossprod(Ft[, , t], OmgF1)
           } else {
-            detFt <- det(OmgF1 %*% Ft[, , t] %*% t(OmgF1))
+            detFt <- det(OmgF1 %*% tcrossprod(Ft[, , t], OmgF1))
           }
         }
         # get the inv of Ft

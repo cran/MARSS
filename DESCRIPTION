@@ -1,13 +1,13 @@
 Package: MARSS
 Type: Package
 Title: Multivariate Autoregressive State-Space Modeling
-Version: 3.10.12
-Date: 2020-01-28
-Depends: R (>= 3.1.0)
+Version: 3.11.1
+Date: 2020-08-18
+Depends: R (>= 3.5.0)
 Imports: graphics, grDevices, KFAS (>= 1.0.1), mvtnorm, nlme, stats,
         utils
-Suggests: broom, Formula, ggplot2, Hmisc, lattice, lme4, maps, Matrix,
-        stringr, survival, xtable
+Suggests: broom, forecast, Formula, ggplot2, gridExtra, Hmisc, lattice,
+        lme4, maps, Matrix, stringr, survival, tidyr, xtable
 Author: Eli Holmes, Eric Ward, Mark Scheuerell, and Kellie Wills, NOAA, Seattle, USA
 Maintainer: Elizabeth Holmes - NOAA Federal <eli.holmes@noaa.gov>
 Description: The MARSS package provides maximum-likelihood parameter estimation for constrained and unconstrained linear multivariate autoregressive state-space (MARSS) models fit to multivariate time-series data.  Fitting is primarily via an Expectation-Maximization (EM) algorithm, although fitting via the BFGS algorithm (using the optim function) is also provided.  MARSS models are a class of dynamic linear model (DLM) and vector autoregressive model (VAR) model.  Functions are provided for parametric and innovations bootstrapping, Kalman filtering and smoothing, bootstrap model selection criteria (AICb), confidences intervals via the Hessian approximation and via bootstrapping and calculation of auxiliary residuals for detecting outliers and shocks.  The user guide shows examples of using MARSS for parameter estimation for a variety of applications, model selection, dynamic factor analysis, outlier and shock detection, and addition of covariates.  Type RShowDoc("UserGuide", package="MARSS") at the R command line to open the MARSS user guide.  Online workshops (lectures and computer labs) at <https://nwfsc-timeseries.github.io/>  See the NEWS file for update information.
@@ -18,6 +18,6 @@ ByteCompile: TRUE
 URL: https://nwfsc-timeseries.github.io/MARSS
 BugReports: https://github.com/nwfsc-timeseries/MARSS/issues
 NeedsCompilation: no
-Packaged: 2020-02-04 01:45:23 UTC; eli.holmes
+Packaged: 2020-08-19 17:33:23 UTC; eli.holmes
 Repository: CRAN
-Date/Publication: 2020-02-04 05:30:02 UTC
+Date/Publication: 2020-08-27 07:50:11 UTC

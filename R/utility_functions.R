@@ -6,9 +6,8 @@ isDiag <- function(x) {
   all(x[!diag(nrow(x))] == 0)
 }
 
-takediag <- function(x)
-############# Function to take the diagonal; deals with R trying to think too much with diag()
-{
+############# Take the diagonal; deals with R trying to think too much with diag
+takediag <- function(x) {
   if (length(x) == 1) {
     return(x)
   }
@@ -17,9 +16,8 @@ takediag <- function(x)
   return(x[1 + 0:(d1 - 1) * (d1 + 1)]) # faster diag
 }
 
-makediag <- function(x, nrow = NA)
-############# Function to make a diagonal matrix; deals with R trying to think too much with diag()
-{
+############# Make a diagonal matrix; deals with R trying to think too much with diag()
+makediag <- function(x, nrow = NA) {
   if (length(x) == 1) {
     if (is.na(nrow)) nrow <- 1
     return(diag(c(x), nrow))
@@ -32,7 +30,7 @@ makediag <- function(x, nrow = NA)
 }
 
 ############ The following functions are for testing the shapes of matrices
-# these functions use as.character(x) to deal with the "feature" that in R (.01 + .14) == .15 is FALSE!!
+# these functions use as.character(x) to deal with the fact that in R (.01 + .14) == .15 is FALSE (due to numerical imprecision though all.equal((0.01+0.14), 0.15) is TRUE
 is.equaltri <- function(x) {
   # requires 2D matrix ; works on numeric, character or list matrices
   if (!is.matrix(x)) {
@@ -99,7 +97,6 @@ is.diagonal <- function(x, na.rm = FALSE) {
   } # diagonal
   return(FALSE)
 }
-
 
 is.identity <- function(x, dim = NULL) {
   # works on 2D numeric, character or list matrices; "1" is not identical to 1 however
@@ -202,7 +199,7 @@ is.validvarcov <- function(x, method = "kem") {
         tmp <- try(eigen(test.block, only.values = TRUE), silent = TRUE)
         if (inherits(tmp, "try-error")) {
           pos.flag <- TRUE
-        } else if (!all(tmp$values >= 0)) pos.flag <- TRUE
+        } else if (!all(tmp$values > 0)) pos.flag <- TRUE
         # if there is a problem
         if (pos.flag) {
           return(list(ok = FALSE, error = "One of the fixed blocks within the varcov matrix is not positive-definite "))
@@ -413,6 +410,27 @@ is.zero <- function(x) {
   (abs(x) < .Machine$double.eps)
 }
 
+is.unitcircle <- function(x, tol=.Machine$double.eps^0.5){
+  eigval <- eigen(x, only.values = TRUE)$values
+  all(abs(eigval) <= 1+tol)
+}
+
+is.wholenumber <- function(x, tol = .Machine$double.eps^0.5) {
+  if (!is.numeric(x)) {
+    return(FALSE)
+  }
+  test <- abs(x - round(x)) < tol
+  if (any(is.na(test))) {
+    return(FALSE)
+  }
+  return(test)
+}
+
+is.timevarying <- function(MLEobj){
+  model.dims <- attr(MLEobj$marss, "model.dims")[attr(MLEobj[["marss"]], "par.names")]
+  lapply(model.dims, function(x){x[3] != 1})
+}
+
 vec <- function(x) {
   if (!is.array(x)) stop("vec:arg must be a 2D or 3D matrix")
   len.dim.x <- length(dim(x))
@@ -475,17 +493,6 @@ parmat <- function(MLEobj, elem = c("B", "U", "Q", "Z", "A", "R", "x0", "V0", "G
     }
   }
   return(par.mat)
-}
-
-is.wholenumber <- function(x, tol = .Machine$double.eps^0.5) {
-  if (!is.numeric(x)) {
-    return(FALSE)
-  }
-  test <- abs(x - round(x)) < tol
-  if (any(is.na(test))) {
-    return(FALSE)
-  }
-  return(test)
 }
 
 Imat <- function(x) {
@@ -631,7 +638,11 @@ fixed.free.to.formula <- function(fixed, free, dim) { # dim is the 1st and 2nd d
   Tmax <- max(Tmax, dim(fixed)[3], dim(free)[3])
 
   # turns a fixed/free pair to a list (possibly time-varying) matrix describing that MARSS parameter structure
-  model <- array(list(0), dim = c(dim(fixed)[1], dim(fixed)[2], Tmax))
+  if(dim(free)[2] != 0){
+    model <- array(list(0), dim = c(dim(fixed)[1], dim(fixed)[2], Tmax))
+  }else{
+    model <- array(0, dim = c(dim(fixed)[1], dim(fixed)[2], Tmax))
+  }
   for (t in 1:Tmax) {
     free.t <- min(t, dim(free)[3])
     fixed.t <- min(t, dim(fixed)[3])
@@ -663,6 +674,22 @@ fixed.free.to.formula <- function(fixed, free, dim) { # dim is the 1st and 2nd d
     model <- array(model, dim = c(dim, Tmax))
   }
   return(model)
+}
+
+marssMODEL.to.list <- function(MODELobj) {
+  fixed <- MODELobj$fixed
+  free <- MODELobj$free
+  model.dims <- attr(MODELobj, "model.dims")
+  model.elem <- attr(MODELobj, "par.names")
+  # set up the constr type list with an element for each par name and init val of "none"
+  model.list <- list()
+  
+  for (elem in model.elem) {
+    model.list[[elem]] <- fixed.free.to.formula(fixed[[elem]], free[[elem]], model.dims[[elem]][1:2])
+  }
+  dim(model.list[["c"]]) <- model.dims[["c"]][c(1,3)]
+  dim(model.list[["d"]]) <- model.dims[["d"]][c(1,3)]
+  return(model.list)
 }
 
 # From Alberto Monteiro posted in the R forum
@@ -735,19 +762,28 @@ sub3D <- function(x, t = 1) {
 }
 
 # replace 0 diags with 0 row/cols; no error checking.  Need square symm matrix
-pcholinv <- function(x) {
+pcholinv <- function(x, chol=TRUE) {
+  if(all(!x)) return(x)
   dim.x <- dim(x)[1]
   diag.x <- x[1 + 0:(dim.x - 1) * (dim.x + 1)]
   if (any(diag.x == 0)) {
     if (any(diag.x != 0)) {
-      b <- chol2inv(chol(x[diag.x != 0, diag.x != 0]))
+      if(chol){
+        b <- chol2inv(chol(x[diag.x != 0, diag.x != 0]))
+      }else{
+        b <- solve(x[diag.x != 0, diag.x != 0])
+      }
       OMG.x <- diag(1, dim.x)[diag.x != 0, , drop = FALSE]
       inv.x <- t(OMG.x) %*% b %*% OMG.x
     } else {
       inv.x <- matrix(0, dim.x, dim.x)
     }
   } else {
-    inv.x <- chol2inv(chol(x))
+    if(chol){
+      inv.x <- chol2inv(chol(x))
+    }else{
+      inv.x <- solve(x)
+    }
   }
   return(inv.x)
 }
@@ -780,7 +816,7 @@ pinv <- function(x) {
   dp[dp <= tol] <- 0
   dp[dp > tol] <- 1 / dp[dp > tol]
   sigma.star <- matrix(0, dimx[1], dimx[1])
-  xinv <- b$v %*% makediag(dp) %*% t(b$u)
+  xinv <- b$v %*% tcrossprod(makediag(dp), b$u)
   return(xinv)
 }
 
@@ -835,6 +871,7 @@ fully.spec.x <- function(Z, R){
   m <- dim(Z)[2]
   diag.R <- takediag(R)
   Z.R0 <- Z[diag.R == 0, , drop = FALSE]
+  Z.R.not.0 <- Z[diag.R != 0, , drop = FALSE]
   # The Z cols where there is a val; and where rows have a val
   Z.R0.n0 <- Z.R0[rowSums(Z.R0 != 0) != 0, colSums(Z.R0 != 0) != 0, drop = FALSE] 
   # If more rows than columns, over-constrained
@@ -849,15 +886,21 @@ fully.spec.x <- function(Z, R){
       return(list(ok = FALSE, errors = "Some R diagonal elements are 0, but Z is such that model is indeterminate in this case."))
     }
   }
-  # If got here, Z.R0.n0 is ok. Make matrix to 0 out determined x in Vtt
+  # If got here, Z.R0.n0 is ok. Make matrix to zero out determined x in Vtt
   Z1 <- Z.R0
+  detx <- rep(1,m) #1 means NOT fully specified by data
+  # Is there any y where R=0 where there only one x in that row? Then that x is fixed.
+  # Set the Z col for that x to 0 (fixed). And repeat. Will have to do at most m iterations to find all
+  # the x that are fully specified by the data.
   for(i in 1:m){
     tmp <-  (rowSums(Z1 != 0)==1)
     if(!any(tmp)) break
     tmp <- (rowSums(Z1 != 0)==1) %*% (Z1!=0)
     Z1 <- Z1 %*% makediag(!tmp)
   }
-  detx <- ifelse(colSums(Z1 != 0 ) == 0 & colSums(Z != 0 ) != 0, 0, 1)
+  # Any Z1 cols that are 0 are fully spec and should be 0
+  # Unless the Z.R0 column is all 0, meaning that x is not affected by R=0 at all
+  detx <- ifelse(colSums(Z1 != 0 ) == 0 & colSums(Z.R0 != 0 ) != 0, 0, 1)
   return(list(ok = TRUE, detx = detx))
 }
 
@@ -935,6 +978,26 @@ zscore <- function(x) {
   x.z <- (x - x.bar) * (1 / Sigma)
   if (ismat) rownames(x.z) <- rownames(x)
   x.z
+}
+
+############# Function to make a diagonal matrix; 
+# exported function to make diagonal list matrix. Slower than makediag()
+# which is only for numeric x
+ldiag <- function(x, nrow = NA)
+{
+  if (length(x) == 1) {
+    return(matrix(x, nrow, nrow))
+  }
+  if (!is.vector(x)) { 
+    stop("mdiag: x is not vector.\n", call. = FALSE)
+  }
+  if (is.na(nrow)) nrow <- length(x)
+  if(is.list(x)){
+    if(!all(unlist(lapply(x, length))==1)) stop("mdiag: all elements in x list must be length 1.\n", call. = FALSE)
+  }
+  tmp <- matrix(list(0), nrow, nrow)
+  diag(tmp) <- x
+  return(tmp)
 }
 
 MARSS.out <- function(){
