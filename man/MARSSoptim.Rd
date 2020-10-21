@@ -2,7 +2,7 @@
 \alias{MARSSoptim}
 \title{Parameter estimation for MARSS models using optim}
 \description{
-  Parameter estimation for MARSS models using R's \code{\link{optim}} function.   This allows access to R's quasi-Newton algorithms available in that function.  The \code{MARSSoptim()} function is called when \code{\link{MARSS}()} is called with \code{method="BFGS"}.  This is an internal function in the \code{\link{MARSS-package}}. 
+  Parameter estimation for MARSS models using R's \code{\link{optim}()} function.   This allows access to R's quasi-Newton algorithms available in that function.  The \code{MARSSoptim()} function is called when \code{\link{MARSS}()} is called with \code{method="BFGS"}.  This is an internal function in the \code{\link{MARSS-package}}. 
 }
 \usage{
 MARSSoptim(MLEobj)
@@ -13,7 +13,7 @@ MARSSoptim(MLEobj)
 \details{
 Objects of class \code{\link{marssMLE}} may be built from scratch but are easier to construct using \code{\link{MARSS}()} called with \code{MARSS(..., fit=FALSE, method="BFGS")}.
 
-  Options for \code{\link{optim}} are passed in using \code{MLEobj$control}.  See \code{\link{optim}} for a list of that function's control options.  If \code{lower} and \code{upper} for \code{\link{optim}} need to be passed in, they should be passed in as part of \code{control} as \code{control$lower} and \code{control$upper}. Additional \code{control} arguments affect printing and initial conditions.
+  Options for \code{\link{optim}()} are passed in using \code{MLEobj$control}.  See \code{\link{optim}()} for a list of that function's control options.  If \code{lower} and \code{upper} for \code{\link{optim}()} need to be passed in, they should be passed in as part of \code{control} as \code{control$lower} and \code{control$upper}. Additional \code{control} arguments affect printing and initial conditions.
   \describe{
       \item{\code{MLEobj$control$kf.x0}}{ The initial condition is at $t=0$ if kf.x0="x00".  The initial condition is at $t=1$ if kf.x0="x10". }    
       \item{\code{MLEobj$marss$diffuse}}{ If diffuse=TRUE, a diffuse initial condition is used. MLEobj$par$V0 is then the scaling function for the diffuse part of the prior.  Thus the prior is V0*kappa where kappa-->Inf.  Note that setting a diffuse prior does not change the correlation structure within the prior. If diffuse=FALSE, a non-diffuse prior is used and MLEobj$par$V0 is the non-diffuse prior variance on the initial states. The the prior is V0.}      \item{\code{MLEobj$control$silent}}{ Suppresses printing of progress bars, error messages, warnings and convergence information. }    
@@ -28,10 +28,13 @@ Objects of class \code{\link{marssMLE}} may be built from scratch but are easier
   \item{convergence}{ Did estimation converge successfully? 
     \describe{
       \item{convergence=0}{ Converged in less than \code{MLEobj$control$maxit} iterations and no evidence of degenerate solution. } 
+      \item{convergence=3}{ No convergence diagnostics were computed because all parameters were fixed thus no fitting required. }   
+      \item{convergence=-1}{ No convergence diagnostics were computed because the MLE object was not fit (called with fit=FALSE). This isn't a convergence error just information. There is not par element so no functions can be run with the object. }  
       \item{convergence=1}{ Maximum number of iterations \code{MLEobj$control$maxit} was reached before \code{MLEobj$control$abstol} condition was satisfied. } 
-      \item{convergence=10}{ Some of the variance elements appear to be degenerate.  T} 
+      \item{convergence=10}{ Some of the variance elements appear to be degenerate. } 
       \item{convergence=52}{ The algorithm was abandoned due to errors from the "L-BFGS-B" method.  } 
       \item{convergence=53}{ The algorithm was abandoned due to numerical errors in the likelihood calculation from \code{\link{MARSSkf}}.  If this happens with "BFGS", it can sometimes be helped with a better initial condition.  Try using the EM algorithm first (\code{method="kem"}), and then using the parameter estimates from that to as initial conditions for \code{method="BFGS"}.  } 
+      \item{convergence=54}{ The algorithm successfully fit the model but the Kalman filter/smoother could not be run on the model. Consult MARSSinfo('optimerror54') for insight.  } 
       }
   }
   \item{logLik}{Log-likelihood.}
@@ -50,8 +53,6 @@ Objects of class \code{\link{marssMLE}} may be built from scratch but are easier
 }
 \author{
   Eli Holmes, NOAA, Seattle, USA.  
-
-  eli(dot)holmes(at)noaa(dot)gov
 }
 \seealso{  \code{\link{MARSS}}, \code{\link{MARSSkem}},  \code{\link{marssMLE}},  \code{\link{optim}}
 }

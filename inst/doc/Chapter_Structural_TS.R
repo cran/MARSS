@@ -31,8 +31,10 @@ mod.list <- list(
   Q = matrix("s2xi"), R = matrix("s2eps")
 )
 fit3 <- MARSS(as.vector(y), model = mod.list, method = "BFGS")
-fit4 <- MARSS(as.vector(y), model = mod.list, 
-              control = list(allow.degen = FALSE))
+fit4 <- MARSS(as.vector(y),
+  model = mod.list,
+  control = list(allow.degen = FALSE)
+)
 
 
 ###################################################
@@ -92,8 +94,10 @@ mod.list <- list(
   Q = diag(fit1$coef[1:2]), R = matrix(fit1$coef[3]),
   V0 = matrix(1e+06 * vy, 2, 2), Z = Z, B = B
 )
-fit2 <- MARSS(as.vector(y), model = mod.list, fit = FALSE, 
-              control = list(trace = -1))
+fit2 <- MARSS(as.vector(y),
+  model = mod.list, fit = FALSE,
+  control = list(trace = -1)
+)
 fit2$par <- fit2$start # otherwise par is NULL since fit=FALSE
 
 
@@ -106,8 +110,10 @@ mod.list <- list(
   V0 = matrix(1e+06 * vy, 2, 2) + diag(1e-10, 2), Z = Z, B = B
 )
 fit3 <- MARSS(as.vector(y), model = mod.list, method = "BFGS")
-fit4 <- MARSS(as.vector(y), model = mod.list, 
-              control = list(allow.degen = FALSE))
+fit4 <- MARSS(as.vector(y),
+  model = mod.list,
+  control = list(allow.degen = FALSE)
+)
 
 
 ###################################################
@@ -183,13 +189,15 @@ Q <- ldiag(list("s2xi", "s2zeta", "s2w", 0, 0))
 R <- matrix("s2eps")
 V0 <- matrix(1e+06 * vy, nf + 1, nf + 1) + diag(1e-10, nf + 1)
 mod.list <- list(
-  x0 = matrix(c(y[1], rep(0, nf)), ncol = 1), 
+  x0 = matrix(c(y[1], rep(0, nf)), ncol = 1),
   U = "zero", A = "zero", tinitx = 0,
   Q = Q, R = R, V0 = V0, Z = Z, B = B
 )
 fit3 <- MARSS(as.vector(y), model = mod.list, method = "BFGS")
-fit4 <- MARSS(as.vector(y), model = mod.list, 
-              control = list(allow.degen = FALSE))
+fit4 <- MARSS(as.vector(y),
+  model = mod.list,
+  control = list(allow.degen = FALSE)
+)
 fit4$kf <- MARSSkfss(fit4)
 fit3$kf <- MARSSkfss(fit3)
 
@@ -252,7 +260,7 @@ fr1
 ###################################################
 ### code chunk number 18: Cs403_forecast
 ###################################################
-fr2 <- predict(fit2, n.ahead = 5, interval="prediction")
+fr2 <- predict(fit2, n.ahead = 5, interval = "prediction")
 fr2
 
 
@@ -268,8 +276,8 @@ rbind(
 ###################################################
 ### code chunk number 20: Cs405_forecast
 ###################################################
-fr1 <- forecast::forecast(fit1, h = 10)
-fr2 <- forecast::forecast(fit2, h = 10)
+fr1 <- forecast:::forecast.StructTS(fit1, h = 10)
+fr2 <- forecast.marssMLE(fit2, h = 10)
 p1 <- ggplot2::autoplot(fr1, include = 8)
 p2 <- ggplot2::autoplot(fr2, include = 8)
 gridExtra::grid.arrange(p1, p2, nrow = 1)
@@ -286,7 +294,7 @@ plot(fitted1)
 ### code chunk number 22: Cs502_fitted
 ###################################################
 fitted2 <- tsSmooth(fit2, type = "xtt")
-fitted2 <- subset(fitted2, .rownames  %in% c("X1", "X2", "X3"))
+fitted2 <- subset(fitted2, .rownames %in% c("X1", "X2", "X3"))
 
 
 ###################################################
@@ -294,29 +302,30 @@ fitted2 <- subset(fitted2, .rownames  %in% c("X1", "X2", "X3"))
 ###################################################
 ggplot(fitted2, aes(x = t, y = .estimate)) +
   geom_line() +
-  facet_wrap(~.rownames, ncol=1, scale="free_y")
+  facet_wrap(~.rownames, ncol = 1, scale = "free_y")
 
 
 ###################################################
 ### code chunk number 24: Cs504_fitted
 ###################################################
 fitted3 <- MARSSkfss(fit2)$xtt
-fitted3 <- ts(t(fitted3[1:3,]))
+fitted3 <- ts(t(fitted3[1:3, ]))
 plot(fitted3)
 
 
 ###################################################
 ### code chunk number 25: Cs505_fitted
 ###################################################
-fitted2 <- fitted(fit2, type="ytt")
-df2 <- data.frame(t=as.numeric(time(fitted1)), fitted=fitted2$.fitted, name="MARSS")
-df1 <- data.frame(t=df2$t, fitted=as.numeric(fitted1[,1]+fitted1[,3]), name="StructTS")
+fitted2 <- fitted(fit2, type = "ytt")
+df2 <- data.frame(t = as.numeric(time(fitted1)), fitted = fitted2$.fitted, name = "MARSS")
+df1 <- data.frame(t = df2$t, fitted = as.numeric(fitted1[, 1] + fitted1[, 3]), name = "StructTS")
 df <- rbind(df1, df2)
 df$y <- fitted2$y
 
 ggplot(df) +
-  geom_line(aes(x = t, y = fitted)) + geom_point(aes(x = t, y = y), col="blue") +
-  facet_wrap(~name, ncol=1)
+  geom_line(aes(x = t, y = fitted)) +
+  geom_point(aes(x = t, y = y), col = "blue") +
+  facet_wrap(~name, ncol = 1)
 
 
 ###################################################
@@ -328,19 +337,20 @@ resids1 <- residuals(fit1)
 ###################################################
 ### code chunk number 27: Cs602_residuals
 ###################################################
-resids2 <- residuals(fit2, type = "tt", standardization="marginal")
+resids2 <- residuals(fit2, type = "tt", standardization = "marginal")
 
 
 ###################################################
 ### code chunk number 28: Cs603_residuals
 ###################################################
-df2 <- data.frame(t=as.numeric(time(resids1)), resids=resids2$.std.resids, name="MARSS")
-df1 <- data.frame(t=df2$t, resids=as.numeric(resids1), name="StructTS")
-df3 <- data.frame(t=df2$t, resids=df1$resids-df2$resids, name="difference")
+df2 <- data.frame(t = as.numeric(time(resids1)), resids = resids2$.std.resids, name = "MARSS")
+df1 <- data.frame(t = df2$t, resids = as.numeric(resids1), name = "StructTS")
+df3 <- data.frame(t = df2$t, resids = df1$resids - df2$resids, name = "difference")
 df <- rbind(df1, df2, df3)
 
 ggplot(df, aes(x = t, y = resids)) +
-  geom_line() + facet_wrap(~name, ncol=1, scale="free_y") +
+  geom_line() +
+  facet_wrap(~name, ncol = 1, scale = "free_y") +
   ggtitle("Marginal standardized model residuals")
 
 
@@ -348,27 +358,30 @@ ggplot(df, aes(x = t, y = resids)) +
 ### code chunk number 29: Cs701_multivariate
 ###################################################
 set.seed(100)
-TT <- 60; t <- 1:TT
-q <- 0.01; r <- 0.01
-trend <- 0.2*sin((1:TT)/4)
-level <- cumsum(rnorm(TT,trend, sqrt(q)))
+TT <- 60
+t <- 1:TT
+q <- 0.01
+r <- 0.01
+trend <- 0.2 * sin((1:TT) / 4)
+level <- cumsum(rnorm(TT, trend, sqrt(q)))
 
 # Simulated data
 n <- 5
 miss.percent <- 0.5
-ym <- matrix(1,n,1)%*%level + matrix(rnorm(TT*n,0,sqrt(r*100)),n,TT)
-ym[sample(n*TT, miss.percent*n*TT)] <- NA
+ym <- matrix(1, n, 1) %*% level + matrix(rnorm(TT * n, 0, sqrt(r * 100)), n, TT)
+ym[sample(n * TT, miss.percent * n * TT)] <- NA
 
 
 ###################################################
 ### code chunk number 30: Cs702_multivariate
 ###################################################
-par(mfrow=c(2,1), mar=c(3,3,1,1))
-ylims <- c(min(ym, na.rm=TRUE),max(ym, na.rm=TRUE))
-plot(t, trend, ylim=ylims, col="red", type="l"); lines(t, level, col="black")
-legend("topright", c("trend", "level"), lty=1, col=c("red", "black"))
-matplot(t,t(ym), pch=1:n, ylab="y", xlab="", ylim=ylims, main="bad data")
-lines(t,level)
+par(mfrow = c(2, 1), mar = c(3, 3, 1, 1))
+ylims <- c(min(ym, na.rm = TRUE), max(ym, na.rm = TRUE))
+plot(t, trend, ylim = ylims, col = "red", type = "l")
+lines(t, level, col = "black")
+legend("topright", c("trend", "level"), lty = 1, col = c("red", "black"))
+matplot(t, t(ym), pch = 1:n, ylab = "y", xlab = "", ylim = ylims, main = "bad data")
+lines(t, level)
 
 
 ###################################################
@@ -376,11 +389,12 @@ lines(t,level)
 ###################################################
 vy <- var(y, na.rm = TRUE) / 100
 mod.list.x <- list(
-  x0 = matrix(list("x0",0),nrow=2), tinitx = 1,
+  x0 = matrix(list("x0", 0), nrow = 2), tinitx = 1,
   V0 = matrix(1e+06 * vy, 2, 2) + diag(1e-10, 2),
-  Q = ldiag(list(q,"qt")),
+  Q = ldiag(list(q, "qt")),
   B = matrix(c(1, 0, 1, 1), 2, 2),
-  U = "zero")
+  U = "zero"
+)
 
 
 ###################################################
@@ -388,70 +402,77 @@ mod.list.x <- list(
 ###################################################
 mod.list.y <- list(
   A = "zero",
-  R = "diagonal and equal")
+  R = "diagonal and equal"
+)
 
 
 ###################################################
 ### code chunk number 33: Cs705_multivariate
 ###################################################
-Z <- matrix(c(1, 0), 1, 2, byrow=TRUE)
-mod.list <- c(mod.list.x, mod.list.y, list(Z=Z))
-fitu <- MARSS(ym[1,], model = mod.list, method = "BFGS", inits=list(x0=0))
+Z <- matrix(c(1, 0), 1, 2, byrow = TRUE)
+mod.list <- c(mod.list.x, mod.list.y, list(Z = Z))
+fitu <- MARSS(ym[1, ], model = mod.list, method = "BFGS", inits = list(x0 = 0))
 
 
 ###################################################
 ### code chunk number 34: Cs706_multivariate
 ###################################################
-Z <- matrix(c(1, 0), n, 2, byrow=TRUE)
-mod.list <- c(mod.list.x, mod.list.y, list(Z=Z))
-fitm <- MARSS(ym, model = mod.list, method = "BFGS", inits=list(x0=0))
+Z <- matrix(c(1, 0), n, 2, byrow = TRUE)
+mod.list <- c(mod.list.x, mod.list.y, list(Z = Z))
+fitm <- MARSS(ym, model = mod.list, method = "BFGS", inits = list(x0 = 0))
 
 
 ###################################################
 ### code chunk number 35: Cs707_multivariate
 ###################################################
-true <- data.frame(.rownames=rep(c("X1","X2"), each=TT), t=t, 
-                   .estimate=c(level,trend), .se=NA, name="true")
+true <- data.frame(
+  .rownames = rep(c("X1", "X2"), each = TT), t = t,
+  .estimate = c(level, trend), .se = NA, name = "true"
+)
 statesu <- tsSmooth(fitu)
 statesu$name <- "one bad"
 statesm <- tsSmooth(fitm)
 statesm$name <- "multiple bad"
 df <- rbind(true, statesu, statesm)
 
-ggplot(df, aes(x=t, y=.estimate, col=name)) + 
+ggplot(df, aes(x = t, y = .estimate, col = name)) +
   geom_line() +
-  facet_wrap(~.rownames, scale="free_y")
+  facet_wrap(~.rownames, scale = "free_y")
 
 
 ###################################################
 ### code chunk number 36: Cs708_multivariate
 ###################################################
-par(mfrow=c(2,1), mar=c(3,3,1,1))
-covariate <- matrix(c(rep(0,TT-10),rep(1,10)), nrow=1)
+par(mfrow = c(2, 1), mar = c(3, 3, 1, 1))
+covariate <- matrix(c(rep(0, TT - 10), rep(1, 10)), nrow = 1)
 ymc <- ym
-D <- matrix(c(-1,-1,0,1,1),ncol=1)
-ymc <- ym + D%*%covariate
-matplot(t,t(ymc), pch=1:n, ylab="y", xlab="", main="data")
+D <- matrix(c(-1, -1, 0, 1, 1), ncol = 1)
+ymc <- ym + D %*% covariate
+matplot(t, t(ymc), pch = 1:n, ylab = "y", xlab = "", main = "data")
 lines(level)
-plot(t, covariate[1,], col="blue", lty=2, type="l", main="covariate")
+plot(t, covariate[1, ], col = "blue", lty = 2, type = "l", main = "covariate")
 
 
 ###################################################
 ### code chunk number 37: Cs709_multivariate
 ###################################################
-Z <- matrix(c(1, 0), n, 2, byrow=TRUE)
-mod.list <- c(mod.list.x, mod.list.y, list(Z=Z, d=covariate))
-fitmc <- MARSS(ymc, model = mod.list, method = "BFGS", inits=list(x0=0))
+Z <- matrix(c(1, 0), n, 2, byrow = TRUE)
+mod.list <- c(mod.list.x, mod.list.y, list(Z = Z, d = covariate))
+fitmc <- MARSS(ymc, model = mod.list, method = "BFGS", inits = list(x0 = 0))
 
 
 ###################################################
 ### code chunk number 38: Cs710_multivariate
 ###################################################
-dvals <- data.frame(x=paste0("y",1:n), 
-                    val=c(D, coef(fitmc, type="matrix")$D),
-                    name=rep(c("true","estimate"), each=n))
-ggplot(dvals, aes(x=x, y=val, col=name)) + geom_point() +
-  xlab("observation series") + ylab("D estimate") +
+dvals <- data.frame(
+  x = paste0("y", 1:n),
+  val = c(D, coef(fitmc, type = "matrix")$D),
+  name = rep(c("true", "estimate"), each = n)
+)
+ggplot(dvals, aes(x = x, y = val, col = name)) +
+  geom_point() +
+  xlab("observation series") +
+  ylab("D estimate") +
   ggtitle("D true and estimated values")
 
 
@@ -462,39 +483,43 @@ statesmc <- tsSmooth(fitmc)
 statesmc$name <- "multiple w covariate"
 df <- rbind(true, statesu, statesm, statesmc)
 
-ggplot(df, aes(x=t, y=.estimate, col=name)) + 
+ggplot(df, aes(x = t, y = .estimate, col = name)) +
   geom_line() +
-  facet_wrap(~.rownames, scale="free_y")
+  facet_wrap(~.rownames, scale = "free_y")
 
 
 ###################################################
 ### code chunk number 40: Cs712_multivariate
 ###################################################
-r2 <- r*c(100,10,10,200,400)
-a <- runif(n,-1,1)
-err <- rnorm(n*TT, mean=rep(a, each=TT), sd=rep(sqrt(r2), each=TT))
-ym2 <- matrix(1,nrow=n)%*%level + matrix(err,nrow=n,byrow=TRUE)
-ym2[sample(n*TT, miss.percent*n*TT)] <- NA
-matplot(t,t(ym2), pch=1:n, ylab="y", xlab="", main="data with different error and bias")
+r2 <- r * c(100, 10, 10, 200, 400)
+a <- runif(n, -1, 1)
+err <- rnorm(n * TT, mean = rep(a, each = TT), sd = rep(sqrt(r2), each = TT))
+ym2 <- matrix(1, nrow = n) %*% level + matrix(err, nrow = n, byrow = TRUE)
+ym2[sample(n * TT, miss.percent * n * TT)] <- NA
+matplot(t, t(ym2), pch = 1:n, ylab = "y", xlab = "", main = "data with different error and bias")
 lines(level)
 
 
 ###################################################
 ### code chunk number 41: Cs713_multivariate
 ###################################################
-Z <- matrix(c(1, 0), n, 2, byrow=TRUE)
-mod.list <- c(mod.list.x, list(Z=Z, R="diagonal and unequal", A="scaling"))
-fitm2 <- MARSS(ym2, model = mod.list, method = "BFGS", inits=list(x0=0))
+Z <- matrix(c(1, 0), n, 2, byrow = TRUE)
+mod.list <- c(mod.list.x, list(Z = Z, R = "diagonal and unequal", A = "scaling"))
+fitm2 <- MARSS(ym2, model = mod.list, method = "BFGS", inits = list(x0 = 0))
 
 
 ###################################################
 ### code chunk number 42: Cs714_multivariate
 ###################################################
-rvals <- data.frame(x=paste0("y",1:n), 
-                    val=c(r2, coef(fitm2)$R),
-                    name=rep(c("true","estimate"), each=n))
-ggplot(rvals, aes(x=x, y=val, col=name)) + geom_point() +
-  xlab("observation series") + ylab("R variance estimate") +
+rvals <- data.frame(
+  x = paste0("y", 1:n),
+  val = c(r2, coef(fitm2)$R),
+  name = rep(c("true", "estimate"), each = n)
+)
+ggplot(rvals, aes(x = x, y = val, col = name)) +
+  geom_point() +
+  xlab("observation series") +
+  ylab("R variance estimate") +
   ggtitle("R true and estimated values")
 
 
@@ -505,33 +530,38 @@ statesm2 <- tsSmooth(fitm2)
 statesm2$name <- "multiple w different Rs"
 df <- rbind(true, statesu, statesm, statesmc, statesm2)
 
-ggplot(df, aes(x=t, y=.estimate, col=name)) + 
+ggplot(df, aes(x = t, y = .estimate, col = name)) +
   geom_line() +
-  facet_wrap(~.rownames, scale="free_y")
+  facet_wrap(~.rownames, scale = "free_y")
 
 
 ###################################################
 ### code chunk number 44: Cs716_multivariate
 ###################################################
 set.seed(100)
-TT <- 60; t <- 1:TT
-q <- 0.5; qt <- 0.01; r <- 0.1
+TT <- 60
+t <- 1:TT
+q <- 0.5
+qt <- 0.01
+r <- 0.1
 b <- 0.5
-trend <- 0.2*sin((1:TT)/4)
-level1 <- cumsum(rnorm(TT,trend, sqrt(q)))
-level2 <- cumsum(rnorm(TT,trend, sqrt(q)))
+trend <- 0.2 * sin((1:TT) / 4)
+level1 <- cumsum(rnorm(TT, trend, sqrt(q)))
+level2 <- cumsum(rnorm(TT, trend, sqrt(q)))
 
 # Simulated data
-ym <- rbind(level1, level2) + matrix(rnorm(TT*2,0,sqrt(r)),2,TT)
+ym <- rbind(level1, level2) + matrix(rnorm(TT * 2, 0, sqrt(r)), 2, TT)
 
 
 ###################################################
 ### code chunk number 45: Cs717_multivariate
 ###################################################
-par(mfrow=c(2,1), mar=c(3,3,1,1))
-ylims <- c(min(ym, na.rm=TRUE),max(ym, na.rm=TRUE))
-plot(t, ym[1,], ylim=ylims, type="p"); lines(t, level1, col="black")
-plot(t, ym[2,], ylim=ylims, type="p"); lines(t, level2, col="black")
+par(mfrow = c(2, 1), mar = c(3, 3, 1, 1))
+ylims <- c(min(ym, na.rm = TRUE), max(ym, na.rm = TRUE))
+plot(t, ym[1, ], ylim = ylims, type = "p")
+lines(t, level1, col = "black")
+plot(t, ym[2, ], ylim = ylims, type = "p")
+lines(t, level2, col = "black")
 
 
 ###################################################
@@ -540,53 +570,57 @@ plot(t, ym[2,], ylim=ylims, type="p"); lines(t, level2, col="black")
 vy <- var(y, na.rm = TRUE) / 100
 Z <- matrix(c(1, 0), 1, 2)
 mod.list.x <- list(
-  x0 = matrix(list("x0",0),nrow=2), tinitx = 1,
+  x0 = matrix(list("x0", 0), nrow = 2), tinitx = 1,
   V0 = matrix(1e+06 * vy, 2, 2) + diag(1e-10, 2),
-  Q = ldiag(list(q,"qt")),
+  Q = ldiag(list(q, "qt")),
   B = matrix(c(1, 0, 1, 1), 2, 2),
-  U = "zero")
-mod.list <- c(mod.list.x, mod.list.y, list(Z=Z))
-fitm1 <- MARSS(ym[1,], model = mod.list, method = "BFGS", inits=list(x0=0))
-fitm2 <- MARSS(ym[2,], model = mod.list, method = "BFGS", inits=list(x0=0))
+  U = "zero"
+)
+mod.list <- c(mod.list.x, mod.list.y, list(Z = Z))
+fitm1 <- MARSS(ym[1, ], model = mod.list, method = "BFGS", inits = list(x0 = 0))
+fitm2 <- MARSS(ym[2, ], model = mod.list, method = "BFGS", inits = list(x0 = 0))
 
 
 ###################################################
 ### code chunk number 47: Cs719_multivariate
 ###################################################
-Z <- matrix(c(1, 0, 0, 0, 1, 0), 2, 3, byrow=TRUE)
+Z <- matrix(c(1, 0, 0, 0, 1, 0), 2, 3, byrow = TRUE)
 m <- 3
 mod.list.x <- list(
-  x0 = matrix(list("x0.1","x0.2",0),nrow=m), tinitx = 1,
+  x0 = matrix(list("x0.1", "x0.2", 0), nrow = m), tinitx = 1,
   V0 = matrix(1e+06 * vy, m, m) + diag(1e-10, m),
-  Q = ldiag(list("q","q","qt")),
-  B = matrix(c(1, 0, 1, 0, 1, 1, 0, 0, 1), m, m, byrow=TRUE),
-  U = "zero")
-mod.list <- c(mod.list.x, mod.list.y, list(Z=Z))
-fitm3 <- MARSS(ym, model = mod.list, method = "BFGS", inits=list(x0=0))
+  Q = ldiag(list("q", "q", "qt")),
+  B = matrix(c(1, 0, 1, 0, 1, 1, 0, 0, 1), m, m, byrow = TRUE),
+  U = "zero"
+)
+mod.list <- c(mod.list.x, mod.list.y, list(Z = Z))
+fitm3 <- MARSS(ym, model = mod.list, method = "BFGS", inits = list(x0 = 0))
 
 
 ###################################################
 ### code chunk number 48: Cs720_multivariate
 ###################################################
-true <- data.frame(.rownames=rep(c("level 1","level 2","trend"), each=TT), t=t, 
-                   .estimate=c(level1,level2,trend), .se=NA, name="true")
+true <- data.frame(
+  .rownames = rep(c("level 1", "level 2", "trend"), each = TT), t = t,
+  .estimate = c(level1, level2, trend), .se = NA, name = "true"
+)
 statesm1 <- tsSmooth(fitm1)
 statesm1$name <- "ts 1 alone"
-statesm1$.rownames[statesm1$.rownames=="X2"] <- "trend"
-statesm1$.rownames[statesm1$.rownames=="X1"] <- "level 1"
+statesm1$.rownames[statesm1$.rownames == "X2"] <- "trend"
+statesm1$.rownames[statesm1$.rownames == "X1"] <- "level 1"
 statesm2 <- tsSmooth(fitm2)
 statesm2$name <- "ts 2 alone"
-statesm2$.rownames[statesm2$.rownames=="X2"] <- "trend"
-statesm2$.rownames[statesm2$.rownames=="X1"] <- "level 2"
+statesm2$.rownames[statesm2$.rownames == "X2"] <- "trend"
+statesm2$.rownames[statesm2$.rownames == "X1"] <- "level 2"
 statesm3 <- tsSmooth(fitm3)
 statesm3$name <- "ts 1 & 2 together"
-statesm3$.rownames[statesm3$.rownames=="X3"] <- "trend"
-statesm3$.rownames[statesm3$.rownames=="X1"] <- "level 1"
-statesm3$.rownames[statesm3$.rownames=="X2"] <- "level 2"
+statesm3$.rownames[statesm3$.rownames == "X3"] <- "trend"
+statesm3$.rownames[statesm3$.rownames == "X1"] <- "level 1"
+statesm3$.rownames[statesm3$.rownames == "X2"] <- "level 2"
 df <- rbind(true, statesm1, statesm2, statesm3)
 
-ggplot(df, aes(x=t, y=.estimate, col=name)) + 
+ggplot(df, aes(x = t, y = .estimate, col = name)) +
   geom_line() +
-  facet_wrap(~.rownames, scale="free_y", ncol=1)
+  facet_wrap(~.rownames, scale = "free_y", ncol = 1)
 
 

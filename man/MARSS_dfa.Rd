@@ -28,7 +28,7 @@ Passing in \code{form="dfa"} to \code{\link{MARSS}()} invokes a helper function 
 }
 
 \arguments{
-Some arguments are common to all forms: "data", "inits", "control", "method", "form", "fit", "silent", "fun.kf". See \code{\link{MARSS}} for information on these arguments.
+Some arguments are common to all forms: "y" (data), "inits", "control", "method", "form", "fit", "silent", "fun.kf". See \code{\link{MARSS}} for information on these arguments.
 
 In addition to these, form="dfa" has some special arguments that can be passed in:
 \itemize{
@@ -57,7 +57,7 @@ The \code{model} argument is a list. The following details what list elements ca
 See the User Guide chapter on Dynamic Factor Analysis for examples of of using \code{form="dfa"}.
 }
 \value{
-A object of class \code{\link{marssMLE}}.  See \code{\link{print.marssMLE}} for a discussion of the various output available for \code{\link{marssMLE}} objects (coefficients, residuals, Kalman filter and smoother output, imputed values for missing data, etc.).  See \code{\link{MARSSsimulate}} for simulating from \code{\link{marssMLE}} objects. \code{\link{MARSSboot}} for bootstrapping, \code{\link{MARSSaic}} for calculation of various AIC related model selection metrics, and \code{\link{MARSSparamCIs}} for calculation of confidence intervals and bias. 
+A object of class \code{\link{marssMLE}}.  See \code{\link[=print.marssMLE]{print}()} for a discussion of the various output available for \code{\link{marssMLE}} objects (coefficients, residuals, Kalman filter and smoother output, imputed values for missing data, etc.).  See \code{\link{MARSSsimulate}()} for simulating from \code{\link{marssMLE}} objects. \code{\link{MARSSboot}()} for bootstrapping, \code{\link{MARSSaic}()} for calculation of various AIC related model selection metrics, and \code{\link{MARSSparamCIs}()} for calculation of confidence intervals and bias. 
 }
 \author{ 
   Eli Holmes, NOAA, Seattle, USA. 

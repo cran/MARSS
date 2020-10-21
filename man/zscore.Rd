@@ -5,10 +5,11 @@
   Removes the mean and standardizes the variance to 1.
 }
 \usage{
-zscore(x)
+zscore(x, mean.only = FALSE)
 }
 \arguments{
   \item{x}{ n x T matrix of numbers }
+  \item{mean.only}{ If TRUE, only remove the mean. }
 }
 \details{
   n = number of observation (y) time series.   T = number of time steps in the time series.
@@ -23,8 +24,6 @@ zscore(x)
 
 \author{ 
   Eli Holmes, NOAA, Seattle, USA.  
-
-  eli(dot)holmes(at)noaa(dot)gov, eric(dot)ward(at)noaa(dot)gov
 }
 \examples{
 zscore(1:10)

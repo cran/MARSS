@@ -2,7 +2,7 @@
 \alias{MARSSharveyobsFI}
 \title{ Hessian Matrix via the Harvey (1989) Recursion}
 \description{
-Calculates the observed Fisher Information analytically via the recursion by Harvey (1989) as adapted by Holmes (2017) for MARSS models with linear constraints.  This is the same as the Hessian of the negative log-likelihood function at the MLEs.  This is a utility function in the \code{\link{MARSS-package}} and is not exported.  Use \code{\link{MARSShessian}} to access.
+Calculates the observed Fisher Information analytically via the recursion by Harvey (1989) as adapted by Holmes (2017) for MARSS models with linear constraints.  This is the same as the Hessian of the negative log-likelihood function at the MLEs.  This is a utility function in the \code{\link{MARSS-package}} and is not exported.  Use \code{\link{MARSShessian}()} to access.
 }
 \usage{
 MARSSharveyobsFI(MLEobj)
@@ -18,8 +18,6 @@ Harvey (1989) discusses missing observations in section 3.4.7.  However, the \co
 }
 \author{ 
   Eli Holmes, NOAA, Seattle, USA.  
-
-  eli(dot)holmes(at)noaa(dot)gov
 } 
 \seealso{ \code{\link{MARSShessian}}, \code{\link{MARSSparamCIs}} }
 \examples{

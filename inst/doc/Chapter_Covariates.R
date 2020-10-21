@@ -43,8 +43,10 @@ d <- covariates
 A <- "zero"
 D <- "unconstrained"
 y <- dat # to show relationship between dat & the equation
-model.list <- list(B = B, U = U, Q = Q, Z = Z, A = A, 
-                   D = D, d = d, x0 = x0)
+model.list <- list(
+  B = B, U = U, Q = Q, Z = Z, A = A,
+  D = D, d = d, x0 = x0
+)
 kem <- MARSS(y, model = model.list)
 
 
@@ -58,8 +60,10 @@ R <- "diagonal and equal"
 d <- covariates
 D <- "unconstrained"
 y <- dat
-model.list <- list(B = B, U = U, Q = Q, Z = Z, A = A, 
-                   R = R, D = D, d = d, x0 = x0)
+model.list <- list(
+  B = B, U = U, Q = Q, Z = Z, A = A,
+  R = R, D = D, d = d, x0 = x0
+)
 control.list <- list(maxit = 1500)
 kem <- MARSS(y, model = model.list, control = control.list)
 
@@ -72,8 +76,10 @@ B <- Z <- "identity"
 Q <- "equalvarcov"
 C <- "unconstrained"
 x <- dat # to show the relation between dat & the equations
-model.list <- list(B = B, U = U, Q = Q, Z = Z, A = A, 
-                   R = R, C = C, c = covariates)
+model.list <- list(
+  B = B, U = U, Q = Q, Z = Z, A = A,
+  R = R, C = C, c = covariates
+)
 kem <- MARSS(x, model = model.list)
 
 
@@ -163,8 +169,10 @@ d <- "zero"
 ###################################################
 ### code chunk number 16: Covar_sec6_06_fit-month-factor-with-MARSS
 ###################################################
-model.list <- list(B = B, U = U, Q = Q, Z = Z, A = A, R = R, 
-                   C = C, c = c.in, D = D, d = d)
+model.list <- list(
+  B = B, U = U, Q = Q, Z = Z, A = A, R = R,
+  C = C, c = c.in, D = D, d = d
+)
 seas.mod.1 <- MARSS(dat, model = model.list, control = list(maxit = 1500))
 
 # Get the estimated seasonal effects
@@ -194,8 +202,10 @@ c.m.poly <- matrix(month.cov, poly.order + 1, TT + period, byrow = FALSE)
 c.m.poly <- c.m.poly[, (1:TT) + (per.1st - 1)]
 
 # Everything else remains the same as in the previous example
-model.list <- list(B = B, U = U, Q = Q, Z = Z, A = A, R = R, 
-                   C = C, c = c.m.poly, D = D, d = d)
+model.list <- list(
+  B = B, U = U, Q = Q, Z = Z, A = A, R = R,
+  C = C, c = c.m.poly, D = D, d = d
+)
 seas.mod.2 <- MARSS(dat, model = model.list, control = list(maxit = 1500))
 
 
@@ -219,8 +229,10 @@ c.Four <- rbind(cos.t, sin.t)
 ###################################################
 ### code chunk number 20: Covar_sec6_10_seasonal-fourier-fit
 ###################################################
-model.list <- list(B = B, U = U, Q = Q, Z = Z, A = A, R = R, 
-                   C = C, c = c.Four, D = D, d = d)
+model.list <- list(
+  B = B, U = U, Q = Q, Z = Z, A = A, R = R,
+  C = C, c = c.Four, D = D, d = d
+)
 seas.mod.3 <- MARSS(dat, model = model.list, control = list(maxit = 1500))
 
 
@@ -276,8 +288,9 @@ data.frame(
 ##       ylab = "Residual", main = phytos[j]
 ##     )
 ##     abline(h = 0, lty = "dashed")
-##     acf(MARSSresiduals(modn, type = "tt1")$model.residuals[j, ], 
-##         na.action = na.pass)
+##     acf(MARSSresiduals(modn, type = "tt1")$model.residuals[j, ],
+##       na.action = na.pass
+##     )
 ##   }
 ## }
 

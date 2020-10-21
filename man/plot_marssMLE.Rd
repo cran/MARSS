@@ -9,16 +9,16 @@
 \usage{
 \method{plot}{marssMLE}(x, plot.type = c("model.ytT", "xtT", "model.resids",
                  "state.resids", "qqplot.model.resids",
-                 "qqplot.state.resids", "ytT", "acf.model.resids",
-                 "acf.state.resids"), form = c("marxss", "marss",
-                 "dfa"), conf.int = TRUE, conf.level = 0.95, 
-                 decorate = TRUE, pi.int = FALSE, plot.par = list(), ...)
+                 "qqplot.state.resids", "ytT", "acf.model.resids"), 
+                 form = c("marxss", "marss", "dfa"), 
+                 conf.int = TRUE, conf.level = 0.95, decorate = TRUE, 
+                 pi.int = FALSE, plot.par = list(), ..., silent = FALSE)
 \method{autoplot}{marssMLE}(x, plot.type = c("model.ytT", "xtT", "model.resids", 
     "state.resids", "qqplot.model.resids", "qqplot.state.resids", "ytT", 
-    "acf.model.resids", "acf.state.resids"),
+    "acf.model.resids"),
     form=c("marxss", "marss", "dfa"),
     conf.int=TRUE, conf.level=0.95, decorate=TRUE, pi.int = FALSE,
-    plot.par = list(), ...)
+    plot.par = list(), ..., silent = FALSE)
   }
 \arguments{
   \item{x}{ A \code{\link{marssMLE}} object.  }
@@ -32,6 +32,7 @@
                     line.col = "black", line.size = 1, line.linetype = "solid",
                     ci.fill = "grey70", ci.col = "grey70", ci.linetype = "solid", 
                     ci.linesize = 0, ci.alpha = 0.6). }
+  \item{silent}{ No console interaction or output. }
   \item{...}{ Other arguments, not used. }
   }
 \value{
@@ -47,8 +48,7 @@ The plot types are as follows:
 \item{\code{qqplot.model.resids}}{\code{"model.residuals.qqplot"} can also be used. Visual normality test for the model residuals.} 
 \item{\code{qqplot.state.resids}}{\code{"state.residuals.qqplot"} can also be used. Visual normality test for the state residuals.} 
 \item{\code{"ytT"}}{ The expected value of \eqn{y} conditioned on the data. Use this for estimates of the missing data points. Note for non-missing \eqn{y} values, the expected value of \eqn{y} is \eqn{y}. } 
-\item{\code{"acf.model.resids"}}{ ACF of the model residuals.}
-\item{\code{"acf.state.resids"}}{ ACF of the state residuals.}
+\item{\code{"acf.model.resids"}}{ ACF of the one-step-ahead model residuals.}
 }
 }
 \author{ 

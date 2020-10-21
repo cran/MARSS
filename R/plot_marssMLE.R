@@ -1,9 +1,9 @@
 plot.marssMLE <-
   function(x,
-           plot.type = c("model.ytT", "xtT", "model.resids", "state.resids", "qqplot.model.resids", "qqplot.state.resids", "ytT", "acf.model.resids", "acf.state.resids"),
+           plot.type = c("model.ytT", "xtT", "model.resids", "state.resids", "qqplot.model.resids", "qqplot.state.resids", "ytT", "acf.model.resids"),
            form = c("marxss", "marss", "dfa"),
            conf.int = TRUE, conf.level = 0.95, decorate = TRUE, pi.int = FALSE,
-           plot.par = list(), ...) {
+           plot.par = list(), ..., silent = FALSE) {
 
     # Argument checks
     plot.type <- match.arg(plot.type, several.ok = TRUE)
@@ -92,8 +92,8 @@ plot.marssMLE <-
         })
       }
       plot.type <- plot.type[plot.type != "model.ytT"]
-      cat(paste("plot type = \"model.ytT\" Observations with fitted values\n"))
-      if (length(plot.type) != 0) {
+      if (!silent) cat(paste("plot type = \"model.ytT\" Observations with fitted values\n"))
+      if (length(plot.type) != 0 && !silent) {
         ans <- readline(prompt = "Hit <Return> to see next plot (q to exit): ")
         if (tolower(ans) == "q") {
           return()
@@ -138,8 +138,8 @@ plot.marssMLE <-
         })
       }
       plot.type <- plot.type[plot.type != "xtT"]
-      cat(paste("plot type = \"xtT\" Estimated states\n"))
-      if (length(plot.type) != 0) {
+      if (!silent) cat(paste("plot type = \"xtT\" Estimated states\n"))
+      if (length(plot.type) != 0 && !silent) {
         ans <- readline(prompt = "Hit <Return> to see next plot (q to exit): ")
         if (tolower(ans) == "q") {
           return()
@@ -181,8 +181,8 @@ plot.marssMLE <-
         mtext("Observation residuals, y - E[y]", side = 2, outer = TRUE, line = -1)
       }
       plot.type <- plot.type[plot.type != "model.resids"]
-      cat(paste("plot type = \"model.resids\" Model residuals\n"))
-      if (length(plot.type) != 0) {
+      if (!silent) cat(paste("plot type = \"model.resids\" Model residuals\n"))
+      if (length(plot.type) != 0 && !silent) {
         ans <- readline(prompt = "Hit <Return> to see next plot (q to exit): ")
         if (tolower(ans) == "q") {
           return()
@@ -216,8 +216,8 @@ plot.marssMLE <-
         mtext("Observation standardized residuals", side = 2, outer = TRUE, line = -1)
       }
       plot.type <- plot.type[plot.type != "std.model.resids"]
-      cat(paste("plot type = \"std.model.resids\" Standardized model residuals\n"))
-      if (length(plot.type) != 0) {
+      if (!silent) cat(paste("plot type = \"std.model.resids\" Standardized model residuals\n"))
+      if (length(plot.type) != 0 && !silent) {
         ans <- readline(prompt = "Hit <Return> to see next plot (q to exit): ")
         if (tolower(ans) == "q") {
           return()
@@ -259,8 +259,8 @@ plot.marssMLE <-
         mtext("State residuals, xtT - E[x]", side = 2, outer = TRUE, line = -1)
       }
       plot.type <- plot.type[plot.type != "state.resids"]
-      cat(paste("plot type = \"state.resids\" State residuals\n"))
-      if (length(plot.type) != 0) {
+      if (!silent) cat(paste("plot type = \"state.resids\" State residuals\n"))
+      if (length(plot.type) != 0 && !silent) {
         ans <- readline(prompt = "Hit <Return> to see next plot (q to exit): ")
         if (tolower(ans) == "q") {
           return()
@@ -298,8 +298,8 @@ plot.marssMLE <-
         })
       }
       plot.type <- plot.type[plot.type != "qqplot.model.resids"]
-      cat(paste("plot type = \"qqplot.model.resids\" QQ plot of model standardized smoothed residuals\n"))
-      if (length(plot.type) != 0) {
+      if (!silent) cat(paste("plot type = \"qqplot.model.resids\" QQ plot of model standardized smoothed residuals\n"))
+      if (length(plot.type) != 0 && !silent) {
         ans <- readline(prompt = "Hit <Return> to see next plot (q to exit): ")
         if (tolower(ans) == "q") {
           return()
@@ -324,8 +324,8 @@ plot.marssMLE <-
         })
       }
       plot.type <- plot.type[plot.type != "qqplot.state.resids"]
-      cat(paste("plot type = \"qqplot.state.resids\" QQ plot of state standardized smoothed residuals\n"))
-      if (length(plot.type) != 0) {
+      if (!silent) cat(paste("plot type = \"qqplot.state.resids\" QQ plot of state standardized smoothed residuals\n"))
+      if (length(plot.type) != 0 && !silent) {
         ans <- readline(prompt = "Hit <Return> to see next plot (q to exit): ")
         if (tolower(ans) == "q") {
           return()
@@ -353,13 +353,13 @@ plot.marssMLE <-
           title(tit)
           if (conf.int) polygon(c(t, rev(t)), c(ymin, rev(ymax)), col = plotpar$ci.col, border = plotpar$ci.border)
           points(t, y, col = plotpar$point.col, pch = plotpar$point.pch, cex = plotpar$point.size)
-          lines(t, estimate, col = plotpar$line.col, lwd = plotpar$line.lwd)
+          lines(t, .estimate, col = plotpar$line.col, lwd = plotpar$line.lwd)
           box()
         })
       }
       plot.type <- plot.type[plot.type != "ytT"]
-      cat(paste("plot type = \"ytT\" Expected value of Y conditioned on data\n"))
-      if (length(plot.type) != 0) {
+      if (!silent) cat(paste("plot type = \"ytT\" Expected value of Y conditioned on data\n"))
+      if (length(plot.type) != 0 && !silent) {
         ans <- readline(prompt = "Hit <Return> to see next plot (q to exit): ")
         if (tolower(ans) == "q") {
           return()
@@ -382,33 +382,8 @@ plot.marssMLE <-
         })
       }
       plot.type <- plot.type[plot.type != "acf.model.resids"]
-      cat(paste("plot type = \"acf.model.resids\" Model innovations residuals ACF\n"))
-      if (length(plot.type) != 0) {
-        ans <- readline(prompt = "Hit <Return> to see next plot (q to exit): ")
-        if (tolower(ans) == "q") {
-          return()
-        }
-      }
-    }
-
-    if ("acf.state.resids" %in% plot.type) {
-      df <- subset(tt1.resids, tt1.resids$name == "state")
-      df$.rownames <- paste0("State ", df$.rownames)
-      nX <- min(9, attr(x$model, "model.dims")$x[1])
-      plot.nrow <- round(sqrt(nX))
-      plot.ncol <- ceiling(nX / plot.nrow)
-      par(mfrow = c(plot.nrow, plot.ncol), mar = c(2, 4, 2, 1) + 0.1)
-      for (plt in unique(df$.rownames)) {
-        tit <- plt
-        with(subset(df, df$.rownames == plt), {
-          stats::acf(.resids, na.action = na.pass, main = "")
-          title(tit)
-          box()
-        })
-      }
-      plot.type <- plot.type[plot.type != "acf.state.resids"]
-      cat(paste("plot type = \"acf.state.resids\" State one-step ahead residuals ACF\n"))
-      if (length(plot.type) != 0) {
+      if (!silent) cat(paste("plot type = \"acf.model.resids\" Model innovations residuals ACF\n"))
+      if (length(plot.type) != 0 && !silent) {
         ans <- readline(prompt = "Hit <Return> to see next plot (q to exit): ")
         if (tolower(ans) == "q") {
           return()

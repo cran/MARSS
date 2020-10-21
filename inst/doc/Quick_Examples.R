@@ -138,7 +138,13 @@ kemfit <- MARSS(dat, model = list(Z = Z, Q = Q, U = U))
 
 
 ###################################################
-### code chunk number 20: Cs18_model-time-varying
+### code chunk number 21: Cs17_model-two2
+###################################################
+kemfit <- MARSS(dat, model = list(Z = Z, Q = Q, U = U, A="zero"))
+
+
+###################################################
+### code chunk number 22: Cs18_model-time-varying
 ###################################################
 U1 <- matrix("t1", 5, 1)
 U2 <- matrix("t2", 5, 1)
@@ -149,14 +155,14 @@ kemfit.tv <- MARSS(dat, model = list(U = Ut, Q = "diagonal and equal"))
 
 
 ###################################################
-### code chunk number 22: Cs19_model-print
+### code chunk number 24: Cs19_model-print
 ###################################################
 print(kemfit)
 print(kemfit$model)
 
 
 ###################################################
-### code chunk number 21: Cs19b_model-time-varying2
+### code chunk number 23: Cs19b_model-time-varying2
 ###################################################
 U1 <- matrix(c(rep("t1", 4), "hc"), 5, 1)
 U2 <- matrix(c(rep("t2", 4), "hc"), 5, 1)
@@ -166,50 +172,50 @@ kemfit.tv <- MARSS(dat, model = list(U = Ut, Q = "diagonal and equal"))
 
 
 ###################################################
-### code chunk number 23: Cs20_model-summary
+### code chunk number 25: Cs20_model-summary
 ###################################################
 summary(kemfit$model)
 
 
 ###################################################
-### code chunk number 24: Cs21_model-print-par
+### code chunk number 26: Cs21_model-print-par
 ###################################################
 print(kemfit, what = "par")
 
 
 ###################################################
-### code chunk number 25: Cs22_model-print-Q
+### code chunk number 27: Cs22_model-print-Q
 ###################################################
 print(kemfit, what = "Q")
 
 
 ###################################################
-### code chunk number 26: Cs23_model-print-R
+### code chunk number 28: Cs23_model-print-R
 ###################################################
 x <- print(kemfit, what = "states", silent = TRUE)
 
 
 ###################################################
-### code chunk number 27: Cs24_model-tidy-R
+### code chunk number 29: Cs24_model-tidy-R
 ###################################################
 broom::tidy(kemfit)
 broom::glance(kemfit)
 
 
 ###################################################
-### code chunk number 28: Cs25_CIs-hessian
+### code chunk number 30: Cs25_CIs-hessian
 ###################################################
 kem.with.hess.CIs <- MARSSparamCIs(kemfit)
 
 
 ###################################################
-### code chunk number 29: Cs26_print-CIs
+### code chunk number 31: Cs26_print-CIs
 ###################################################
 print(kem.with.hess.CIs)
 
 
 ###################################################
-### code chunk number 30: Cs27_CIs-pboot
+### code chunk number 32: Cs27_CIs-pboot
 ###################################################
 kem.w.boot.CIs <- MARSSparamCIs(kemfit, method = "parametric", nboot = 10)
 # nboot should be more like 1000, but set low for example's sake
@@ -217,21 +223,21 @@ print(kem.w.boot.CIs)
 
 
 ###################################################
-### code chunk number 31: Cs28_parvec
+### code chunk number 33: Cs28_parvec
 ###################################################
 parvec <- coef(kemfit, type = "vector")
 parvec
 
 
 ###################################################
-### code chunk number 32: Cs29_tsSmooth
+### code chunk number 34: Cs29_tsSmooth
 ###################################################
 df <- tsSmooth(kemfit)
 head(df)
 
 
 ###################################################
-### code chunk number 33: Cs30_marsskf
+### code chunk number 35: Cs30_marsskf
 ###################################################
 kf <- MARSSkf(kemfit)
 names(kf)
@@ -242,14 +248,14 @@ logLik(kemfit)
 
 
 ###################################################
-### code chunk number 34: Cs31_like.kem.degen
+### code chunk number 36: Cs31_like.kem.degen
 ###################################################
 dat.short <- dat[1:4, 1:10]
 kem.degen <- MARSS(dat.short, control = list(allow.degen = FALSE))
 
 
 ###################################################
-### code chunk number 35: Cs32_like.kem200 (eval = FALSE)
+### code chunk number 37: Cs32_like.kem200 (eval = FALSE)
 ###################################################
 ## kem.degen2 <- MARSS(dat.short, control = list(
 ##   maxit = 1000,
@@ -258,13 +264,13 @@ kem.degen <- MARSS(dat.short, control = list(allow.degen = FALSE))
 
 
 ###################################################
-### code chunk number 36: Cs33_like.kem.allow.degen
+### code chunk number 38: Cs33_like.kem.allow.degen
 ###################################################
 kem.short <- MARSS(dat.short)
 
 
 ###################################################
-### code chunk number 37: Cs34_like.kem200
+### code chunk number 39: Cs34_like.kem200
 ###################################################
 kem.small <- MARSS(dat.short, model = list(
   Q = "diagonal and equal",
@@ -273,7 +279,7 @@ kem.small <- MARSS(dat.short, model = list(
 
 
 ###################################################
-### code chunk number 38: Cs35_boot
+### code chunk number 40: Cs35_boot
 ###################################################
 boot.params <- MARSSboot(kemfit,
   nboot = 20, output = "parameters", sim = "parametric"
@@ -281,19 +287,19 @@ boot.params <- MARSSboot(kemfit,
 
 
 ###################################################
-### code chunk number 39: Cs36_sim
+### code chunk number 41: Cs36_sim
 ###################################################
 sim.data <- MARSSsimulate(kemfit, nsim = 2, tSteps = 100)$sim.data
 
 
 ###################################################
-### code chunk number 40: Cs37_sim-fit
+### code chunk number 42: Cs37_sim-fit
 ###################################################
 kem.sim.1 <- MARSS(sim.data[, , 1])
 
 
 ###################################################
-### code chunk number 41: Cs38_sim-like
+### code chunk number 43: Cs38_sim-like
 ###################################################
 kem.sim.2 <- kem.sim.1
 kem.sim.2$model$data <- sim.data[, , 2]
@@ -301,7 +307,7 @@ MARSSkf(kem.sim.2)$logLik
 
 
 ###################################################
-### code chunk number 42: Cs39_AICb
+### code chunk number 44: Cs39_AICb
 ###################################################
 kemfit.with.AICb <- MARSSaic(kemfit,
   output = "AICbp",

@@ -1,6 +1,7 @@
 MARSSinfo <- function(number) {
   if (missing(number)) {
     cat("Pass in a single label (in quotes) to get info on a MARSS error or warning message.
+     AZR0: MARSS complains that Z or A and D must be fixed for R rows with 0s on diagonal.
      convergence: Non-convergence warnings
      denominv: An error related to denom not invertible
      degenvarcov: Warnings about degenerate variance-covariance matrices or variance going to 0
@@ -11,6 +12,8 @@ MARSSinfo <- function(number) {
      LLdropped: MARSS warns that log-likelihood dropped.
      LLunstable: iter=xx MARSSkf: logLik computation is becoming unstable.  Condition num. of Sigma[t=1] = Inf and of R = Inf.
      modelclass: Your model object is not the right class.
+     negVt: Negative values reported on states variance-covariance function.
+     optimerror54: MARSS() with method='BFGS' reports error 54.
      residvarinv: Warning: the variance of the residuals at t = x is not invertible.
      R0blocked: Setting of 0s on the diagonal of R blocked; corresponding x0 should not be estimated.  See also x0R0 error and diag0blocked.
      slowconvergence: MARSS seems to take a long, long, long time to converge.
@@ -18,7 +21,6 @@ MARSSinfo <- function(number) {
      varcovstruc: Error: MARSS says the variance-covariance matrix is illegal.
      x0R0: Error concerning setting of x0 in model with R with 0s on diagonal
      V0init: MARSS complains about init values for V0.
-     AZR0: MARSS complains that Z or A and D must be fixed for R rows with 0s on diagonal.
 ")
     return(invisible(""))
   }
@@ -42,12 +44,15 @@ If you used test=MARSS(foo), then test is the MLE object.  If the function exite
 
   if (number == "denominv") {
     writeLines(strwrap(
-      "This is telling you that you specified a model that is logically indeterminant. First check your data and covariates (if you have them).  Make sure you didn't make a mistake when entering the data.  For example, a row of data that is all NAs or two rows of c or dthat are the same.  Then look at your model by passing in fit=FALSE to the MARSS() call.  Are you trying to estimate B butyou set Q to zero?  That won't work.  
+      "This is usually telling you that you specified a model that is logically indeterminant. First check your data and covariates (if you have them).  Make sure you didn't make a mistake when entering the data.  For example, a row of data that is all NAs or two rows of c or d that are the same.  Then look at your model by passing in fit=FALSE to the MARSS() call.  Are you trying to estimate B but you set Q to zero?  That won't work.  
 
 Note if you are estimating D, your error will report problems in A update. If you are estimating C, your error will report problems in U update.  This is because in the MARSS algorithms, the models with D and C are rewritten into a simpler MARSS model with time-varying A and U. If you have set R=0, you might get this error if you are trying to estimate A (or D).
 
+Note if you are estimating B, the EM algorithm is often more stable if you set tinitx=1 because then the data at t=1 can help constrain the B estimate. This is particularly true if you have missing data at t=1 or t=2.
+
 Did you set a VO (say, diagonal), that is inconsisent with V0T (the covariance matrix implied by the model)?  That can cause problems with the Q update.  Are you estimating C or D, but have rows of c or d that are all zero?  That won't work.  Are you estimating C or D with only one column (one time point) of c or d? Depending on your constraints in C or D that might not work.
-\n"
+
+If you are satisfied that your model is fine (not logially indeterminant), then the problem may be numerical in nature. This denom inverse is only in the EM algorithm. You can try method='BFGS' to use the BFGS algorithm, but do check with different initial conditions since if the EM algorithm is struggling, it suggests ridges in the likelihood surface that can lead the BFGS algorithm astray.\n"
     ))
     return(invisible(number))
   }
@@ -273,7 +278,6 @@ A Hessian with many NAs is probably a sign that you have a poor model (meaning y
     return(invisible(number))
   }
 
-
   if (number == "AZR0") {
     writeLines(strwrap(
       'This is a constraint imposed by the EM algorithm.  What is happening is that the rows of Z, A or D matching 0s on the diagonal of R cannot be solved for because the 0s on the diagonal are causing those rows to disappear from the likelihood equation. You can still compute the likelihood, it is just that the EM algorithm needs the parameters in the equation because it differentiates with respect to them to solve for their updates.
@@ -285,6 +289,22 @@ What to do? This is not a bug. It is simply a constraint of the update equations
       Option 2) Set R to some fixed small value that is not 0. The EM algorithm can now run, albeit slowly.
       Option 3) This may seem counter-intuitive, but add i.i.d error to your data with a known variance. You can use rnorm(n,0,sqrt(r)) where n is the number of rows of data, just make sure to add different (independent) error to each row of data. Then pass in R=diag(r,n) in your model list to MARSS(). Do not set r too tiny. It needs to be big enough for the EM algorithm to update Z, A, and D but not too big to swamp out the signal. Try this if Options 1 and 2 do not work or compare all 3 options.
 '
+    ))
+    return(invisible(number))
+  }
+
+  if (number == "optimerror54") {
+    writeLines(strwrap(
+      "This is an unusual error and means that KFAS:::logLik.SSModel() was able to run but that KFAS:::KFS() was not. Your model probably became numerically unstable, likely one of your variances became very large or very small. Or perhaps your B matrix became ill-conditioned. If you are estimating B, use tintix=1 in the model list to constrain the initial variance by the data at t=1. If you have many NAs at t=1, try removing those and starting where your have more data. If you are using a non-zero V0, make sure it does not conflict with your model. For example, if V0 is diagonal, then VtT[,,1] should also be diagonal.
+"
+    ))
+    return(invisible(number))
+  }
+  
+  if (number == "negVt") {
+    writeLines(strwrap(
+      "The MARSSkfss() and MARSSkfas() functions normally return the same values but when the matrices become ill-conditioned (say Q or R gets very large or B is odd), then numerical issues can arise and cause negative values on the diagonal of the variance-covariance matrices. This is more a problem for MARSSkfss() which involves matrix inversions but for some models, this will occur with MARSSkfas() and not with MARSSkfss(). For most MARSS functions, you can pass in fun.kf and force one or the other Kalman filter/smoother function to be used. By default, functions will use whatever is set in marssMLE$fun.kf and by default this is MARSSkfas. Pass in fun.kf='MARSSkfss', say, to tsSmooth.marssMLE(), fitted.marssMLE() or MARSS() to force a specific Kalman filter/function to be used.
+"
     ))
     return(invisible(number))
   }

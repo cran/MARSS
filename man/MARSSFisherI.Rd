@@ -14,15 +14,15 @@ MARSSFisherI(MLEobj, method=c("Harvey1989", "fdHess", "optim"))
 }
 \arguments{
   \item{MLEobj}{ An object of class \code{\link{marssMLE}}. 
-  This object must have a \code{$par} element containing MLE parameter estimates from e.g. \code{\link{MARSSkem}}. }
-  \item{method}{ The method to use for computing the observed Fisher Information matrix. Options are 'Harvey1989' to use the Harvey (1989) recursion, which is an analytical solution, 'fdHess' or 'optim' which are two numerical methods.  Although 'optim' can be passed to the function, 'fdHess' is used for all numerical estimates used in the MARSS package.}
+  This object must have a \code{$par} element containing MLE parameter estimates from e.g. \code{\link{MARSSkem}()}. }
+  \item{method}{ The method to use for computing the observed Fisher Information matrix. Options are \code{"Harvey1989"} to use the Harvey (1989) recursion, which is an analytical solution, \code{"fdHess"} or \code{"optim"} which are two numerical methods.  Although 'optim' can be passed to the function, 'fdHess' is used for all numerical estimates used in the MARSS package.}
  }
 \details{
-   Method 'fdHess' uses \code{\link{fdHess}} from package \code{\link{nlme}} to numerically estimate the Hessian of the negative log-likelihood function at the MLEs. Method 'optim' uses \code{\link{optim}} with \code{hessian=TRUE} and \code{list(maxit=0)} to ensure that the Hessian is computed at the values in the \code{par} element of the MLE object. The \code{par} element of the \code{\link{marssMLE}} object is the MLE.  
+   Method 'fdHess' uses \code{\link{fdHess}()} from package \code{\link{nlme}} to numerically estimate the Hessian of the negative log-likelihood function at the MLEs. Method 'optim' uses \code{\link{optim}()} with \code{hessian=TRUE} and \code{list(maxit=0)} to ensure that the Hessian is computed at the values in the \code{par} element of the MLE object. The \code{par} element of the \code{\link{marssMLE}} object is the MLE.  
    
 Method 'Harvey1989' (the default) uses the recursion in Harvey (1989) to compute the observed Fisher Information of a MARSS model analytically. See Holmes (2016c) for a discussion of the Harvey (1989) algorithm and see Holmes (2017) on how to implement the algorithm for MARSS models with linear constraints (the type of MARSS models that the MARSS R package addresses).
    
-There has been research on computing the observed Fisher Information matrix from the derivatives used by EM algorithms (discussed in Holmes (2016a, 2016b)), for example Louis (1982). Unfortunately, the EM algorithm used in the MARSS package is for time series data and the temporal correlation must be dealt with, e.g. Duan & Fulop (2011). Oakes (1999) has an approach that only involves derivatives of \eqn{E[LL(\theta)|\mathbf{y},\theta']}{E(LL(theta)|data, theta')} but one of the derivatives will be the derivative of the \eqn{E[\mathbf{X}|\mathbf{y},\theta']}{E(X|data, theta')} with respect to \eqn{\theta'}{theta'}.  It is not clear how to do that derivative.  Moon-Ho, Shumway and Ombao (2006) suggest (page 157) that this derivative is hard to compute.
+There has been research on computing the observed Fisher Information matrix from the derivatives used by EM algorithms (discussed in Holmes (2016a, 2016b)), for example Louis (1982). Unfortunately, the EM algorithm used in the MARSS package is for time series data and the temporal correlation must be dealt with, e.g. Duan & Fulop (2011). Oakes (1999) has an approach that only involves derivatives of \eqn{E[LL(\Theta)|\mathbf{y},\Theta']}{E(LL(Theta)|data, Theta')} but one of the derivatives will be the derivative of the \eqn{E[\mathbf{X}|\mathbf{y},\Theta']}{E(X|data, Theta')} with respect to \eqn{\Theta'}{Theta'}.  It is not clear how to do that derivative.  Moon-Ho, Shumway and Ombao (2006) suggest (page 157) that this derivative is hard to compute.
 
 }
 \value{
@@ -30,8 +30,6 @@ There has been research on computing the observed Fisher Information matrix from
 }
 \author{ 
   Eli Holmes, NOAA, Seattle, USA.  
-
-  eli(dot)holmes(at)noaa(dot)gov
 } 
 \seealso{ \code{\link{MARSSharveyobsFI}}, \code{\link{MARSShessian.numerical}}, \code{\link{MARSSparamCIs}}, \code{\link{marssMLE}} }
 \examples{

@@ -124,8 +124,10 @@ V0 <- diag(5, 3)
 ###################################################
 ### code chunk number 16: Cs13_define_model_list
 ###################################################
-dfa.model <- list(Z = Z, A = "zero", R = R, B = B, U = U, 
-                  Q = Q, x0 = x0, V0 = V0)
+dfa.model <- list(
+  Z = Z, A = "zero", R = R, B = B, U = U,
+  Q = Q, x0 = x0, V0 = V0
+)
 cntl.list <- list(maxit = 50)
 
 
@@ -142,7 +144,7 @@ fit <- kemz.3
 spp <- rownames(dat.z)
 par(mfcol = c(3, 2), mar = c(3, 4, 1.5, 0.5), oma = c(0.4, 1, 1, 1))
 for (i in 1:length(spp)) {
-  plot(dat.z[i, ], xlab = "", ylab = "abundance index", bty = "L", xaxt = "n", ylim = c(-4, 3), pch = 16, col = "blue")
+  plot(dat.z[i, ], xlab = "", ylab = "Abundance index", bty = "L", xaxt = "n", ylim = c(-4, 3), pch = 16, col = "blue")
   axis(1, 12 * (0:dim(dat.z)[2]) + 1, 1980 + 0:dim(dat.z)[2])
   par.mat <- coef(fit, type = "matrix")
   lines(as.vector(par.mat$Z[i, , drop = FALSE] %*% fit$states + par.mat$A[i, ]), lwd = 2)
@@ -233,7 +235,8 @@ if (exists("model.data")) {
 ###################################################
 big.maxit.cntl.list <- list(minit = 200, maxit = 5000, allow.degen = FALSE)
 model.list <- list(m = 2, R = "unconstrained")
-the.fit <- MARSS(dat.z, model = model.list, form = "dfa", control = big.maxit.cntl.list)
+the.fit <- MARSS(dat.z, model = model.list, form = "dfa", 
+                 control = big.maxit.cntl.list)
 
 
 ###################################################
@@ -242,7 +245,8 @@ the.fit <- MARSS(dat.z, model = model.list, form = "dfa", control = big.maxit.cn
 # get the inverse of the rotation matrix
 Z.est <- coef(the.fit, type = "matrix")$Z
 H.inv <- 1
-if (ncol(Z.est) > 1) H.inv <- varimax(coef(the.fit, type = "matrix")$Z)$rotmat
+if (ncol(Z.est) > 1) 
+  H.inv <- varimax(coef(the.fit, type = "matrix")$Z)$rotmat
 
 
 ###################################################
@@ -255,7 +259,24 @@ trends.rot <- solve(H.inv) %*% the.fit$states
 
 
 ###################################################
-### code chunk number 31: Cs23_plotfacloadings
+### code chunk number 31: Cs22_rotations_cis
+###################################################
+# Add CIs to marssMLE object
+the.fit <- MARSSparamCIs(the.fit)
+# Use coef() to get the upper and lower CIs
+Z.low <- coef(the.fit, type = "Z", what = "par.lowCI")
+Z.up <- coef(the.fit, type = "Z", what = "par.upCI")
+Z.rot.up <- Z.up %*% H.inv
+Z.rot.low <- Z.low %*% H.inv
+df <- data.frame(
+  est = as.vector(Z.rot), 
+  conf.up = as.vector(Z.rot.up), 
+  conf.low = as.vector(Z.rot.low)
+  )
+
+
+###################################################
+### code chunk number 32: Cs23_plotfacloadings
 ###################################################
 # plot the factor loadings
 spp <- rownames(dat.z)
@@ -281,7 +302,7 @@ for (i in 1:m) {
 
 
 ###################################################
-### code chunk number 32: Cs24_plottrends
+### code chunk number 33: Cs24_plottrends
 ###################################################
 # get ts of trends
 ts.trends <- t(trends.rot)
@@ -310,11 +331,9 @@ for (i in 1:dim(ts.trends)[2]) {
 
 
 ###################################################
-### code chunk number 33: Cs25_func_get_DFA_fits
+### code chunk number 34: Cs25_func_get_DFA_fits
 ###################################################
 # If there were no missing values, this function will return the fits and CIs
-# Use tsSmooth.marssMLE() to return the general fits and CIs
-# for the missing values case
 getDFAfits <- function(MLEobj, alpha = 0.05, covariates = NULL) {
   fits <- list()
   Ey <- MARSShatyt(MLEobj) # for var() calcs
@@ -348,13 +367,13 @@ getDFAfits <- function(MLEobj, alpha = 0.05, covariates = NULL) {
 
 
 ###################################################
-### code chunk number 34: Cs25b_get_DFA_fits
+### code chunk number 35: Cs25b_get_DFA_fits
 ###################################################
 fit.b <- getDFAfits(the.fit)
 
 
 ###################################################
-### code chunk number 35: Cs25c_plotbestfits
+### code chunk number 36: Cs25c_plotbestfits
 ###################################################
 # plot the fits
 ylbl <- rownames(dat.z)
@@ -377,7 +396,7 @@ for (i in 1:N.ts) {
 
 
 ###################################################
-### code chunk number 36: Cs25d_plotwithaugment
+### code chunk number 37: Cs25d_plotwithaugment
 ###################################################
 require(ggplot2)
 alpha <- 0.05
@@ -385,24 +404,24 @@ theme_set(theme_bw())
 d <- residuals(the.fit, type = "tT")
 d$up <- qnorm(1 - alpha / 2) * d$.sigma + d$.fitted
 d$lo <- qnorm(alpha / 2) * d$.sigma + d$.fitted
-ggplot(data = d) +
-  geom_line(aes(t, .fitted)) +
+ggplot(data = subset(d, name=="model")) +
   geom_point(aes(t, value)) +
   geom_ribbon(aes(x = t, ymin = lo, ymax = up), linetype = 2, alpha = 0.2) +
-  facet_grid(~.rownames) +
+  geom_line(aes(t, .fitted), col="blue") +
+  facet_wrap(~.rownames) +
   xlab("Time Step") +
   ylab("Count")
 
 
 ###################################################
-### code chunk number 37: Cs26_set-up-covar
+### code chunk number 38: Cs26_set-up-covar
 ###################################################
 temp <- t(plankdat[years, "Temp", drop = FALSE])
 TP <- t(plankdat[years, "TP", drop = FALSE])
 
 
 ###################################################
-### code chunk number 38: Cs27_fit_covar_echo
+### code chunk number 39: Cs27_fit_covar_echo
 ###################################################
 model.list <- list(m = 2, R = "unconstrained")
 kemz.temp <- MARSS(dat.spp.1980,
@@ -420,7 +439,7 @@ kemz.both <- MARSS(dat.spp.1980,
 
 
 ###################################################
-### code chunk number 41: Cs28_covar_AICs
+### code chunk number 42: Cs28_covar_AICs
 ###################################################
 print(cbind(
   model = c("no covars", "Temp", "TP", "Temp & TP"),
@@ -432,14 +451,14 @@ print(cbind(
 
 
 ###################################################
-### code chunk number 42: Cs29_plotbestcovarfits
+### code chunk number 43: Cs29_plotbestcovarfits
 ###################################################
 par.mat <- coef(kemz.temp, type = "matrix")
 fit.b <- par.mat$Z %*% kemz.temp$states + matrix(par.mat$A, nrow = N.ts, ncol = TT)
 spp <- rownames(dat.z)
 par(mfcol = c(3, 2), mar = c(3, 4, 1.5, 0.5), oma = c(0.4, 1, 1, 1))
 for (i in 1:length(spp)) {
-  plot(dat.z[i, ], xlab = "", ylab = "abundance index", bty = "L", xaxt = "n", ylim = c(-4, 3), pch = 16, col = "blue")
+  plot(dat.z[i, ], xlab = "", ylab = "Abundance index", bty = "L", xaxt = "n", ylim = c(-4, 3), pch = 16, col = "blue")
   axis(1, 12 * (0:dim(dat.z)[2]) + 1, 1980 + 0:dim(dat.z)[2])
   lines(fit.b[i, ], lwd = 2)
   title(spp[i])

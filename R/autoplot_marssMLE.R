@@ -1,10 +1,10 @@
 autoplot.marssMLE <-
   function(x,
-           plot.type = c("model.ytT", "xtT", "model.resids", "state.resids", "qqplot.model.resids", "qqplot.state.resids", "ytT", "acf.model.resids", "acf.state.resids"),
+           plot.type = c("model.ytT", "xtT", "model.resids", "state.resids", "qqplot.model.resids", "qqplot.state.resids", "ytT", "acf.model.resids"),
            form = c("marxss", "marss", "dfa"),
            conf.int = TRUE, conf.level = 0.95, decorate = TRUE, pi.int = FALSE,
            plot.par = list(),
-           ...) {
+           ..., silent = FALSE) {
     if (!requireNamespace("ggplot2", quietly = TRUE)) {
       stop("Package \"ggplot2\" needed for autoplot.marssMLE. Please install it.", call. = FALSE)
     }
@@ -64,7 +64,7 @@ autoplot.marssMLE <-
     if (any(str_detect(plot.type, "resids"))) {
       tT.resids <- residuals.marssMLE(x, type = "tT", standardization = "Cholesky")
     }
-    
+
     if ("xtT" %in% plot.type) {
       # make plot of states and CIs
 
@@ -142,8 +142,8 @@ autoplot.marssMLE <-
 
     if ("ytT" %in% plot.type) {
       # make plot of expected value of Y condtioned on y(1)
-      df <- tsSmooth.marssMLE(x, type = "ytT", ifelse(conf.int, "confidence", "none"), level=conf.level)
-      if(conf.int){
+      df <- tsSmooth.marssMLE(x, type = "ytT", ifelse(conf.int, "confidence", "none"), level = conf.level)
+      if (conf.int) {
         df$ymin <- df$.conf.low
         df$ymax <- df$.conf.up
       }
@@ -301,47 +301,6 @@ autoplot.marssMLE <-
       ciline <- qnorm((1 - conf.level) / 2) / sqrt(length(x))
       return(ciline)
     }
-    if ("acf.state.resids" %in% plot.type) {
-      df <- subset(tt1.resids, tt1.resids$name == "state")
-      df$.rownames <- factor(df$.rownames) # drop levels
-      df$.rownames <- paste0("State ", df$.rownames)
-
-      acfdf <- tapply(df$.resids, df$.rownames, acffun)
-      fun <- function(x, y) {
-        data.frame(.rownames = y, lag = x$lag, acf = x$acf, stringsAsFactors = FALSE)
-      }
-      acfdf <- mapply(fun, acfdf, names(acfdf), SIMPLIFY = FALSE)
-      acf.dat <- data.frame(
-        .rownames = unlist(lapply(acfdf, function(x) {
-          x$.rownames
-        })),
-        lag = unlist(lapply(acfdf, function(x) {
-          x$lag
-        })),
-        acf = unlist(lapply(acfdf, function(x) {
-          x$acf
-        })),
-        stringsAsFactors = FALSE
-      )
-
-      cidf <- tapply(df$.resids, df$.rownames, acfci)
-      ci.dat <- data.frame(.rownames = names(cidf), ci = cidf, stringsAsFactors = FALSE)
-
-      p1 <- ggplot2::ggplot(acf.dat, mapping = ggplot2::aes(x = lag, y = acf)) +
-        ggplot2::geom_hline(ggplot2::aes(yintercept = 0)) +
-        ggplot2::geom_segment(mapping = ggplot2::aes(xend = lag, yend = 0)) +
-        ggplot2::xlab("Lag") +
-        ggplot2::ylab("ACF") +
-        ggplot2::facet_wrap(~.rownames, scales = "free_y") +
-        ggplot2::ggtitle("State one-step ahead residuals ACF")
-      p1 <- p1 +
-        ggplot2::geom_hline(data = ci.dat, ggplot2::aes_(yintercept = ~ci), color = "blue", linetype = 2) +
-        ggplot2::geom_hline(data = ci.dat, ggplot2::aes_(yintercept = ~ -ci), color = "blue", linetype = 2)
-      plts[["acf.state.resids"]] <- p1
-      if (identical(plot.type, "acf.state.resids")) {
-        return(p1)
-      }
-    }
     if ("acf.model.resids" %in% plot.type) {
       df <- subset(tt1.resids, tt1.resids$name == "model")
       df$.rownames <- factor(df$.rownames) # drop state levels
@@ -383,14 +342,14 @@ autoplot.marssMLE <-
     }
     for (i in plot.type) {
       print(plts[[i]])
-      cat(paste("plot.type =", i, "\n"))
-      if (i != plot.type[length(plot.type)]) {
+      if (!silent) cat(paste("plot.type =", i, "\n"))
+      if (i != plot.type[length(plot.type)] && !silent) {
         ans <- readline(prompt = "Hit <Return> to see next plot (q to exit): ")
         if (tolower(ans) == "q") {
           return()
         }
       } else {
-        cat("Finished plots.\n")
+        if (!silent) cat("Finished plots.\n")
       }
     }
   }

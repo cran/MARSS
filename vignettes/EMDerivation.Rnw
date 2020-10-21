@@ -177,9 +177,11 @@ The first part of this report will review the derivation of an EM algorithm for 
 \begin{gathered}
 \xx_t = \BB_t\xx_{t-1} + \uu_t + \GG_t\ww_t, \text{ where } \WW_t \sim \mathrm{MVN}(0,\QQ_t)\\
 \yy_t = \ZZ_t\xx_t + \aa_t + \HH_t\vv_t, \text{ where } \VV_t \sim \mathrm{MVN}(0,\RR_t)\\
-\xx_{t_0} = \xixi + \FF\ll, \text{ where }  \ll \sim \mathrm{MVN}(0,\LAM)
+\xx_{0} = \xixi + \FF\ll, \text{ where }  \ll \sim \mathrm{MVN}(0,\LAM)
 \end{gathered}
 \end{equation}
+The initial state can either defined at $t=0$, as is done in equation \ref{eq:MARSS.ex}, or at $t=1$.  
+
 The linear constraints appear as the vectorization of each parameter ($\BB$, $\uu$, $\QQ$, $\ZZ$, $\aa$, $\RR$, $\xixi$, $\LAM$) is described by the relation $\ff_t+\DD_t\mm$. This relation  specifies linear constraints of the form $\beta_i + \beta_{a,i} a + \beta_{b,i} b + \dots$ on the elements in each MARSS parameter matrix. Equation \eqref{eq:MARSS.ex} is a much broader class of MARSS models that includes MARSS models with exogenous variable (covariates), AR-p models, moving average models, constrained MARSS models and models that are combinations of these. The derivation also includes partially deterministic systems where $\GG_t$, $\HH_t$ and $\FF$ may have all zero rows.
 
 \subsection{The joint log-likelihood function}
@@ -217,16 +219,16 @@ $n$ is the number of data points. This is the same as equation 6.64 in \citet{Sh
 &\quad  -\sum_1^T \frac{1}{2} (\xx_t - \BB \xx_{t-1} - \uu)^\top \QQ^{-1} (\xx_t - \BB \xx_{t-1} - \uu) - \sum_1^T\frac{1}{2}\log |\QQ|
 \end{split}
 \end{equation}
-Note that in this case, $\xx_0$ is no longer a realization of a random variable $\XX_0$; it is a fixed (but unknown) parameter.  Equation \ref{eq:logL.V0.is.0} is written as if all the $\xx_0$ are fixed, however when the general derivation is presented, it allowed that some $\xx_0$ are fixed ($\LAM$=0) and others are stochastic.
+$\xixi$ appears in the likelihood for $\xx_{t-1}$ when $t=1$ in the summation. Note that in this case, $\xx_0$ is no longer a realization of a random variable $\XX_0$; it is a fixed (but unknown) parameter.  Equation \ref{eq:logL.V0.is.0} is written as if all the $\xx_0$ are fixed, however when the general derivation is presented, it is allowed that some $\xx_0$ are fixed ($\LAM$=0) and others are stochastic.
 
-If $\RR$ is constant through time, then $\sum_1^T\frac{1}{2} \log |\RR|$ in the likelihood equation reduces to $\frac{T}{2}\log |\RR|$, however sometimes one needs to includes time-dependent weighting on $\RR$\footnote{If for example, one wanted to include a temporally dependent weighting on $\RR$ replace $|\RR|$ with $|\alpha_t\RR|=\alpha_t^n|\RR|$, where $\alpha_t$ is the weighting at time $t$ and is fixed not estimated.}.  The same applies to $\sum_1^T\frac{1}{2}\log |\QQ|$.
+If $\RR$ is constant through time, then $\sum_1^T\frac{1}{2} \log |\RR|$ in the likelihood equation reduces to $\frac{T}{2}\log |\RR|$, however $\RR$ might be time-varying or one may need to include a time-dependent weighting on $\RR$\footnote{If for example, one wanted to include a temporally dependent weighting on $\RR$ replace $|\RR|$ with $|\alpha_t\RR|=\alpha_t^n|\RR|$, where $\alpha_t$ is the weighting at time $t$ and is fixed not estimated.}.  The same applies to $\sum_1^T\frac{1}{2}\log |\QQ|$.
 
 All bolded elements are column vectors (lower case) and matrices (upper case).  $\AA^\top$ is the transpose of matrix $\AA$, $\AA^{-1}$ is the inverse of $\AA$, and $|\AA|$ is the determinant of $\AA$.  Parameters are non-italic while elements that are slanted are realizations of a random variable ($\xx$ and $\yy$ are slated)\footnote{In matrix algebra, a capitol bolded letter indicates a matrix.  Unfortunately in statistics, the capitol letter convention is used for random variables.  Fortunately, this derivation does not need to reference random variables except indirectly when using expectations.  Thus, I use capitols to refer to matrices not random variables.  The one exception is the reference to $\XX$ and $\YY$. In this case a bolded {\it slanted} capitol is used.}
  
 \subsection{Missing values}\label{sec:missing}
 In Shumway and Stoffer and other presentations of the EM algorithm for MARSS models \citep{ShumwayStoffer2006,Zuuretal2003a}, the missing values case is treated separately from the non-missing values case.  In these derivations, a series of modifications are given for the EM update equations when there are missing values.  In my derivation, I present the missing values treatment differently, and there is only one set of update equations and these equations apply in both the missing values and non-missing values cases. My derivation does this by keeping $\E[\YY_t|\text{data}]$ and $\E[\YY_t\XX_t^\top|\text{data}]$ in the update equations (much like $\E[\XX_t|\text{data}]$ is kept in the equations) while Shumway and Stoffer replace these expectations involving $\YY_t$ by their values, which depend on whether or not the data are a complete observation of $\YY_t$ with no missing values.  Section \ref{sec:compexpectations} shows how to compute the expectations involving $\YY_t$ when the data are an incomplete observation of $\YY_t$.
 
-\section{The EM algorithm}
+\section{The EM algorithm}\label{sec:EMalgorithm}
 The EM algorithm cycles iteratively between an expectation step (the integration in the equation) followed by a maximization step (the arg max in the equation):
 \begin{equation}\label{eq:EMalg}
 \Theta_{j+1} = \arg \underset{\Theta}{\max} \int_{\xx}{\int_{\yy}{\log\LL(\xx,\yy;\Theta) f(\xx,\yy|\YY(1)=\yy(1),\Theta_j)d\xx d\yy}}
@@ -243,6 +245,7 @@ Now the maximization is only over $\alpha$, the part that appears after the ``;'
 
 After one iteration of the expectation and maximization steps, the cycle is then repeated. New expectations  are computed using $\Theta_{j+1}$, and then a new set of parameters $\Theta_{j+2}$ is generated.  This cycle is continued until the likelihood no longer increases more than a specified tolerance level.   This algorithm is guaranteed to increase in likelihood at each iteration (if it does not, it means there is an error in one's update equations).  The algorithm must be started from an initial set of parameter values $\Theta_1$.  The algorithm is not particularly sensitive to the initial conditions but the surface could definitely be multi-modal and have local maxima.  See section \ref{sec:implementation} on using Monte Carlo initialization to ensure that the global maximum is found.
 
+\textbf{Dividing the parameters into parts}: Above the parameter set is written as $\Theta$. However $\Theta$ is composed of multiple components: $\BB$, $\uu$, $\RR$, etc. The EM iteration $j$ is broken into subparts for each parameter matrix and both the maximization and expectation steps are done for each part. For example, the expectation step is run with parameters $\{\BB_j, \uu_j, \RR_j, \dots\}$ and then $\BB$ is updated to $\BB_{j+1}$ with the maximization step. The expectation step is run with parameters $\{\BB_{j+1}, \uu_j, \RR_j, \dots \}$ and the $\uu$is updated to $\uu_{j+1}$ with the maximization step. The expectation step is run with parameters $\{\BB_{j+1}, \uu_{j+1}, \RR_j, \dots \}$ and the $\RR$ is updated. This is continued until all parameters in $\Theta$ are updated and that completes the $j+1$ update.
 
 \subsection{The expected log-likelihood function}\label{sec:expLL}
 The function that is maximized in the ``M'' step is the expected value of the log-likelihood function. This expectation is conditioned on two things: 1) the observed $\YY$'s which are denoted $\YY(1)$ and which are equal to the fixed values $\yy(1)$ and 2) the parameter set $\Theta_j$.  Note that since there may be missing values in the data, $\YY(1)$ can be a subset of $\YY$, that is, only some $\YY$ have a corresponding $\yy$ value at time $t$.  Mathematically what we are doing is $\EXy[g(\XX,\YY)|\YY(1)=\yy(1),\Theta_j]$.  This is a multivariate conditional expectation because $\XX,\YY$ is multivariate (a $m \times n \times T$ vector). The function $g(\Theta)$ that we are taking the expectation of is $\log\LL(\YY,\XX ; \Theta)$. Note that $g(\Theta)$ is a random variable involving the random variables, $\XX$ and $\YY$, while $\log\LL(\yy,\xx ; \Theta)$ is not a random variable but rather a specific value since $\yy$ and $\xx$ are a set of specific values.
@@ -261,7 +264,7 @@ We denote this expected log-likelihood by $\Psi$. The goal is to find the $\Thet
 -\frac{n}{2}\log\pi
 \end{split}
 \end{equation}
-All the $\E[\quad]$ appearing here denote $\EXy[g()|\YY(1)=\yy(1),\Theta_j]$.  In the rest of the derivation, I drop the conditional and the $XY$ subscript on $\E$ to remove clutter, but it is important to remember that whenever $\E$ appears, it refers to a specific conditional multivariate expectation.  If $\xx_0$ is treated as fixed, then $\XX_0=\xixi$ and the last two lines involving $\LAM$ are dropped.
+All the $\E[\quad]$ appearing here denote $\EXy[g()|\YY(1)=\yy(1),\Theta_j]$.  In the rest of the derivation, I drop the conditional and the $XY$ subscript on $\E$ to remove clutter, but it is important to remember that whenever $\E$ appears, it refers to a specific conditional multivariate expectation.  If $\xx_0$ is treated as fixed, then $\XX_0=\xixi$ and the last line involving $\LAM$ is dropped but it will appear in place of $\XX_{t-1}$ when $t=1$ in the summation.
 
 Keep in mind that $\Theta$ and $\Theta_j$ are different.  $\Theta$ is a parameter appearing in function $g(\XX,\YY,\Theta)$ (i.e. the parameters in equation \ref{eq:logL}).  $\XX$ and $\YY$ are random variables which means that $g(\XX,\YY,\Theta)$ is a random variable.  We take the expectation of $g(\XX,\YY,\Theta)$, meaning we take integral over the joint distribution of $\XX$ and $\YY$.  We need to specify what that distribution is and the conditioning on $\Theta_j$ (meaning the $\Theta_j$ appearing to the right of the $|$ in $\E(g()|\Theta_j)$) is specifying this distribution. This conditioning affects the value of the expectation of $g(\XX,\YY,\Theta)$, but it does not affect the value of $\Theta$, which are the $\RR$, $\QQ$, $\uu$, etc. values on the right side of equation \eqref{eq:expLL}.  We will first take the expectation of $g(\XX,\YY,\Theta)$ conditioned on $\Theta_j$ (using integration) and then take the differential of that expectation with respect to $\Theta$.
 
@@ -307,32 +310,46 @@ $\E_X[\XX|\XX=\xx]=\xx$ \\
 \section{The unconstrained update equations}\label{sec:generalupdate}
 In this section, I show the derivation of the update equations when all elements of a parameter matrix are estimated and are all allowed to be different, i.e. the unconstrained case. These are similar to the update equations one will see in \citet{ShumwayStoffer2006}.  Section \ref{sec:constrained} shows the update equations when there are unestimated (fixed) or estimated but shared values in the parameter matrices, i.e. the constrained update equations.   
 
-To derive the update equations, one must find the $\Theta$, where $\Theta$ is comprised of the MARSS parameters $\BB$, $\uu$, $\QQ$, $\ZZ$, $\aa$, $\RR$, $\xixi$, and $\LAM$,  that maximizes $\Psi$ (equation \ref{eq:expLL}) by partial differentiation of $\Psi$  with respect to $\Theta$.  However, I will be using the EM equation where one maximizes each parameter matrix in $\Theta$ one-by-one (equation \ref{eq:EMalg.j}).  In this case, the parameters that are not being maximized are set at their iteration $j$ values, and then one takes the derivative of $\Psi$ with respect to the parameter of interest.  Then solve for the parameter value that sets the partial derivative to zero.  The partial differentiation is with respect to each individual parameter element, for example each $u_{i,j}$ in matrix $\uu$. The idea is to single out those terms in equation \eqref{eq:expLL} that involve $u_{i,j}$ (say), differentiate by $u_{i,j}$, set this to zero and solve for $u_{i,j}$.  This gives the new $u_{i,j}$ that maximizes the partial derivative with respect to $u_{i,j}$ of the expected log-likelihood.  Matrix calculus gives us a way to jointly maximize $\Psi$ with respect to all elements (not just element $i,j$) in a parameter matrix. 
+To derive the update equations, one must find the $\Theta$, where $\Theta$ is comprised of the MARSS parameters $\BB$, $\uu$, $\QQ$, $\ZZ$, $\aa$, $\RR$, $\xixi$, and $\LAM$,  that maximizes $\Psi$ (equation \ref{eq:expLL}) by partial differentiation of $\Psi$  with respect to $\Theta$.  However, I will be using the EM equation where one maximizes each parameter matrix in $\Theta$ one-by-one (equation \ref{eq:EMalg.j}).  In this case, the parameters that are not being maximized are fixed (and set at their current iteration value), and then one takes the derivative of $\Psi$ with respect to the parameter of interest.  Then solve for the parameter value that sets the partial derivative to zero.  The partial differentiation is with respect to each individual parameter element, for example each $u_{i,j}$ in matrix $\uu$. The idea is to single out those terms in equation \eqref{eq:expLL} that involve $u_{i,j}$ (say), differentiate by $u_{i,j}$, set this to zero and solve for $u_{i,j}$.  This gives the new $u_{i,j}$ that maximizes the partial derivative with respect to $u_{i,j}$ of the expected log-likelihood.  Matrix calculus gives us a way to jointly maximize $\Psi$ with respect to all elements (not just element $i,j$) in a parameter matrix.
+
+Note, see the comments on the EM algorithm implementation (Section \ref{sec:EMalgorithm}) when the parameter set $\Theta$ is broken into parts (e.g. $\BB$, $\uu$, $\QQ$, etc.). In the implementation of the algorithm, one updates the $\Theta$ parts sequentially and the expectation step is re-run with the new $\Theta$ at each step (meaning the Kalman smoother is re-run with the updated parameters). Thus the algorithm is applied as follows (order that the parameters are updated is unimportant): E-step with $\{\BB_j, \uu_j, \QQ_j, etc.\}$, M-step updates $\BB_j$ to $\BB_{j+1}$, E-step with $\{\BB_{j+1}, \uu_j, \QQ_j, etc.\}$, M-step updates $\uu_j$ to $\uu_{j+1}$, E-step with $\{\BB_{j+1}, \uu_{j+1}, \QQ_j, etc.\}$, M-step updates $\QQ_j$ to $\QQ_{j+1}$, continuing until all parameters are updates which completes the $j+1$ update.
 
 \subsection{Matrix calculus need for the derivation}\label{sec:MatrixDerivatives}
-Before commencing, some definitions from matrix calculus will be needed.  The partial derivative of a scalar ($\Psi$ is a scalar) with respect to some column vector $\bb$ (which has elements $b_1$, $b_2$ . . .) is 
+A number of derivatives of a scalar with respect to vectors and matrices will be needed in the derivation and are shown in table \ref{tab:MatrixDerivatives}. The partial derivative of a scalar ($\Psi$ is a scalar) with respect to some column vector $\bb$ (which has elements $b_1$, $b_2$ . . .) is 
 \begin{equation*}
 \frac{\partial\Psi}{\partial\bb}=
 \begin{bmatrix}
-\dfrac{\partial\Psi}{\partial b_1}& \dfrac{\partial\Psi}{\partial b_2}& \cdots& \dfrac{\partial\Psi}{\partial b_n}
+\dfrac{\partial\Psi}{\partial b_1}& \dfrac{\partial\Psi}{\partial b_2}& \cdots& \dfrac{\partial\Psi}{\partial b_m}
 \end{bmatrix}
 \end{equation*}
- Note that the derivative of a column vector $\bb$ is a row vector. The partial derivatives of a scalar with respect to some $n \times n$ matrix $\BB$ is
+ Note that the derivative of scalar with respect to a column vector $\bb$ is a row vector. The partial derivatives of a scalar with respect to some $m \times m$ matrix $\BB$ is
 \begin{equation*}
 \frac{\partial\Psi}{\partial\BB}=
 \begin{bmatrix}
-\dfrac{\partial\Psi}{\partial b_{1,1}}& \dfrac{\partial\Psi}{\partial b_{2,1}}& \cdots& \dfrac{\partial\Psi}{\partial b_{n,1}}\\
+\dfrac{\partial\Psi}{\partial b_{1,1}}& \dfrac{\partial\Psi}{\partial b_{2,1}}& \cdots& \dfrac{\partial\Psi}{\partial b_{m,1}}\\
 \\
-\dfrac{\partial\Psi}{\partial b_{1,2}}& \dfrac{\partial\Psi}{\partial b_{2,2}}& \cdots& \dfrac{\partial\Psi}{\partial b_{n,2}}\\
+\dfrac{\partial\Psi}{\partial b_{1,2}}& \dfrac{\partial\Psi}{\partial b_{2,2}}& \cdots& \dfrac{\partial\Psi}{\partial b_{m,2}}\\
 \\
 \cdots&  \cdots&  \cdots&  \cdots\\
 \\
-\dfrac{\partial\Psi}{\partial b_{1,n}}& \dfrac{\partial\Psi}{\partial b_{2,n}}& \cdots& \dfrac{\partial\Psi}{\partial b_{n,n}}\\
+\dfrac{\partial\Psi}{\partial b_{1,m}}& \dfrac{\partial\Psi}{\partial b_{2,m}}& \cdots& \dfrac{\partial\Psi}{\partial b_{m,m}}\\
 \end{bmatrix}
 \end{equation*} 
-Note that the indexing is interchanged; $\partial\Psi/\partial b_{i,j}=\big[\partial\Psi/\partial\BB\big]_{j,i}$. For $\QQ$ and $\RR$, this is unimportant because they are variance-covariance matrices and are symmetric. For $\BB$ and $\ZZ$, one must be careful because these may not be symmetric. 
+Note that the indexing is interchanged; $\partial\Psi/\partial b_{i,j}=\big[\partial\Psi/\partial\BB\big]_{j,i}$. For $\QQ$ and $\RR$, this is unimportant because they are variance-covariance matrices and are symmetric. For $\BB$ and $\ZZ$, one must be careful because these may not be symmetric. The partial derivatives of a column vector $\aa$ with respect to a column vector $\bb$.
+\begin{equation*}
+\frac{\partial\Psi}{\partial\BB}=
+\begin{bmatrix}
+\dfrac{\partial a_1}{\partial b_1}& \dfrac{\partial a_1}{\partial b_2}& \cdots& \dfrac{\partial a_1}{\partial b_m}\\
+\\
+\dfrac{\partial a_2}{\partial b_1}& \dfrac{\partial\Psi}{\partial b_2}& \cdots& \dfrac{\partial a_2}{\partial b_m}\\
+\\
+\cdots&  \cdots&  \cdots&  \cdots\\
+\\
+\dfrac{\partial a_n}{\partial b_1}& \dfrac{\partial a_n}{\partial b_2}& \cdots& \dfrac{\partial a_n}{\partial b_m}\\
+\end{bmatrix}
+\end{equation*}  
 
-A number of derivatives of a scalar with respect to vectors and matrices will be needed in the derivation and are shown in table \ref{tab:MatrixDerivatives}.  In the table, both the vectorized and non-vectorized versions are shown. The vectorized version of a matrix $\DD$ with dimension $n \times m$ is
+In table \ref{tab:MatrixDerivatives}, both the vectorized and non-vectorized versions are shown. The vectorized version of a matrix $\DD$ with dimension $n \times m$ is
 \begin{gather*}
 \vec(\DD_{n,m})\equiv
 \begin{bmatrix}
@@ -357,10 +374,12 @@ d_{n,m}
 \hline
 \\
 \refstepcounter{equation}\label{eq:derivproductrule}
-$\partial(\ff^\top\gg)/\partial\aa = \ff^\top\partial(\gg)/\partial\aa + \gg^\top\partial(\ff)/\partial\aa$ 
+$\partial(\ff^\top\gg)/\partial\aa = \ff^\top\partial\gg/\partial\aa + \gg^\top\partial\ff/\partial\aa$ 
 & \multirow{2}{*}{(\theequation)} \\
-$\ff=f(\aa)$ and \gg=$g(\aa)$ are some functions of $\aa$ and are column vectors. & \\
-$\partial \ff /\partial\aa = \partial \ff /\partial \gg \, \partial\gg/\partial\aa$
+$\ff=f(\aa)$ and \gg=$g(\aa)$ are $m \times 1$ column vectors and functions of $\aa$. & \\
+$\partial a /\partial\aa = \frac{1}{m} \partial a /\partial \gg \, \partial\gg/\partial\aa$
+&\\
+$\partial \ff /\partial\aa = \frac{1}{m} \partial \ff /\partial \gg \, \partial\gg/\partial\aa$
 &\\
 \\
 \refstepcounter{equation}\label{eq:derivaTc}
@@ -467,13 +486,13 @@ Set the left side to zero (an $m \times m$ matrix of zeros), cancel out $\QQ^{-1
 \begin{equation}\label{eq:B.unconstrained4}
 \begin{split}
 &\mathbf{0}  =  \sum_{t=1}^T\big(\E[\XX_t\XX_{t-1}^\top] - \BB \E[\XX_{t-1}\XX_{t-1}^\top] - \uu \E[\XX_{t-1}^\top]\big)\\ 
-&\quad =  \sum_{t=1}^T \big( \hatPttm  - \BB \hatPtm - \uu^\top\hatxtm^\top \big)
+&\quad =  \sum_{t=1}^T \big( \hatPttm  - \BB \hatPtm - \uu \hatxtm^\top \big)
 \end{split}
 \end{equation}
 The last line replaced the expectations  with their names shown in  equation \eqref{eq:expectations}.
 Solving for $\BB$ and noting that $\hatPtm$ is like a variance-covariance matrix and is invertible, gives us the new $\BB$ that maximizes $\Psi$, 
 \begin{equation}\label{eq:B.update.unconstrained}
-\BB_{j+1}= \bigg( \sum_{t=1}^T \big( \hatPttm  - \uu^\top\hatxtm^\top \big)\bigg) \bigg(\sum_{t=1}^T \hatPtm\bigg)^{-1}
+\BB_{j+1}= \bigg( \sum_{t=1}^T \big( \hatPttm  - \uu \hatxtm^\top \big)\bigg) \bigg(\sum_{t=1}^T \hatPtm\bigg)^{-1}
 \end{equation}
 
 Because all the equations above also apply to block-diagonal matrices, the derivation immediately generalizes to the case where $\BB$ is an unconstrained block diagonal matrix:
@@ -499,7 +518,7 @@ b_{3,1}&b_{3,2}&b_{3,3}&0&0&0&0&0\\
 
 For the block diagonal $\BB$,
 \begin{equation}\label{eq:B.update.blockdiag}
-\BB_{i,j+1}= \bigg( \sum_{t=1}^T \big( \hatPttm  - \uu^\top\hatxtm^\top \big) \bigg)_i \bigg(\sum_{t=1}^T \hatPtm \bigg)_i^{-1}
+\BB_{i,j+1}= \bigg( \sum_{t=1}^T \big( \hatPttm  - \uu \hatxtm^\top \big) \bigg)_i \bigg(\sum_{t=1}^T \hatPtm \bigg)_i^{-1}
 \end{equation}
 where the subscript $i$ means to take the parts of the matrices that are analogous to $\BB_i$; take the whole part within the parentheses not the individual matrices inside the parentheses.  If $\BB_i$ is comprised of rows $a$ to $b$ and columns $c$ to $d$ of matrix $\BB$, then  take rows $a$ to $b$ and columns $c$ to $d$ of the matrices subscripted by $i$ in equation \eqref{eq:B.update.blockdiag}.
 
@@ -797,7 +816,7 @@ Thus,
 \begin{equation}\label{eq:pi.update.unconstrained}
 \xixi_{j+1} = \widetilde{\mbox{$\mathbf x$}}_0
 \end{equation}
-$\widetilde{\mbox{$\mathbf x$}}_0$ is the expected value of $\XX_0$ conditioned on the data from $t=1$ to $T$, which comes from the Kalman smoother recursions with initial conditions defined as $\E[\XX_0|\YY_0=\yy_0] \equiv \xixi$ and $\var(\XX_0 \XX_0^\top|\YY_0=\yy_0)\equiv \LAM$.
+$\widetilde{\mbox{$\mathbf x$}}_0$ is the expected value of $\XX_0$ conditioned on the data from $t=1$ to $T$, which comes from the Kalman smoother recursions with initial conditions defined as $\E[\XX_0|\YY_0=\yy_0] \equiv \xixi_j$ and $\var(\XX_0 \XX_0^\top|\YY_0=\yy_0)\equiv \LAM_j$ (meaning the filter recursions start with $t=1$ with  $\tilde{x}_{t-1}^{t-1} = \tilde{x}_0^0 = \xixi_j$).
 A similar set of steps gets us to the update equation for $\LAM$,
 \begin{equation}\label{eq:V0.update.unconstrained}
 \LAM_{j+1} = \widetilde{\VV}_0
@@ -811,7 +830,7 @@ If the initial state is defined as at $t=1$ instead of $t=0$, the update equatio
 \begin{equation}
 \LAM_{j+1} = \widetilde{\VV}_1
 \end{equation}
-These are output from the Kalman smoother recursions with initial conditions defined as $\E[\XX_1|\YY_0=\yy_0] \equiv \xixi$ and $\var(\XX_1 \XX_1^\top|\YY_0=\yy_0)\equiv \LAM$.  Notice that the recursions are initialized slightly differently; you will see the Kalman filter and smoother equations presented with both types of initializations depending on whether the author defines the initial state at $t=0$ or $t=1$.
+These are output from the Kalman smoother recursions with initial conditions defined as $\E[\XX_1|\YY_0=\yy_0] \equiv \xixi_j$ and $\var(\XX_1 \XX_1^\top|\YY_0=\yy_0)\equiv \LAM_j$  (meaning the filter recursions start with $t=1$ with  $\tilde{x}_{t}^{t-1} = \tilde{x}_1^0 = \xixi_j$).  Notice that the recursions are initialized slightly differently. In the literature, you will see the Kalman filter and smoother equations presented with both types of initializations depending on whether the author defines the initial state at $t=0$ or $t=1$.
 
 \subsection{Update equation for $\xixi$ (unconstrained), fixed $\xx_0$}
 For the case where $\xx_0$ is treated as fixed, i.e. as another parameter, then there is no $\LAM$, and we need to maximize $\partial\Psi/\partial\xixi$ using the slightly different $\Psi$ shown in equation \eqref{eq:logL.V0.is.0}.  Now $\xixi$ appears in the state equation part of the likelihood.
@@ -1257,7 +1276,7 @@ The vec of the model parameters are defined as follows:
 \end{equation*}
 
 \section{The constrained update equations}\label{sec:constrained}
-The derivation proceeds by taking the partial derivative of equation \ref{eq:logL.vec.general} with respect to the estimated terms, the $\zzeta$, $\aalpha$, etc, setting the derivative to zero, and solving for those estimated terms.  Conceptually, the algebraic steps in the derivation are similar to those in  the unconstrained derivation.  
+The derivation proceeds by taking the partial derivative of equation \ref{eq:logL.vec.general} with respect to the estimated terms, the $\zzeta$, $\aalpha$, etc, setting the derivative to zero, and solving for those estimated terms.  Conceptually, the algebraic steps in the derivation are similar to those in  the unconstrained derivation. See the notes in Sections \ref{sec:generalupdate} and \ref{sec:EMalgorithm} regarding implementation of the EM algorithm when $\Theta$ is broken into parts (e.g. $\BB$, $\uu$, $\QQ$, etc.).
 
 \subsection{The general $\uu$ update equations}
 We take the derivative of $\Psi$ (equation \ref{eq:logL.vec.general}) with respect to $\uupsilon$.
@@ -1984,20 +2003,33 @@ We will define another set of matrices that zeros out the missing or non-missing
 \end{equation}
 
 \subsection{Expectations involving only $\XX_t$}\label{sec:kalman.smoother}
-The Kalman smoother provides the expectations involving only $\XX_t$ conditioned on all the data from time 1 to $T$.  
+The Kalman smoother provides the expectations involving only $\XX_t$ conditioned on all the data from time 1 to $T$. The Kalman filter provides the expectations involving only $\XX_t$ conditioned on all the data from time 1 to $t-1$ and from time 1 to $t$. For the EM algorithm, we only need the smoother output and the expected values conditioned on the data from time 1 to $T$ and these are denoted with special symbol of a tilde over a variable. 
+
+To present the algorithm for the Kalman smoother and filter, the expectations conditioned on time 1 to $t$ are needed. The notation for this general case will be $\xx_t^t$ to denote $\E[\XX_t|\YY(1)_1^t=\yy(1)_1^t,\Theta]$ where $\yy(1)_1^t$ means the observed data (the $(1)$ part) from time 1 to $t$ (the superscript). This is fairly common notation for the conditional expectations in a Kalman filter and smoother and it is important to note that the superscript is not a power notation but the upper time extent. The the expectations used in the previous sections on the EM algorithm are the following:
+ 
 \begin{subequations}\label{eq:kfsoutput}
 \begin{align}
-&\hatxt = \E[\XX_t]\label{eq:xt}\\
-&\widetilde{\VV}_t = \var[\XX_t]\\
-&\widetilde{\VV}_{t,t-1} = \cov[\XX_t,\XX_{t-1}]\\
+&\hatxt \equiv \xx_t^T = \E[\XX_t|\YY(1)_1^T=\yy(1)_1^T,\Theta]\label{eq:xt}\\
+&\widetilde{\VV}_t \equiv \VV_t^T = \var[\XX_t|\YY(1)_1^T=\yy(1)_1^T,\Theta]\\
+&\widetilde{\VV}_{t,t-1} \equiv \VV_{t,t-1}^T = \cov[\XX_t,\XX_{t-1}|\YY(1)_1^T=\yy(1)_1^T,\Theta]\\
 &\text{From $\hatxt$, $\widetilde{\VV}_t$, and $\widetilde{\VV}_{t,t-1}$, we compute}\nonumber\\
-&\hatPt=\E[\XX_t\XX_t^\top]= \widetilde{\VV}_t + \hatxt\hatxt^\top\label{eq:Pt}\\
-&\hatPttm=\E[\XX_{t}\XX_{t-1}^\top]=\widetilde{\VV}_{t,t-1} +\hatxt\hatxtm^\top\label{eq:Ptt1}
+&\hatPt \equiv \PP_t^T =\E[\XX_t\XX_t^\top|\YY(1)_1^T=\yy(1)_1^T,\Theta]= \widetilde{\VV}_t + \hatxt\hatxt^\top\label{eq:Pt}\\
+&\hatPttm \equiv \PP_{t,t-1}^T =\E[\XX_{t}\XX_{t-1}^\top|\YY(1)_1^T=\yy(1)_1^T,\Theta]=\widetilde{\VV}_{t,t-1} +\hatxt\hatxtm^\top\label{eq:Ptt1}
 \end{align}
 \end{subequations}
-The $\hatPt$ and $\hatPttm$ equations arise from the computational formula for variance (equation \ref{eq:comp.formula.variance}). Note the smoother is different than the Kalman filter as the filter does not provide the expectations of $\XX_t$ conditioned on all the data (time 1 to $T$) but only on the data up to time $t$.
+The $\hatPt$ and $\hatPttm$ equations arise from the computational formula for variance (equation \ref{eq:comp.formula.variance}). When comparing the Kalman filter and smoother algorithms here to Shumway and Stoffer, keep in mind the difference in notation: $P_t^n$ in Shumway and Stoffer is $\VV_t^T$ here not $\PP_t^T$.
 
-The first part of the Kalman smoother algorithm is the Kalman filter which gives the expectation at time $t$ conditioned on the data up to time $t$.  The following the filter as shown in \citep[sec. 6.2, p. 331]{ShumwayStoffer2006}, although the notation is a little different.  
+In the presentation of the EM algorithm, $\YY(1)_1^T=\yy(1)_1^T,\Theta$ was dropped from the expectations to remove clutter; thus $E[\dots]$ always denoted the conditional expectation $\E[\dots|\YY(1)_1^T=\yy(1)_1^T,\Theta]$. To present the smoother algorithm, we the other conditional expectations.
+\begin{subequations}\label{eq:kffilteroutput}
+\begin{align}
+&\xx_t^{t-1} = \E[\XX_t|\YY(1)_1^{t-1}=\yy(1)_1^{t-1},\Theta]\\
+&\xx_t^t = \E[\XX_t|\YY(1)_1^t=\yy(1)_1^t,\Theta]\\
+&\VV_t^{t-1} = \var[\XX_t|\YY(1)_1^{t-1}=\yy(1)_1^{t-1},\Theta]\\
+&\VV_t^t = \var[\XX_t|\YY(1)_1^t=\yy(1)_1^t,\Theta]\\
+\end{align}
+\end{subequations}
+
+The first part of the Kalman smoother algorithm is the Kalman filter which gives the expectation at time $t$ conditioned on the data up to time $t$.  The following the filter as shown in \citep[sec. 6.2, p. 331]{ShumwayStoffer2006}, although the notation is a little different. The recursion starts at time $t=1$ and repeats until $t=T$.
 \begin{subequations}\label{eq:kffilter}
 \begin{align}
 &\xx_t^{t-1}=\BB_t\xx_{t-1}^{t-1}+\uu_t\label{eq:xtt1}\\
@@ -2007,6 +2039,8 @@ The first part of the Kalman smoother algorithm is the Kalman filter which gives
 &\KK_t=\VV_t^{t-1}\ZZ_t^\top(\ZZ_t\VV_t^{t-1}\ZZ_t^\top+\HH_t\RR_t\HH_t^\top)^{-1}\label{eq:Kt}
 \end{align}
 \end{subequations}
+If the initial value is defined at $t=0$, then the filter starts at $t=1$ with the first two equations with $\xx_{0}^{0} \equiv \xixi$ and $\VV_{0}^{}\equiv\LAM$. If the initial value is defined at $t=1$, then the filter starts at $t=1$ with the third and fourth equations with $\xx_{1}^{0}\equiv\xixi$ and $\VV_{1}^{0}\equiv\LAM$.
+
 
 The Kalman smoother and lag-1 covariance smoother compute the expectations conditioned on all the data, 1 to $T$:
 \begin{subequations}\label{eq:kfsmoother}
@@ -2170,7 +2204,7 @@ Thus,
 \end{split}
 \end{equation}
 
-Note that since we are conditioning on $\XX_t=\xx_t$, we can replace $\YY$ by $\YY_t$ in the conditional:
+Note that since we are conditioning on $\XX_t=\xx_t$, we can replace $\YY$ (all data from time 1 to $T$) by $\YY_t$ (data at time $t$) in the conditional:
 $$\E[\YY_t|\YY(1)=\yy(1),\XX_t=\xx_t]=\E[\YY_t|\YY_t(1)=\yy_t(1),\XX_t=\xx_t].$$
 From this and the distributions in equation \eqref{eq:varY}, we can write down $\hatyt=\E[\YY_t|\YY(1)=\yy(1),\Theta_j]$:
 \begin{equation}

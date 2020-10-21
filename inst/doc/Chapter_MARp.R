@@ -24,8 +24,10 @@ A <- matrix(0, 1, 1)
 R <- matrix(0, 1, 1)
 mu <- matrix(sim.ar2[2:1], 2, 1)
 V <- matrix(0, 2, 2)
-model.list.2 <- list(Z = Z, B = B, U = U, Q = Q, A = A, 
-                     R = R, x0 = mu, V0 = V, tinitx = 0)
+model.list.2 <- list(
+  Z = Z, B = B, U = U, Q = Q, A = A,
+  R = R, x0 = mu, V0 = V, tinitx = 0
+)
 
 
 ###################################################
@@ -45,7 +47,7 @@ print(cbind(true = true.2[2:4], estimates = coef(ar2, type = "vector")))
 ###################################################
 gappy.data <- sim.ar2[3:TT]
 gappy.data[floor(runif(TT / 2, 2, TT))] <- NA
-ar2.gappy <- MARSS(gappy.data, model = model.list.2)
+ar2.gappy <- MARSS(gappy.data, model = model.list.2, fun.kf="MARSSkfss")
 
 
 ###################################################
@@ -73,7 +75,7 @@ sim.ar2.ns <- rep(NA, TT)
 sim.ar2.ns[1] <- -30
 sim.ar2.ns[2] <- -10
 for (i in 3:TT) {
-  sim.ar2.ns[i] <- true.2[2] * sim.ar2.ns[i - 1] + 
+  sim.ar2.ns[i] <- true.2[2] * sim.ar2.ns[i - 1] +
     true.2[3] * sim.ar2.ns[i - 2] + rnorm(1, 0, sqrt(true.2[4]))
 }
 
@@ -125,8 +127,10 @@ A <- matrix(0, 2, 1)
 R <- matrix(0, 2, 2)
 pi <- matrix(c(sim.mar2[, 2], sim.mar2[, 1]), 4, 1)
 V <- matrix(0, 4, 4)
-model.list.2m <- list(Z = Z, B = B, U = U, Q = Q, A = A, 
-                      R = R, x0 = pi, V0 = V, tinitx = 1)
+model.list.2m <- list(
+  Z = Z, B = B, U = U, Q = Q, A = A,
+  R = R, x0 = pi, V0 = V, tinitx = 1
+)
 
 
 ###################################################
@@ -155,8 +159,10 @@ print(cbind(true = true.2[2:4], est.mar2 = coef(mar2, type = "vector"), est.mar2
 ###################################################
 TT <- 100
 true.3 <- c(r = 0, b1 = -1.5, b2 = -0.75, b3 = .05, q = 1)
-temp3 <- arima.sim(n = TT, list(ar = true.3[c("b1", "b2", "b3")]), 
-                   sd = sqrt(true.3["q"]))
+temp3 <- arima.sim(
+  n = TT, list(ar = true.3[c("b1", "b2", "b3")]),
+  sd = sqrt(true.3["q"])
+)
 sim.ar3 <- matrix(temp3, nrow = 1)
 
 
@@ -172,8 +178,10 @@ A <- matrix(0, 1, 1)
 R <- matrix(0, 1, 1)
 pi <- matrix(sim.ar3[3:1], 3, 1)
 V <- matrix(0, 3, 3)
-model.list.3 <- list(Z = Z, B = B, U = U, Q = Q, A = A, 
-                     R = R, x0 = pi, V0 = V, tinitx = 1)
+model.list.3 <- list(
+  Z = Z, B = B, U = U, Q = Q, A = A,
+  R = R, x0 = pi, V0 = V, tinitx = 1
+)
 
 
 ###################################################
@@ -202,8 +210,10 @@ set.seed(14)
 ###################################################
 TT <- 1000 # set long
 true.2ss <- c(r = .5, b1 = -1.5, b2 = -0.75, q = .1)
-temp <- arima.sim(n = TT, list(ar = true.2ss[c("b1", "b2")]), 
-                  sd = sqrt(true.2ss["q"]))
+temp <- arima.sim(
+  n = TT, list(ar = true.2ss[c("b1", "b2")]),
+  sd = sqrt(true.2ss["q"])
+)
 sim.ar <- matrix(temp, nrow = 1)
 noise <- rnorm(TT - 1, 0, sqrt(true.2ss["r"]))
 noisy.data <- sim.ar[2:TT] + noise
@@ -220,8 +230,10 @@ A <- matrix(0, 1, 1)
 R <- matrix("r")
 V <- matrix(0, 2, 2)
 pi <- matrix(mean(noisy.data), 2, 1)
-model.list.2ss <- list(Z = Z, B = B, U = U, Q = Q, A = A, 
-                       R = R, x0 = pi, V0 = V, tinitx = 0)
+model.list.2ss <- list(
+  Z = Z, B = B, U = U, Q = Q, A = A,
+  R = R, x0 = pi, V0 = V, tinitx = 0
+)
 
 
 ###################################################
@@ -286,8 +298,10 @@ if (!sims.exist) {
   V <- matrix(0, 2, 2)
   R <- matrix("r")
   pi <- matrix(0, 2, 1) # since demeaned
-  model.list.2ss <- list(Z = Z, B = B, U = U, Q = Q, A = A, 
-                         R = R, x0 = pi, V0 = V, tinitx = 1)
+  model.list.2ss <- list(
+    Z = Z, B = B, U = U, Q = Q, A = A,
+    R = R, x0 = pi, V0 = V, tinitx = 1
+  )
 
   for (i in 1:nsim) {
     temp <- arima.sim(n = TT, list(ar = true.2ss[2:3]), sd = sqrt(true.2ss[4]))
@@ -295,16 +309,16 @@ if (!sims.exist) {
     noise <- rnorm(TT, 0, sqrt(true.2ss[1]))
     noisy.data <- sim.ar + noise
     noisy.data <- as.vector(noisy.data - mean(noisy.data)) # demean
-    test.it <- try(arima(noisy.data[2:TT], order = c(2, 0, 2), include.mean = FALSE), silent=TRUE)
-    test.it2 <- try(arima(noisy.data[2:TT], order = c(2, 0, 0), include.mean = FALSE), silent=TRUE)     
+    test.it <- try(arima(noisy.data[2:TT], order = c(2, 0, 2), include.mean = FALSE), silent = TRUE)
+    test.it2 <- try(arima(noisy.data[2:TT], order = c(2, 0, 0), include.mean = FALSE), silent = TRUE)
     while (inherits(test.it, "try-error") | inherits(test.it2, "try-error")) {
       temp <- arima.sim(n = TT, list(ar = true.2ss[2:3]), sd = sqrt(true.2ss[4]))
       sim.ar <- matrix(temp, nrow = 1)
       noise <- rnorm(TT, 0, sqrt(true.2ss[1]))
       noisy.data <- sim.ar + noise
       noisy.data <- as.vector(noisy.data - mean(noisy.data)) # demean
-      test.it <- try(arima(noisy.data[2:TT], order = c(2, 0, 2), include.mean = FALSE), silent=TRUE)
-      test.it2 <- try(arima(noisy.data[2:TT], order = c(2, 0, 0), include.mean = FALSE), silent=TRUE)
+      test.it <- try(arima(noisy.data[2:TT], order = c(2, 0, 2), include.mean = FALSE), silent = TRUE)
+      test.it2 <- try(arima(noisy.data[2:TT], order = c(2, 0, 0), include.mean = FALSE), silent = TRUE)
     }
     init.list <- list(Q = matrix(.01, 1, 1), B = matrix(1, 2, 1))
     tmp.kem <- MARSS(noisy.data[2:TT], model = model.list.2ss, inits = init.list, silent = TRUE)

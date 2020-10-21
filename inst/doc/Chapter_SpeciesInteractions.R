@@ -11,7 +11,7 @@ royale.dat <- log(t(isleRoyal[yr1960to2011, c("Wolf", "Moose")]))
 x <- isleRoyal[, "Year"]
 y <- log(isleRoyal[, c("Wolf", "Moose")])
 graphics::matplot(x, y,
-  ylab = "log count", xlab = "Year", type = "l",
+  ylab = "Log count", xlab = "Year", type = "l",
   lwd = 3, bty = "L", col = "black"
 )
 legend("topright", c("Wolf", "Moose"), lty = c(1, 2), bty = "n")
@@ -67,8 +67,10 @@ print(wolf.B, digits = 2)
 ###################################################
 ### code chunk number 9: Cs07_prep-cov-wolf-moose
 ###################################################
-clim.variables <- c("jan.feb.ave.temp", "jan.feb.ave.precip", 
-                    "july.sept.ave.temp")
+clim.variables <- c(
+  "jan.feb.ave.temp", "jan.feb.ave.precip",
+  "july.sept.ave.temp"
+)
 yr1959to2010 <- isleRoyal[, "Year"] >= 1959 & isleRoyal[, "Year"] <= 2010
 clim.dat <- t(isleRoyal[yr1959to2010, clim.variables])
 z.score.clim.dat <- zscore(clim.dat)
@@ -264,7 +266,7 @@ plank.model.4$c <- d.phos
 ### code chunk number 31: Cs27.5_print-C
 ###################################################
 # Cleaning up the B matrix for printing
-Cmat <- coef(kem.plank.2, type = "matrix")$C[1:4, 1, drop = FALSE]
+Cmat <- coef(kem.plank.4, type = "matrix")$C[1:4, 1, drop = FALSE]
 rownames(Cmat) <- c("LP", "SP", "D", "ND")
 Cmat[Cmat == 0] <- NA
 print(Cmat, digits = 2, na.print = "--")

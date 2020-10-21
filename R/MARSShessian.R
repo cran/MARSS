@@ -5,9 +5,14 @@ MARSShessian <- function(MLEobj, method = c("Harvey1989", "fdHess", "optim")) {
   method <- match.arg(method)
   paramvec <- MARSSvectorizeparam(MLEobj)
   if (length(paramvec) == 0) stop("Stopped in MARSShessian(). No estimated parameter elements thus no Hessian.\n", call. = FALSE)
-
+  if (is.null(MLEobj[["par"]])) {
+    stop("Stopped in MARSShessian(). The marssMLE object does not have the par element.  Most likely the model has not been fit.", call. = FALSE)
+  }
+  if (identical(MLEobj[["convergence"]], 54)) {
+    stop("Stopped in MARSShessian(). MARSSkf (the Kalman filter/smoother) returns an error with the fitted model. Try MARSSinfo('optimerror54') for insight.", call. = FALSE)
+  }
+  
   MLEobj$parMean <- paramvec
-
   MLEobj$Hessian <- MARSSFisherI(MLEobj, method = method)
 
   # When inverting the Hessian, need to deal with NAs in the Hessian
@@ -19,7 +24,7 @@ MARSShessian <- function(MLEobj, method = c("Harvey1989", "fdHess", "optim")) {
     MLEobj$errors <- c(MLEobj$errors, msg)
   }
   # set diags with NA to 1 and non-diag to 0 so that Hessian can be inverted
-  diag(Hess.tmp)[ na.diag ] <- 1
+  diag(Hess.tmp)[na.diag] <- 1
   Hess.tmp[is.na(Hess.tmp)] <- 0 #
 
   hessInv <- try(solve(Hess.tmp), silent = TRUE)
@@ -30,7 +35,7 @@ MARSShessian <- function(MLEobj, method = c("Harvey1989", "fdHess", "optim")) {
     MLEobj$errors <- c(MLEobj$errors, msg)
   } else {
     # Set NAs values to 0
-    diag(hessInv)[ na.diag ] <- NA
+    diag(hessInv)[na.diag] <- NA
     MLEobj$parSigma <- hessInv
   }
 

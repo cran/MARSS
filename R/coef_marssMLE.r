@@ -10,17 +10,24 @@ coef.marssMLE <- function(object, ..., type = "list", form = NULL, what = "par")
     stop("Stopped in coef.marssMLE() because the function needs a marssMLE object.\n", call. = FALSE)
   }
 
-  if (!(what %in% c("par", "par.se", "par.bias", "par.lowCI", "par.upCI", "start"))) {
+  if (!is.null(what) && !(what %in% c("par", "par.se", "par.bias", "par.lowCI", "par.upCI", "start"))) {
     stop("Stopped in coef.marssMLE(): The 'what' argument must be \"par\", \"par.se\", \"par.bias\", \"par.lowCI\", \"par.upCI\", or \"start\".\n", call. = FALSE)
   }
-  if ((what %in% c("par.se", "par.bias", "par.lowCI", "par.upCI")) & !(what %in% names(object))) {
+  if (what == "par" && !(what %in% names(object))) {
+    stop("Stopped in coef.marssMLE(): marssMLE object $par element is NULL.  Parameters have not been estimated or set.
+\n", call. = FALSE)
+  }
+  if ((what %in% c("par.se", "par.lowCI", "par.upCI")) && !(what %in% names(object))) {
     stop("Stopped in coef.marssMLE(): The par.se and CIs have not been added to your marssMLE object. Run MARSSparamsCIs() to add.\n", call. = FALSE)
   }
-
+  if ((what %in% c("par.bias")) && !(what %in% names(object))) {
+    stop("Stopped in coef.marssMLE(): The par.bias has not been added to your marssMLE object. Run MARSSparamsCIs() with method = 'parametric' or 'innovations' to add.\n", call. = FALSE)
+  }
+  
   # for now coef only has function specific to the marssMODEL forms
   if (missing(form)) form <- attr(object[["model"]], "form")
 
-  # This will return the object with the $par element changed to a form compatable with $model
+  # This will return the object with the $par element changed to a form compatible with $model
   coef.fun <- paste("coef_", form[1], sep = "")
   tmp <- try(exists(coef.fun, mode = "function"), silent = TRUE)
   if (isTRUE(tmp)) {
@@ -68,7 +75,7 @@ coef.marssMLE <- function(object, ..., type = "list", form = NULL, what = "par")
     par.dims <- attr(object[["model"]], "model.dims")
     if (the.type == "matrices" || the.type == "matrix") {
       par.mat <- list()
-      if(what!="par"){
+      if (what != "par") {
         orig.par <- modified.object[["par"]]
         modified.object[["par"]] <- pars
       }
@@ -78,18 +85,18 @@ coef.marssMLE <- function(object, ..., type = "list", form = NULL, what = "par")
         the.par <- parmat(modified.object, elem = elem, t = 1:par.dims[[elem]][3], dims = par.dims[elem], model.loc = "model")[[elem]]
         par.mat[[elem]] <- the.par
       }
-      if(what!="par") modified.object[["par"]] <- orig.par
+      if (what != "par") modified.object[["par"]] <- orig.par
       return.obj[[the.type]] <- par.mat
     }
     if (the.type %in% par.names) {
       # need to tell parmat to use the model in $model; default is $marss
       # passing in par.dims[the.type] keeps it as a list so that parmat doesn't have to change vector to list
-      if(what!="par"){
+      if (what != "par") {
         orig.par <- modified.object[["par"]]
         modified.object[["par"]] <- pars
       }
       the.par <- parmat(modified.object, elem = the.type, t = 1:par.dims[[the.type]][3], dims = par.dims[the.type], model.loc = "model")[[the.type]]
-      if(what!="par") modified.object[["par"]] <- orig.par
+      if (what != "par") modified.object[["par"]] <- orig.par
       return.obj[[the.type]] <- the.par
     }
   } # for the.type in type (user passed in type)

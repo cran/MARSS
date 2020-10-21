@@ -74,9 +74,16 @@ MARSS.marss <- function(MARSS.call) {
   model <- MARSS.call$model
   model.elem <- c("Z", "A", "R", "B", "U", "Q", "x0", "V0", "G", "H", "L")
   dat <- MARSS.call[["data"]]
+  model.tsp <- attr(dat, "model.tsp")
+  # Note dat is changed to matrix in MARSS()
   if (is.vector(dat)) dat <- matrix(dat, 1, length(dat))
+  if (inherits(dat, "ts")) {
+    model.tsp <- stats::tsp(dat)
+    dat <- t(dat)
+  }
   n <- dim(dat)[1]
   TT <- dim(dat)[2]
+  if (is.null(model.tsp)) model.tsp <- c(1, TT, 1)
   if (is.null(rownames(dat))) {
     Y.names <- paste("Y", seq(1, n), sep = "") # paste(seq(1, n), sep="") #
     rownames(dat) <- Y.names
@@ -313,12 +320,14 @@ MARSS.marss <- function(MARSS.call) {
 
   # Set the marssMODEL form marss
   # This is the f+Dp form for the MARSS model used for user displays, printing and such
+  attr(dat, "model.tsp") <- NULL # remove model.tsp attribute in the MARSS.call
   marss_object <- list(fixed = fixed, free = free, data = dat, tinitx = model$tinitx, diffuse = model$diffuse)
   # set the attributes
   class(marss_object) <- "marssMODEL"
   attr(marss_object, "obj.elements") <- c("fixed", "free", "data", "tinitx", "diffuse")
   attr(marss_object, "form") <- "marss"
   attr(marss_object, "model.dims") <- model.dims
+  attr(marss_object, "model.tsp") <- model.tsp
   # par.names are what needs to be in fixed/free pair
   attr(marss_object, "par.names") <- c("Z", "A", "R", "B", "U", "Q", "x0", "V0", "G", "H", "L")
   attr(marss_object, "X.names") <- X.names
@@ -695,4 +704,3 @@ is.marssMODEL_marss <- function(MODELobj, method = "kem") {
     return(msg)
   }
 }
-

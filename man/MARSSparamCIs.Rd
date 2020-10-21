@@ -14,7 +14,7 @@ MARSSparamCIs(MLEobj, method = "hessian", alpha = 0.05, nboot =
   \item{method}{ Method for calculating the standard errors: "hessian", "parametric", and "innovations" implemented currently. }
   \item{alpha}{ alpha level for the 1-alpha confidence intervals. }
   \item{nboot}{ Number of bootstraps to use for "parametric" and "innovations" methods. }
-  \item{hessian.fun}{ The function to use for computing the Hessian.  See \code{\link{MARSShessian}}.}
+  \item{hessian.fun}{ The function to use for computing the Hessian. Options are "Harvey1989" (default analytical) or two numerical options: "fdHess" and "optim". See \code{\link{MARSShessian}}.}
   \item{silent}{ If false, a progress bar is shown for "parametric" and "innovations" methods. }
 }
 \details{
@@ -31,8 +31,6 @@ Center, 2725 Montlake Blvd E., Seattle, WA 98112   Type \code{RShowDoc("UserGuid
  }
 \author{ 
   Eli Holmes, NOAA, Seattle, USA.
-
-  eli(dot)holmes(at)noaa(dot)gov
 }
 \seealso{ \code{\link{MARSSboot}}, \code{\link{MARSSinnovationsboot}}, \code{\link{MARSShessian}}
  }

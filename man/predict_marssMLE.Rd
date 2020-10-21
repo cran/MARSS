@@ -3,7 +3,7 @@
 
 \title{ predict and forecast MARSS MLE objects }
 \description{
-This function will return the modeled value of \eqn{\mathbf{y}_t}{y(t)} or \eqn{\mathbf{x}_t}{x(t)} conditioned on the data (either data used to fit the data or data in \code{newdata}). For \eqn{\mathbf{y}_t}{y(t)}, this is \eqn{\mathbf{Z}_t\tilde{\mathbf{x}}_t+\mathbf{a}_t+\mathbf{D}_t\mathbf{d}_t}{Z(t) tildex(t) + a(t) + D(t) d(t)}. For \eqn{\mathbf{x}_t}{x(t)}, this is \eqn{\mathbf{B}_t\tilde{\mathbf{x}}_{t-1}+\mathbf{u}_t+\mathbf{C}_t\mathbf{c}_{t}}{B(t) tildex(t-1) + u(t) + C(t) c(t)}.  \eqn{\tilde{\mathbf{x}}_t}{tildex(t)} is the smoothed state estimate at time \eqn{t} conditioned on all the data (either data used to fit the model or the optional data passed into \code{newdata}).
+This function will return the modeled value of \eqn{\mathbf{y}_t}{y(t)} or \eqn{\mathbf{x}_t}{x(t)} conditioned on the data (either data used to fit the data or data in \code{newdata}). For \eqn{\mathbf{y}_t}{y(t)}, this is \eqn{\mathbf{Z}_t \mathbf{x}_t^T+\mathbf{a}_t+\mathbf{D}_t\mathbf{d}_t}{Z(t) xtT(t) + a(t) + D(t) d(t)}. For \eqn{\mathbf{x}_t}{x(t)}, this is \eqn{\mathbf{B}_t \mathbf{x}_{t-1}^T+\mathbf{u}_t+\mathbf{C}_t\mathbf{c}_{t}}{B(t) xtT(t-1) + u(t) + C(t) c(t)}.  \eqn{\mathbf{x}_t^T}{xtT(t)} is the smoothed state estimate at time \eqn{t} conditioned on all the data (either data used to fit the model or the optional data passed into \code{newdata}).
 
 If you want the estimate of \eqn{\mathbf{x}_t}{x(t)} conditioned on all the data (i.e. output from the Kalman filter or smoother), then use \code{\link[=tsSmooth.marssMLE]{tsSmooth}()}. Note that the prediction of \eqn{\mathbf{x}_t}{x(t)} conditioned on the data up to time \eqn{t} is not provided since that would require the estimate of \eqn{\mathbf{x}_t}{x(t)} conditioned on data 1 to \eqn{t+1}, which is not output from the Kalman filter or smoother.
 
@@ -82,7 +82,7 @@ For \code{type="ytT"}, the predictions are conceptually the same as predictions 
 \itemize{
 \item{\code{t} in \code{newdata}}{\code{t} in \code{newdata} removes any ambiguity as to which time steps your \code{y}, \code{c} and \code{d} in \code{newdata} correspond to. In most cases when you pass in \code{newdata} for a prediction, you will want to specify \code{t} (and in some cases need to specify \code{t}). If you pass in \code{y} and all the parameters are time-constant, \code{t} is only used for plotting (the x axis). If you pass in \code{y="model"}, then \code{t} can be used to specify a subset of the model data. If left off, it is assumed you want all the model data. If the model has time-varying parameters, \code{t} specifies which values of the parameters you want. If you leave off \code{t}, then it is assumed that \code{t} is 1 to the number of columns in \code{y}, \code{c} and \code{d} in \code{newdata}.}
 \item{The model has \eqn{\mathbf{c}}{c} and/or \eqn{\mathbf{d}}{d}}{\code{c} and/or \code{d} must be included in \code{newdata}. If \code{y} (new data) is not in \code{newdata}, it is assumed to be absent. That is, the default behavior if \code{y} is absent but \code{c} and/or \code{d} is present is \code{y="none"}. If you want to use the model data, then pass in \code{y="model"} in \code{newdata}. Pass in \code{t} in \code{newdata} if it is ambiguous which time steps of the model data to use.}
-\item{The model has time-varying parameters}{You have to pass in \code{t} in \code{newdata} to specify what parameter values to use. Any t > T (T =time steps in the model data), is assumed to mean that you want to use the parameter values at the at the last time step of the original time series. See examples. }
+\item{The model has time-varying parameters}{You have to pass in \code{t} in \code{newdata} to specify what parameter values to use. Any \eqn{t > T} (\eqn{T} equals the time steps in the model data), is assumed to mean that you want to use the parameter values at the at the last time step of the original time series. See examples. }
 \item{Only \code{t} is in \code{newdata}}{You can specify a subset of the model data (and \eqn{\mathbf{c}}{c} and \eqn{\mathbf{d}}{d}), by passing in \code{t} alone with the desired time steps denoted. For example \code{t=1:10}.}
 \item{\code{y}, \code{c} and \code{d} in \code{newdata} have more time steps than the original data}{If the model has time-varying parameters, you will need to pass in \code{t}. If the model is time-constant, then \code{t} is assumed to be 1 to the number of columns in \code{y}, \code{c} and \code{d} but you can pass in \code{t} to change that.}
 }
@@ -96,8 +96,6 @@ For \code{type="ytT"}, the predictions are conceptually the same as predictions 
 }
 \author{ 
   Eli Holmes, NOAA, Seattle, USA.  
-
-  eli(dot)holmes(at)noaa(dot)gov
 }
 \examples{
 dat <- t(harborSealWA)
@@ -119,21 +117,21 @@ plot(fr, ylim=c(8,12))
 
 
 # Covariate example
-fulldat = lakeWAplanktonTrans
-years = fulldat[,"Year"]>=1965 & fulldat[,"Year"]<1975
-dat = t(fulldat[years,c("Greens", "Bluegreens")])
-dat = zscore(dat)
-covariates = rbind(
-  Temp = fulldat[years,"Temp"],
-  TP = fulldat[years,"TP"])
-covariates = zscore(covariates)
-A = U = "zero"
-B = Z = "identity"
-R = diag(0.16,2)
-Q = "equalvarcov"
-C = "unconstrained"
-model.list = list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,C=C,c=covariates)
-fit = MARSS(dat, model=model.list)
+fulldat <- lakeWAplanktonTrans
+years <- fulldat[,"Year"]>=1965 & fulldat[,"Year"]<1975
+dat <- t(fulldat[years,c("Greens", "Bluegreens")])
+dat <- zscore(dat)
+covariates <- rbind(
+  Temp = fulldat[years, "Temp"],
+  TP = fulldat[years, "TP"])
+covariates <- zscore(covariates)
+A <- U <- "zero"
+B <- Z <- "identity"
+R <- diag(0.16,2)
+Q <- "equalvarcov"
+C <- "unconstrained"
+model.list <- list(B=B,U=U,Q=Q,Z=Z,A=A,R=R,C=C,c=covariates)
+fit <- MARSS(dat, model=model.list)
 
 # Use a new c (covariate) and the first 10 time steps of model data
 fr <- predict(fit,  newdata=list(c=matrix(5,2,10)), x0="use.model")

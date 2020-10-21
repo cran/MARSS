@@ -19,7 +19,7 @@ MARSSresiduals.tT(object, Harvey=FALSE, normalize=FALSE,
 \value{
 A list with the following components  
   \item{model.residuals}{ The the observed smoothed model residuals: data minus the model predictions conditioned on all observed data. This is different than the Kalman filter innovations which use on the data up to time \eqn{t-1} for the predictions. See details. }
-  \item{state.residuals}{ The smoothed state residuals \eqn{\tilde{\mathbf{x}}_{t+1}^T - \mathbf{Z}\tilde{\mathbf{x}}_{t}^T - \mathbf{u}}{E(X_{t+1}|y(1:T))-Z E(X(t)|y(1:T)) - u}. The last time step will be NA because the last step would be for T to T+1 (past the end of the data).}
+  \item{state.residuals}{ The smoothed state residuals \eqn{\mathbf{x}_{t+1}^T - \mathbf{Z} \mathbf{x}_{t}^T - \mathbf{u}}{xtT(t+1) - Z xtT(t) - u}. The last time step will be NA because the last step would be for T to T+1 (past the end of the data).}
   \item{residuals}{ The residuals conditioned on the observed data. Returned as a (n+m) x T matrix with \code{model.residuals} in rows 1 to n and \code{state.residuals} in rows n+1 to n+m.  NAs will appear in rows 1 to n in the places where data are missing. }
   \item{var.residuals}{ The joint variance of the model and state residuals conditioned on observed data. Returned as a (n+m) x (n+m) x T matrix. For Harvey=FALSE, this is Holmes (2014) equation 57. For Harvey=TRUE, this is the residual variance in eqn. 24, page 113, in Harvey et al. (1998). They are identical except for missing values, for those Harvey=TRUE returns 0s. For the state residual variance, the last time step will be all NA because the last step would be for T to T+1 (past the end of the data).}
   \item{std.residuals}{ The Cholesky standardized residuals as a (n+m) x T matrix. This is \code{residuals} multiplied by the inverse of the lower triangle of the Cholesky decomposition of \code{var.residuals}. The model standardized residuals associated with the missing data are replaced with NA. }
@@ -43,8 +43,8 @@ Below the conditional residuals and their variance are discussed. The random var
 \eqn{\mathbf{v}_{t}}{v(t)} is the difference between the data and the predicted data at time \eqn{t} given \eqn{\mathbf{x}_{t}}{x(t)}:
 \deqn{ \mathbf{v}_{t} = \mathbf{y}_{t} - \mathbf{Z} \mathbf{x}_{t} - \mathbf{a} - \mathbf{D}\mathbf{d}_t}{ v(t) = y(t) - Z x(t) - a - D d(t)}
 \eqn{\mathbf{x}_{t}}{x(t)} is unknown (hidden) and our data are one realization of \eqn{\mathbf{y}_{t}}{y(t)}. The observed model residuals \eqn{\hat{\mathbf{v}}_{t}}{hatv(t)} are the difference between the observed data and the predicted data at time \eqn{t} using the fitted model. \code{MARSSresiduals.tT} fits the model using all the data, thus
-\deqn{ \hat{\mathbf{v}}_{t} = \mathbf{y}_{t} - \mathbf{Z}\tilde{\mathbf{x}}_{t}^T - \mathbf{a} - \mathbf{D}\mathbf{d}_t}{ hatv(t) = y(t) - Z xtT - a - D d(t)}
-where \eqn{\tilde{\mathbf{x}}_{t}^T}{xtT} is the expected value of \eqn{\mathbf{X}_{t}}{X(t)} conditioned on the data from 1 to \eqn{T} (all the data), i.e. the Kalman smoother estimate of the states at time \eqn{t}. \eqn{\mathbf{y}_{t}}{y(t)} are your data and missing values will appear as NA in the observed model residuals. These are returned as \code{model.residuals} and rows 1 to \eqn{n} of \code{residuals}.
+\deqn{ \hat{\mathbf{v}}_{t} = \mathbf{y}_{t} - \mathbf{Z}\mathbf{x}_{t}^T - \mathbf{a} - \mathbf{D}\mathbf{d}_t}{ hatv(t) = y(t) - Z xtT(t) - a - D d(t)}
+where \eqn{\mathbf{x}_{t}^T}{xtT(t)} is the expected value of \eqn{\mathbf{X}_{t}}{X(t)} conditioned on the data from 1 to \eqn{T} (all the data), i.e. the Kalman smoother estimate of the states at time \eqn{t}. \eqn{\mathbf{y}_{t}}{y(t)} are your data and missing values will appear as NA in the observed model residuals. These are returned as \code{model.residuals} and rows 1 to \eqn{n} of \code{residuals}.
 
 \code{res1} and \code{res2} in the code below will be the same.
 \preformatted{dat = t(harborSeal)[2:3,]
@@ -60,20 +60,20 @@ res2 = MARSSresiduals(fit, type="tT")$model.residuals
 \eqn{\mathbf{w}_{t+1}}{w(t+1)} are the difference between the state at time \eqn{t+1} and the expected value of the state at time \eqn{t+1} given the state at time \eqn{t}:
 \deqn{ \mathbf{w}_{t+1} = \mathbf{x}_{t+1} - \mathbf{B} \mathbf{x}_{t} - \mathbf{u} - \mathbf{C}\mathbf{c}_{t+1}}{ w(t+1) = x(t+1) - B x(t) - u - C c(t+1)}
 The estimated state residuals \eqn{\hat{\mathbf{w}}_{t+1}}{hatw(t+1)} are the difference between estimate of \eqn{\mathbf{x}_{t+1}}{x(t+1)} minus the estimate using \eqn{\mathbf{x}_{t}}{x(t)}. 
-\deqn{ \hat{\mathbf{w}}_{t+1} = \tilde{\mathbf{x}}_{t+1}^T - \mathbf{B}\tilde{\mathbf{x}}_{t}^T - \mathbf{u} - \mathbf{C}\mathbf{c}_{t+1}}{ hatw(t+1) = xt+1T - B xtT - u - C c(t+1)}
-where \eqn{\tilde{\mathbf{x}}_{t+1}^T}{xt+1T} is the Kalman smoother estimate of the states at time \eqn{t+1} and \eqn{\tilde{\mathbf{x}}_{t}^T}{xtT} is the Kalman smoother estimate of the states at time \eqn{t}.
+\deqn{ \hat{\mathbf{w}}_{t+1} = \mathbf{x}_{t+1}^T - \mathbf{B}\mathbf{x}_{t}^T - \mathbf{u} - \mathbf{C}\mathbf{c}_{t+1}}{ hatw(t+1) = xtT(t+1) - B xtT(t) - u - C c(t+1)}
+where \eqn{\mathbf{x}_{t+1}^T}{xtT(t+1)} is the Kalman smoother estimate of the states at time \eqn{t+1} and \eqn{\mathbf{x}_{t}^T}{xtT(t)} is the Kalman smoother estimate of the states at time \eqn{t}.
 The estimated state residuals \eqn{\mathbf{w}_{t+1}}{w(t+1)} are returned in \code{state.residuals} and rows \eqn{n+1} to \eqn{n+m} of \code{residuals}. \code{state.residuals[,t]} is \eqn{\mathbf{w}_{t+1}}{w(t+1)} (notice time subscript difference). There are no NAs in the estimated state residuals as an estimate of the state exists whether or not there are associated data.
 
 \code{res1} and \code{res2} in the code below will be the same.
-\preformatted{dat = t(harborSeal)[2:3,]
-TT = ncol(dat)
-fit = MARSS(dat)
-B = coef(fit, type="matrix")$B
-U = coef(fit, type="matrix")$U
-statestp1 = MARSSkf(fit)$xtT[,2:TT]
-statest = MARSSkf(fit)$xtT[,1:(TT-1)]
-res1 = statestp1 - B \%*\% statest - U \%*\% matrix(1,1,TT-1)
-res2 = MARSSresiduals(fit, type="tT")$state.residuals[,1:(TT-1)]
+\preformatted{dat <- t(harborSeal)[2:3,]
+TT <- ncol(dat)
+fit <- MARSS(dat)
+B <- coef(fit, type="matrix")$B
+U <- coef(fit, type="matrix")$U
+statestp1 <- MARSSkf(fit)$xtT[,2:TT]
+statest <- MARSSkf(fit)$xtT[,1:(TT-1)]
+res1 <- statestp1 - B \%*\% statest - U \%*\% matrix(1,1,TT-1)
+res2 <- MARSSresiduals(fit, type="tT")$state.residuals[,1:(TT-1)]
 }
 Note that the state residual at the last time step (not shown) will be NA because it is the residual associated with \eqn{\mathbf{x}_T}{x_T} to \eqn{\mathbf{x}_{T+1}}{x_{T+1}} and \eqn{T+1} is beyond the data.  Similarly, the variance matrix at the last time step will have NAs for the same reason.
 
@@ -88,7 +88,7 @@ To standardize the observed residuals, we will use \eqn{ \hat{\Sigma}_{t} }{ hat
 
 \code{MARSSresiduals} will return the Cholesky standardized residuals sensu Harvey et al. (1998) in \code{std.residuals} for outlier and shock detection.  These are the model and state residuals multiplied by the inverse of the lower triangle of the Cholesky decomposition of \code{var.residuals} (note \code{chol()} in R returns the upper triangle thus a transpose is needed). The standardized model residuals are set to NA when there are missing data. The standardized state residuals however always exist since the expected value of the states exist without data. The calculation of the standardized residuals for both the observations and states requires the full residuals variance matrix. Since the state residuals variance is NA at the last time step, the standardized residual in the last time step will be all NA (for both model and state residuals).
 
-The interpretation of the Cholesky standardized residuals is not straight-forward when the \eqn{\mathbf{Q}}{Q} and \eqn{\mathbf{R}}{R} variance-covariance matrices are non-diagonal.  The residuals which were generated by a non-diagonal variance-covariance matrices are transformed into orthogonal residuals in MVN(0,I) space.  For example, if v is 2x2 correlated errors with variance-covariance matrix R. The transformed residuals (from this function) for the i-th row of v is a combination of the row 1 effect and the row 1 effect plus the row 2 effect.  So in this case, row 2 of the transformed residuals would not be regarded as solely the row 2 residual but rather how different row 2 is from row 1, relative to expected.  If the errors are highly correlated, then the transformed residuals can look rather non-intuitive.
+The interpretation of the Cholesky standardized residuals is not straight-forward when the \eqn{\mathbf{Q}}{Q} and \eqn{\mathbf{R}}{R} variance-covariance matrices are non-diagonal.  The residuals which were generated by a non-diagonal variance-covariance matrices are transformed into orthogonal residuals in MVN(0,I) space.  For example, if v is 2x2 correlated errors with variance-covariance matrix R. The transformed residuals (from this function) for the i-th row of \eqn{\mathbf{v}}{v} is a combination of the row 1 effect and the row 1 effect plus the row 2 effect.  So in this case, row 2 of the transformed residuals would not be regarded as solely the row 2 residual but rather how different row 2 is from row 1, relative to expected.  If the errors are highly correlated, then the transformed residuals can look rather non-intuitive.
 
 The marginal standardized residuals are returned in \code{mar.residuals}. These are the model and state residuals multiplied by the inverse of the diagonal matrix formed by the square root of the diagonal of \code{var.residuals}. These residuals will be correlated (across the residuals at time \eqn{t}) but are easier to interpret when \eqn{\mathbf{Q}}{Q} and \eqn{\mathbf{R}}{R} are non-diagonal.
 
@@ -97,13 +97,13 @@ The Block Cholesky standardized residuals are like the Cholesky standardized res
 
 \strong{Normalized residuals}
 
-If \code{normalize=FALSE}, the unconditional variance of \eqn{W_{t}}{W(t)} and \eqn{V_{t}}{V(t)} are \eqn{\mathbf{Q}}{Q} and \eqn{\mathbf{R}}{R} and the model is assumed to be written as
-\deqn{ y_{t} = Z x_{t} + a + v_{t}}{y(t) = Z x(t) + a + v(t)}
-\deqn{ x_{t} = B x_{t-1} + u + w_{t}}{x(t) = B x(t-1) + u + w(t)}
-Harvey et al (1998) writes the model as
-\deqn{ y_{t} = Z x_{t} + a + H v_{t}}{y(t) = Z x(t) + a + H v(t)}
-\deqn{ x_{t} = B x_{t-1} + u + G w_{t}}{x(t) = B x(t-1) + u + G w(t)}
-with the variance of \eqn{V_{t}}{V(t)} and \eqn{W_{t}}{W(t)} equal to I (identity).
+If \code{normalize=FALSE}, the unconditional variance of \eqn{\mathbf{V}_t}{V(t)} and \eqn{\mathbf{W}_t}{W(t)} are \eqn{\mathbf{R}}{R} and \eqn{\mathbf{Q}}{Q} and the model is assumed to be written as
+\deqn{\mathbf{y}_t = \mathbf{Z} \mathbf{x}_t + \mathbf{a} + \mathbf{v}_t}{ y(t) = Z x(t) + a + v(t)}
+\deqn{\mathbf{x}_t = \mathbf{B} \mathbf{x}_{t-1} + \mathbf{u} + \mathbf{w}_t}{ x(t) = B x(t-1) + u + w(t)}
+If normalize=TRUE, the model is assumed to be written
+\deqn{\mathbf{y}_t = \mathbf{Z} \mathbf{x}_t + \mathbf{a} + \mathbf{H}\mathbf{v}_t}{ y(t) = Z x(t) + a + Hv(t)}
+\deqn{\mathbf{x}_t = \mathbf{B} \mathbf{x}_{t-1} + \mathbf{u} + \mathbf{G}\mathbf{w}_t}{ x(t) = B x(t-1) + u + Gw(t)}
+with the variance of \eqn{\mathbf{V}_t}{V(t)} and \eqn{\mathbf{W}_t}{W(t)} equal to \eqn{\mathbf{I}}{I} (identity).
 
 \code{MARSSresiduals.tT} returns the residuals defined as in the first equations. To get the residuals defined as Harvey et al. (1998) define them (second equations), then use \code{normalize=TRUE}.  In that case the unconditional variance of residuals will be I instead of \eqn{\mathbf{Q}}{Q} and \eqn{\mathbf{R}}{R}.
 
@@ -112,8 +112,8 @@ with the variance of \eqn{V_{t}}{V(t)} and \eqn{W_{t}}{W(t)} equal to I (identit
 \eqn{ \textrm{E}[\widehat{\mathcal{E}}_{t}] }{ E[Epsilon(t)] } and \eqn{ \textrm{var}[\widehat{\mathcal{E}}_{t}] }{ var[Epsilon(t)] } are for the distribution across all possible  \eqn{\mathbf{X}}{X} and \eqn{\mathbf{Y}}{Y}. We can also compute the expected value and variance conditioned on a specific value of \eqn{\mathbf{Y}}{Y}, the one we observed \eqn{\mathbf{y}^{(1)}}{y(1)} (Holmes 2014). If there are no missing values, this is not very interesting as  \eqn{\textrm{E}[\hat{\mathbf{V}}_{t}|\mathbf{y}^{(1)}]=\hat{\mathbf{v}}_{t}}{E[hatV(t)|y(1)] = hatv(t)} and \eqn{\textrm{var}[\hat{\mathbf{V}}_{t}|\mathbf{y}^{(1)}] = 0}{var[hatV(t)|y(1)] = 0}. If we have data that are missing because we left them out, however, \eqn{\textrm{E}[\hat{\mathbf{V}}_{t}|\mathbf{y}^{(1)}]}{E[hatV(t)|y(1)]} and \eqn{\textrm{var}[\hat{\mathbf{V}}_{t}|\mathbf{y}^{(1)}]}{var[hatV(t)|y(1)]} are the values we need to evaluate whether the left-out data are unusual relative to what you expect given the data you did collect. 
 
 \code{E.obs.residuals} is the conditional expected value \eqn{\textrm{E}[\hat{\mathbf{V}}|\mathbf{y}^{(1)}]}{E[hatV(t)|y(1)]} (notice small \eqn{\mathbf{y}}{y}). It is 
-\deqn{\textrm{E}[\mathbf{Y}_{t}|\mathbf{y}^{(1)}] - \mathbf{Z}\tilde{\mathbf{x}}_{t}^T - \mathbf{a} }{ E[Y(t)|y(1)] - Z xtT - a}
-It is similar to \eqn{\hat{\mathbf{v}}_{t}}{hatv(t)}. The difference is the \eqn{\mathbf{y}}{y} term. \eqn{\textrm{E}[\mathbf{Y}^{(1)}_{t}|\mathbf{y}^{(1)}] }{ E[Y(1)(t)|y(1)] } is \eqn{\mathbf{y}^{(1)}_{t}}{y(1)(t)} for the non-missing values. For the missing values, the value depends on \eqn{\mathbf{R}}{R}. If \eqn{\mathbf{R}}{R} is diagonal, \eqn{\textrm{E}[\mathbf{Y}^{(2)}_{t}|\mathbf{y}^{(1)}] }{ E[Y(2)(t)|y(1)] } is \eqn{\mathbf{Z}\tilde{\mathbf{x}}_{t}^T + \mathbf{a}}{Z xtT + a} and the expected residual value is 0. If \eqn{\mathbf{R}}{R} is non-diagonal however, it will be non-zero.
+\deqn{\textrm{E}[\mathbf{Y}_{t}|\mathbf{y}^{(1)}] - \mathbf{Z}\mathbf{x}_t^T - \mathbf{a} }{ E[Y(t)|y(1)] - Z xtT(t) - a}
+It is similar to \eqn{\hat{\mathbf{v}}_{t}}{hatv(t)}. The difference is the \eqn{\mathbf{y}}{y} term. \eqn{\textrm{E}[\mathbf{Y}^{(1)}_{t}|\mathbf{y}^{(1)}] }{ E[Y(1)(t)|y(1)] } is \eqn{\mathbf{y}^{(1)}_{t}}{y(1)(t)} for the non-missing values. For the missing values, the value depends on \eqn{\mathbf{R}}{R}. If \eqn{\mathbf{R}}{R} is diagonal, \eqn{\textrm{E}[\mathbf{Y}^{(2)}_{t}|\mathbf{y}^{(1)}] }{ E[Y(2)(t)|y(1)] } is \eqn{\mathbf{Z}\mathbf{x}_t^T + \mathbf{a}}{Z xtT(t) + a} and the expected residual value is 0. If \eqn{\mathbf{R}}{R} is non-diagonal however, it will be non-zero.
 
 \code{var.obs.residuals} is the conditional variance  \eqn{\textrm{var}[\hat{\mathbf{V}}|\mathbf{y}^{(1)}]}{var[hatV(t)|y(1)]} (eqn 24 in Holmes (2014)).  For the non-missing values, this variance is 0 since \eqn{\hat{\mathbf{V}}|\mathbf{y}^{(1)}}{hatV(t)|y(1)} is a fixed value. For the missing values, \eqn{\hat{\mathbf{V}}|\mathbf{y}^{(1)}}{hatV(t)|y(1)} is not fixed because \eqn{\mathbf{Y}^{(2)}}{Y(2)} is a random variable. For these values, the variance of \eqn{\hat{\mathbf{V}}|\mathbf{y}^{(1)}}{hatV(t)|y(1)} is determined by the variance of \eqn{\mathbf{Y}^{(2)}}{Y(2)} conditioned on \eqn{\mathbf{Y}^{(1)}=\mathbf{y}^{(1)}}{Y(1)=y(1)}. This variance matrix is returned in \code{var.obs.residuals}. The variance of \eqn{\hat{\mathbf{W}}|\mathbf{y}^{(1)}}{hatW(t)|y(1)} is 0 and thus is not included.
 
@@ -124,8 +124,6 @@ Note, if \code{Harvey=TRUE} then the rows and columns of \code{var.residuals} co
 
 \author{ 
   Eli Holmes, NOAA, Seattle, USA.  
-
-  eli(dot)holmes(at)noaa(dot)gov
 } 
 \seealso{ \code{\link{MARSSresiduals}}, \code{\link{MARSSresiduals.tt1}}, \code{\link{fitted.marssMLE}}, \code{\link{plot.marssMLE}} }
 \examples{
