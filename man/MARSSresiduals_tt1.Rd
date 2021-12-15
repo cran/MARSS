@@ -6,8 +6,8 @@
   Calculates the standardized (or auxiliary) one-step-ahead residuals, aka the innovations residuals and their variance.  Not exported. Access this function with \code{MARSSresiduals(object, type="tt1")}. To get the residuals as a data frame in long-form, use \code{\link[=residuals.marssMLE]{residuals}(object, type="tt1")}.
 }
 \usage{
-MARSSresiduals.tt1(object, method=c("SS"), normalize=FALSE, 
-    silent=FALSE, fun.kf=c("MARSSkfas", "MARSSkfss"))
+MARSSresiduals.tt1(object, method = c("SS"), normalize = FALSE, 
+    silent = FALSE, fun.kf = c("MARSSkfas", "MARSSkfss"))
 }
 \arguments{
   \item{object}{ An object of class \code{\link{marssMLE}}.}
@@ -98,7 +98,7 @@ If normalize=TRUE, the model is assumed to be written
 \deqn{\mathbf{x}_t = \mathbf{B} \mathbf{x}_{t-1} + \mathbf{u} + \mathbf{G}\mathbf{w}_t}{ x(t) = B x(t-1) + u + Gw(t)}
 with the variance of \eqn{\mathbf{V}_t}{V(t)} and \eqn{\mathbf{W}_t}{W(t)} equal to \eqn{\mathbf{I}}{I} (identity).
 
-\code{MARSSresiduals} returns the residuals defined as in the first equations. To get the residuals defined as Harvey et al. (1998) define them (second equations), then use \code{normalize=TRUE}.  In that case the unconditional variance of residuals will be I instead of \eqn{\mathbf{Q}}{Q} and \eqn{\mathbf{R}}{R}.  Note, that the `normalized' residuals are not the same as the `standardized' residuals.  In former, the unconditional residuals have a variance of I while in the latter it is the conditional residuals that have a variance of I.
+\code{MARSSresiduals} returns the residuals defined as in the first equations. To get the residuals defined as Harvey et al. (1998) define them (second equations), then use \code{normalize=TRUE}.  In that case the unconditional variance of residuals will be \eqn{\mathbf{I}}{I} instead of \eqn{\mathbf{Q}}{Q} and \eqn{\mathbf{R}}{R}.  Note, that the normalized residuals are not the same as the standardized residuals.  In former, the unconditional residuals have a variance of \eqn{\mathbf{I}}{I} while in the latter it is the conditional residuals that have a variance of \eqn{\mathbf{I}}{I}.
 
 }
 

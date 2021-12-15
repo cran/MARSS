@@ -968,6 +968,23 @@ str_replace <- function(string, pattern, replacement) {
   }
 }
 
+str_to_title <- function(x) {
+  s <- strsplit(x, " ")[[1]]
+  paste(toupper(substring(s, 1, 1)), substring(s, 2),
+        sep = "", collapse = " ")
+}
+
+# ignore these words
+str_to_sentence <- function(x, ignore=c()) {
+  cap <- function(s) paste(ifelse(str_trim(s) %in% ignore | str_trim(s) %in% paste0(ignore, "."), str_trim(s), tolower(str_trim(s))), sep = "", collapse = " " )
+  ss <- c()
+  for(val in strsplit(x, "[.] ")[[1]]){
+  tit <- sapply(strsplit(str_trim(val), split = " "), cap, USE.NAMES = !is.null(names(val)))
+  substr(tit, 1, 1) <- toupper(substr(tit, 1, 1))
+  ss <- c(ss, tit)
+  }
+  paste(ss, collapse=". ")
+}
 ################################################################
 
 zscore <- function(x, mean.only = FALSE) {
@@ -1007,3 +1024,39 @@ ldiag <- function(x, nrow = NA) {
 MARSS.out <- function() {
   # Null function for man file
 }
+
+match.arg.exact <- function (arg, choices, several.ok = FALSE, exact = TRUE) 
+{
+  if (missing(choices)) {
+    formal.args <- formals(sys.function(sysP <- sys.parent()))
+    choices <- eval(formal.args[[as.character(substitute(arg))]], 
+                    envir = sys.frame(sysP))
+  }
+  if (is.null(arg)) 
+    return(choices[1L])
+  else if (!is.character(arg)) 
+    stop("'arg' must be NULL or a character vector")
+  if (!several.ok) {
+    if (identical(arg, choices)) 
+      return(arg[1L])
+    if (length(arg) > 1L) 
+      stop("'arg' must be of length 1")
+  }
+  else if (length(arg) == 0L) 
+    stop("'arg' must be of length >= 1")
+  # HERE IS THE MODIFIED CODE
+  if (exact)
+    i <- match(arg, choices, nomatch = 0L)
+  else
+    i <- pmatch(arg, choices, nomatch = 0L, duplicates.ok = TRUE)
+  # END MODIFIED CODE
+  
+  if (all(i == 0L)) 
+    stop(gettextf("'arg' should be one of %s", paste(dQuote(choices), 
+                                                     collapse = ", ")), domain = NA)
+  i <- i[i > 0L]
+  if (!several.ok && length(i) > 1) 
+    stop("there is more than one match in 'match.arg'")
+  choices[i]
+}
+

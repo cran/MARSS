@@ -1,8 +1,16 @@
-plot.marssPredict <- function(x, include, pi.int = TRUE, main = NULL,
+plot.marssPredict <- function(x, include, decorate = TRUE, main = NULL,
                               showgap = TRUE, shaded = TRUE,
                               shadebars = (x$h < 5 & x$h != 0), shadecols = NULL, col = 1,
                               fcol = 4, pi.col = 1, pi.lty = 2, ylim = NULL,
                               xlab = "", ylab = "", type = "l", flty = 1, flwd = 2, ...) {
+  if (!inherits(x, "marssPredict")) {
+    stop("plot.marssPredict requires a marssPredict object.", call. = FALSE)
+  }
+  if(!is.logical(decorate)){
+    stop("plot.marssPredict: decorate must be TRUE/FALSE.", call. = FALSE)
+  }
+  pi.int <- ifelse(decorate, TRUE, FALSE)
+
   noylim <- missing(ylim)
   h <- x$h
   nx <- length(x$t) - h # length of pre-forecast data
@@ -42,14 +50,17 @@ plot.marssPredict <- function(x, include, pi.int = TRUE, main = NULL,
       shadecols <- grDevices::heat.colors(nint + 2)[switch(1 + (nint > 1), 2, nint:1) + 1]
     }
   }
+  
+  # Save par setting so can reset
+  op <- par()[c("mfrow", "mar")]
 
   nX <- min(9, n)
   plot.nrow <- round(sqrt(nX))
   plot.ncol <- ceiling(nX / plot.nrow)
   par(mfrow = c(plot.nrow, plot.ncol), mar = c(2, 4, 2, 1) + 0.1)
   for (plt in unique(xf$.rownames)) {
-    if (substr(x$type, 1, 1) == "x") maintit <- paste(main, "State ", plt, sep = "")
-    if (substr(x$type, 1, 1) == "y") maintit <- paste(main, "Data ", plt, sep = "")
+    if (substr(x$type, 1, 1) == "x") maintit <- paste(main, "State", plt)
+    if (substr(x$type, 1, 1) == "y") maintit <- paste(main, "Data", plt)
     tmp <- subset(xf, xf$.rownames == plt)
     if (h > 0) pt <- c((nx - include + 1):nx, nx + 1:h)
     if (h == 0) pt <- (nx - include + 1):nx
@@ -61,11 +72,14 @@ plot.marssPredict <- function(x, include, pi.int = TRUE, main = NULL,
     xxx <- x$t[pt]
 
     if (!showgap & h != 0) xxx <- xxx[c((nx - include + 1):nx, nx:(nx + h - 1))]
-    plot(xxx, c(tmp$estimate[(nx - include + 1):nx], rep(NA, h)), xlab = "", ylab = "Estimate", ylim = ylim, main = maintit, col = col, type = type, ...)
-    if (x$type == "ytT") points(xxx[(length(xxx) - include - h + 1):(length(xxx) - h)], tmp$y[(nx - include + 1):nx], col = fcol, pch = 19, cex = 0.75)
+    plot(xxx, c(tmp$estimate[(nx - include + 1):nx], rep(NA, h)), 
+         xlab = "", ylab = paste("Estimate", x$type, switch(x$interval.type, none="", confidence="+ CI", prediction="+ PI")), 
+         ylim = ylim, main = maintit, col = col, type = type, ...)
+    if (substr(x$type, 1, 1)=="y" && decorate) points(xxx[(length(xxx) - include - h + 1):(length(xxx) - h)], tmp$y[(nx - include + 1):nx], col = fcol, pch = 19, cex = 0.75)
     if (h != 0) { # plot forecast
       pvals <- 1:h
       pt <- xxx <- x$t[nx] + pvals # pt is the locs of PIs to plot; xxx is x-axis
+      pt <- nx + pvals
       if (!showgap) xxx <- xxx - 1
     } else { # h=0; nx is length x$t;
       pt <- 1:nx
@@ -116,12 +130,13 @@ plot.marssPredict <- function(x, include, pi.int = TRUE, main = NULL,
         points(xxx, tmp$estimate[pt], col = fcol, pch = 19)
       }
     } else {
-      if (x$type == "ytT") points(xxx[(nx - include + 1):nx], tmp$y[(nx - include + 1):nx], col = fcol, pch = 19, cex = 0.75)
+      if (substr(x$type, 1, 1)=="y" && decorate) points(xxx[(nx - include + 1):nx], tmp$y[(nx - include + 1):nx], col = fcol, pch = 19, cex = 0.75)
       lines(xxx[(nx - include + 1):nx], c(tmp$estimate[(nx - include + 1):nx], rep(NA, h)),
         col = col, type = type, ...
       )
     }
   }
 
+  par(op) # reset
   invisible(x$pred)
 }

@@ -19,21 +19,21 @@ Values such as \eqn{a b} or \eqn{a^2} or \eqn{log(a)} are not linear constraints
 }
 \usage{
 MARSS(y, 
-    model=NULL,
-    inits=NULL,
-    miss.value=as.numeric(NA),
-    method = "kem",
-    form = "marxss",
-    fit=TRUE, 
-    silent = FALSE,
-    control = NULL,
-    fun.kf = c("MARSSkfas", "MARSSkfss"),
+    model = NULL, 
+    inits = NULL, 
+    miss.value = as.numeric(NA), 
+    method = "kem", 
+    form = "marxss", 
+    fit = TRUE, 
+    silent = FALSE, 
+    control = NULL, 
+    fun.kf = c("MARSSkfas", "MARSSkfss"), 
     ...) 
 }
 
 \arguments{
 The default settings for the optional arguments are set in \code{MARSSsettings.R} and are given below in the details section. For form specific defaults see the form help file (e.g. \code{\link{MARSS.marxss}} or \code{\link{MARSS.dfa}}).
-  \item{y}{ A n x T matrix of n time series over T time steps. Only y is required for the function. A ts object (univariate or multivarite) can be used and this will be converted to a matrix with time in the columns. }
+  \item{y}{ A n x T matrix of n time series over T time steps. Only y is required for the function. A ts object (univariate or multivariate) can be used and this will be converted to a matrix with time in the columns. }
   \item{inits}{ A list with the same form as the list outputted by \code{coef(fit)} that specifies initial values for the parameters.  See also \code{\link{MARSS.marxss}}. }
   \item{model}{ Model specification using a list of parameter matrix text shortcuts or matrices. See Details and \code{\link{MARSS.marxss}} for the default form. Or better yet open the Quick Start Guide \code{RShowDoc("Quick_Start",package="MARSS")}. }
   \item{miss.value}{ Deprecated.  Denote missing values by NAs in your data. }
@@ -41,7 +41,7 @@ The default settings for the optional arguments are set in \code{MARSSsettings.R
   \item{form}{ The equation form used in the \code{MARSS()} call.  The default is "marxss". See \code{\link{MARSS.marxss}} or \code{\link{MARSS.dfa}}. }
   \item{fit}{ TRUE/FALSE Whether to fit the model to the data. If FALSE, a \code{\link{marssMLE}} object with only the model is returned. }
   \item{silent}{ Setting to TRUE(1) suppresses printing of full error messages, warnings, progress bars and convergence information. Setting to FALSE(0) produces error output. Setting silent=2 will produce more verbose error messages and progress information. }
-    \item{fun.kf}{   What Kalman filter function to use.  MARSS has two: \code{\link{MARSSkfas}()} which is based on the Kalman filter in the \link[KFAS]{KFAS} package based on Koopman and Durbin and \code{\link{MARSSkfss}()} which is a native R implementation of the Kalman filter and smoother in Shumway and Stoffer. The KFAS filter is much faster.  \code{\link{MARSSkfas}()} modifies the input and output in order to output the lag-one covariance smoother needed for the EM algorithm (per page 321 in Shumway and Stoffer (2000).}
+    \item{fun.kf}{   What Kalman filter function to use.  MARSS has two: \code{\link{MARSSkfas}()} which is based on the Kalman filter in the \href{https://cran.r-project.org/package=KFAS}{KFAS} package based on Koopman and Durbin and \code{\link{MARSSkfss}()} which is a native R implementation of the Kalman filter and smoother in Shumway and Stoffer. The KFAS filter is much faster.  \code{\link{MARSSkfas}()} modifies the input and output in order to output the lag-one covariance smoother needed for the EM algorithm (per page 321 in Shumway and Stoffer (2000).}
   \item{control}{ Estimation options for the maximization algorithm. The typically used control options for method="kem" are below but see  \code{\link{marssMLE}} for the full list of control options.  Note many of these are not allowed if method="BFGS"; see  \code{\link{MARSSoptim}} for the allowed control options for this method.
     \itemize{
       \item{\code{minit}}{   The minimum number of iterations to do in the maximization routine (if needed by method). If \code{method="kem"}, this is an easy way to up the iterations and see how your estimates are converging. (positive integer)} 
@@ -50,7 +50,7 @@ The default settings for the optional arguments are set in \code{MARSSsettings.R
       \item{\code{conv.test.deltaT=9}}{ Number of iterations to use for the testing convergence via the slope of the log parameter versus log iterations. }
       \item{\code{conv.test.slope.tol}}{ The slope of the log parameter versus log iteration to use as the cut-off for convergence.  The default is 0.5 which is a bit high.  For final analyses, this should be set lower.  If you want to only use abstol as your convergence test, then to something very large, for example conv.test.slope.tol=1000.  Type \code{MARSSinfo(11)} to see some comments of when you might want to do this.}
       \item{\code{abstol}}{ The logLik.(iter-1)-logLik.(iter) convergence tolerance for the maximization routine. To meet convergence both the abstol and slope tests must be passed.} 
-      \item{\code{allow.degen}}{ Whether to try setting Q or R elements to zero if they appear to be going to zero. }
+      \item{\code{allow.degen}}{ Whether to try setting \eqn{\mathbf{Q}}{Q} or \eqn{\mathbf{R}}{R} elements to zero if they appear to be going to zero. }
       \item{\code{trace}}{ An integer specifying the level of information recorded and error-checking run during the algorithms.  \code{trace=0}, specifies basic error-checking and brief error-messages; \code{trace>0} will print full error messages. In addition if trace>0, the Kalman filter output will be added to the outputted \code{marssMLE} object.  Additional information recorded depends on the method of maximization. For the EM algorithm, a record of each parameter estimate for each EM iteration will be added.   See \code{\link{optim}} for trace output details for the BFGS method.   \code{trace=-1} will turn off most internal error-checking and most error messages.  The internal error checks are time expensive so this can speed up model fitting.  This is particularly useful for bootstrapping and simulation studies. It is also useful if you get an error saying that \code{MARSS()} stops in \code{\link{MARSSkfss}()} due to a \code{chol()} call. \code{MARSSkfss()} uses matrix inversions and for some models these are unstable (high condition value). \code{MARSSkfss()} is used for error-checks and does not need to be called normally. }
       \item{\code{safe}}{  Setting \code{safe=TRUE} runs the Kalman smoother after each parameter update rather than running the smoother only once after updated all parameters.  The latter is faster but is not a strictly correct EM algorithm.  In most cases, \code{safe=FALSE} (default) will not change the fits.  If this setting does cause problems, you will know because you will see an error regarding the log-likelihood dropping and it will direct you to set \code{safe=TRUE}.    }
   } }

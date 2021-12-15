@@ -6,8 +6,8 @@
   Calculates the standardized (or auxiliary) smoothed residuals sensu Harvey, Koopman and Penzer (1998). The expected values and variance for missing (or left-out) data are also returned (Holmes 2014). Not exported. Access this function with \code{MARSSresiduals(object, type="tT")}. At time \eqn{t} (in the returned matrices), the model residuals are for time \eqn{t}, while the state residuals are for the transition from \eqn{t} to \eqn{t+1} following the convention in Harvey, Koopman and Penzer (1998).
 }
 \usage{
-MARSSresiduals.tT(object, Harvey=FALSE, normalize=FALSE, 
-    silent=FALSE, fun.kf=c("MARSSkfas", "MARSSkfss"))
+MARSSresiduals.tT(object, Harvey = FALSE, normalize = FALSE, 
+    silent = FALSE, fun.kf = c("MARSSkfas", "MARSSkfss"))
 }
 \arguments{
   \item{object}{ An object of class \code{\link{marssMLE}}.}
@@ -105,7 +105,7 @@ If normalize=TRUE, the model is assumed to be written
 \deqn{\mathbf{x}_t = \mathbf{B} \mathbf{x}_{t-1} + \mathbf{u} + \mathbf{G}\mathbf{w}_t}{ x(t) = B x(t-1) + u + Gw(t)}
 with the variance of \eqn{\mathbf{V}_t}{V(t)} and \eqn{\mathbf{W}_t}{W(t)} equal to \eqn{\mathbf{I}}{I} (identity).
 
-\code{MARSSresiduals.tT} returns the residuals defined as in the first equations. To get the residuals defined as Harvey et al. (1998) define them (second equations), then use \code{normalize=TRUE}.  In that case the unconditional variance of residuals will be I instead of \eqn{\mathbf{Q}}{Q} and \eqn{\mathbf{R}}{R}.
+\code{MARSSresiduals.tT} returns the residuals defined as in the first equations. To get the residuals defined as Harvey et al. (1998) define them (second equations), then use \code{normalize=TRUE}.  In that case the unconditional variance of residuals will be \eqn{\mathbf{I}}{I} instead of \eqn{\mathbf{Q}}{Q} and \eqn{\mathbf{R}}{R}.
 
 \strong{Missing or left-out data}
 

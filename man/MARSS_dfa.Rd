@@ -10,20 +10,20 @@ The Dynamic Factor Analysis model in MARSS is
 \deqn{y(t) = Z(t) x(t) + D(t) d(t) + v(t), where v(t) ~ MVN(0,R(t))}
 \deqn{x(1) ~ MVN(0, 5*I)}
 
-Passing in \code{form="dfa"} to \code{\link{MARSS}()} invokes a helper function to create that model and creates the Z matrix for the user.  Q is by definition identity, x0 is zero and V0 is diagonal with large variance (5). U is zero, A is zero, and covariates only enter the Y equation.  Because U and A are 0, the data should have mean 0 (demeaned) otherwise one is likely to be creating a structurally inadequate model (i.e. the model implies that the data have mean = 0, yet data do not have mean = 0 ).
+Passing in \code{form="dfa"} to \code{\link{MARSS}()} invokes a helper function to create that model and creates the \eqn{\mathbf{Z}}{Z} matrix for the user.  \eqn{\mathbf{Q}}{Q} is by definition identity, \eqn{\mathbf{x_0}}{x0} is zero and \eqn{\mathbf{V_0}}{V0} is diagonal with large variance (5). \eqn{\mathbf{u}}{U} is zero, \eqn{\mathbf{a}}{A} is zero, and covariates only enter the \eqn{\mathbf{y}}{Y} equation.  Because \eqn{\mathbf{u}}{U} and \eqn{\mathbf{a}}{A} are 0, the data should have mean 0 (demeaned) otherwise one is likely to be creating a structurally inadequate model (i.e. the model implies that the data have mean = 0, yet data do not have mean = 0 ).
 }
 \section{Usage}{
 \code{MARSS(y, 
-    inits=NULL,
-    model=NULL,
-    miss.value=as.numeric(NA),
-    method = "kem",
-    form = "dfa",
-    fit=TRUE, 
-    silent = FALSE,
-    control = NULL,
-    fun.kf = "MARSSkfas",
-    demean = TRUE,
+    inits = NULL, 
+    model = NULL, 
+    miss.value = as.numeric(NA), 
+    method = "kem", 
+    form = "dfa", 
+    fit = TRUE, 
+    silent = FALSE, 
+    control = NULL, 
+    fun.kf = "MARSSkfas", 
+    demean = TRUE, 
     z.score = TRUE)}
 }
 
@@ -54,7 +54,7 @@ The \code{model} argument is a list. The following details what list elements ca
     \item \code{m} Default=1. Can be 1 to n (the number of y time-series). Must be integer.
     }
 
-See the User Guide chapter on Dynamic Factor Analysis for examples of of using \code{form="dfa"}.
+See the \href{https://cran.r-project.org/package=MARSS/vignettes/UserGuide.pdf}{User Guide} chapter on Dynamic Factor Analysis for examples of of using \code{form="dfa"}.
 }
 \value{
 A object of class \code{\link{marssMLE}}.  See \code{\link[=print.marssMLE]{print}()} for a discussion of the various output available for \code{\link{marssMLE}} objects (coefficients, residuals, Kalman filter and smoother output, imputed values for missing data, etc.).  See \code{\link{MARSSsimulate}()} for simulating from \code{\link{marssMLE}} objects. \code{\link{MARSSboot}()} for bootstrapping, \code{\link{MARSSaic}()} for calculation of various AIC related model selection metrics, and \code{\link{MARSSparamCIs}()} for calculation of confidence intervals and bias. 
