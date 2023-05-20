@@ -1,5 +1,6 @@
 \name{is.marssMLE}
 \alias{is.marssMLE}
+\keyword{internal}
 
 \title{ Tests marssMLE object for completeness }
 \description{
@@ -71,7 +72,7 @@ Once the model has been fitted, additional elements are added.
   Eli Holmes and Kellie Wills, NOAA, Seattle, USA.  
 }
 \seealso{ 
-  \code{\link{marssMODEL}}, \code{\link{MARSSkem}} 
+  \code{\link{marssMODEL}}, \code{\link{MARSSkem}()} 
 }
 
 

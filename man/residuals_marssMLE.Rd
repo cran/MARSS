@@ -12,7 +12,7 @@
 \arguments{
   \item{object}{a \code{\link{marssMLE}} object}
   
-  \item{type}{\code{tt1} means innovations residuals. The fitted values are computed conditioned on the data up to \eqn{t-1}. See \code{\link[=fitted.marssMLE]{fitted}} with \code{type="ytt1"} or \code{type="xtt1"}. \code{tT} means smoothation residuals. the fitted values are computed conditioned on all the data. See \code{\link[=fitted.marssMLE]{fitted}} with \code{type="ytT"} or \code{type="xtT"}. \code{tt} means contemporaneous residuals. The fitted values are computed conditioned on the data up to \eqn{t}. In MARSS functions, estimates at time \eqn{t} conditioned on data 1 to \eqn{T} are denoted \code{tT}, conditioned on the data from \eqn{t=1} to \eqn{t-1} are denoted \code{tt1} and conditioned on data 1 to \eqn{t} are \code{tt}.}
+  \item{type}{\code{tt1} means innovations residuals. The fitted values are computed conditioned on the data up to \eqn{t-1}. See \code{\link[=fitted.marssMLE]{fitted}()} with \code{type="ytt1"} or \code{type="xtt1"}. \code{tT} means smoothation residuals. the fitted values are computed conditioned on all the data. See \code{\link[=fitted.marssMLE]{fitted}()} with \code{type="ytT"} or \code{type="xtT"}. \code{tt} means contemporaneous residuals. The fitted values are computed conditioned on the data up to \eqn{t}. In MARSS functions, estimates at time \eqn{t} conditioned on data 1 to \eqn{T} are denoted \code{tT}, conditioned on the data from \eqn{t=1} to \eqn{t-1} are denoted \code{tt1} and conditioned on data 1 to \eqn{t} are \code{tt}.}
 
   \item{standardization}{"Cholesky" means it is standardized by the lower triangle of the Cholesky transformation of the full variance-covariance matrix of the model and state residuals. 
 "marginal" means that the residual is standardized by its standard deviation, i.e. the square root of the value on the diagonal of the variance-covariance matrix of the model and state residuals. 
@@ -56,7 +56,7 @@ See the discussion below on the meaning of these for \eqn{\mathbf{y}}{y} associa
 
 The model residuals are in the data frame with \code{name=="model"}.
 
-The model residuals are the familiar type of residuals, they are the difference between the data at time \eqn{t} and the predicted value at time \eqn{t}, labeled \code{.fitted} in the data frame. For the model residuals, the "value"" is the data (or NA if data are missing). If \code{type="tT"}, the predicted value is the expected value of \eqn{\mathbf{y}}{y} conditioned on all the data, i.e. is computed using the smoothed estimated of \eqn{\mathbf{x}}{x} at time \eqn{t} (\code{xtT}).  If \code{type="tt1"}, the predicted value is the expected value of \eqn{\mathbf{y}}{y} conditioned on the data up to time \eqn{t-1}, i.e. is computed using the estimate of \eqn{\mathbf{x}}{x} at time \eqn{t} conditioned on the data up to time \eqn{t-1} (\code{xtt1}). These are known as the one-step-ahead predictions and the residuals are known as the innovations. 
+The model residuals are the familiar type of residuals, they are the difference between the data at time \eqn{t} and the predicted value at time \eqn{t}, labeled \code{.fitted} in the data frame. For the model residuals, the "value"" is the data (or NA if data are missing). If \code{type="tT"}, the predicted value is the expected value of \eqn{\mathbf{Y}}{Y} conditioned on all the data, i.e. is computed using the smoothed estimate of \eqn{\mathbf{x}}{x} at time \eqn{t} (\code{xtT}).  If \code{type="tt1"}, the predicted value is the expected value of \eqn{\mathbf{Y}}{Y} conditioned on the data up to time \eqn{t-1}, i.e. is computed using the estimate of \eqn{\mathbf{x}}{x} at time \eqn{t} conditioned on the data up to time \eqn{t-1} (\code{xtt1}). These are known as the one-step-ahead predictions and the residuals are known as the innovations. 
 
 The standard errors help visualize how well the model fits to the data.  See \code{\link[=fitted.marssMLE]{fitted}} for a discussion of the calculation of the model predictions for the observations.  The standardized smoothation residuals can be used for outlier detection.  See the references in \code{\link{MARSSresiduals}} and the chapter on shock detection in the MARSS User Guide.
 
@@ -87,15 +87,18 @@ fit <- MARSS(dat, model = list(Z = factor(c("WA", "OR", "OR"))))
 library(ggplot2)
 theme_set(theme_bw())
 
-# Show the standard residuals diagnostic plots for state-space models
+\dontrun{
+# Show a series of standard residuals diagnostic plots for state-space models
 autoplot(fit, plot.type="residuals")
+}
 
-# Plot the residuals object; show both for y and x
 d <- residuals(fit, type="tt1")
+\dontrun{
+# Make a series of diagnostic plots from a residuals object
 autoplot(d)
+}
 
 # Manually make a plot of the model residuals (innovations) with intervals
-d <- residuals(fit, type="tt1")
 d$.conf.low <- d$.fitted+qnorm(0.05/2)*d$.sigma
 d$.conf.up <- d$.fitted-qnorm(0.05/2)*d$.sigma
 ggplot(data = d) +
@@ -110,12 +113,11 @@ ggplot(data = d) +
 # are for t. So (value-fitted)[t] matches .resids[t+1] NOT .resids[t]
 # This is only for state residuals. For model residuals, the time-indexing matches.
 d <- residuals(fit, type="tT")
-d <- subset(d, name=="state")
+dsub <- subset(d, name=="state")
 # note t in col 1 matches t+1 in col 2
-head(cbind(.resids=d$.resids, valminusfitted=d$value-d$.fitted))
+head(cbind(.resids=dsub$.resids, valminusfitted=dsub$value-dsub$.fitted))
 
 # Make a plot of the smoothation residuals
-d <- residuals(fit, type="tT")
 ggplot(data = d) +
   geom_point(aes(t, value-.fitted), na.rm=TRUE) +
   facet_grid(~.rownames+name) +

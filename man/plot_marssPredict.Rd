@@ -14,7 +14,7 @@
 \method{autoplot}{marssPredict}(x, include, decorate = TRUE, plot.par = list(),  ...)
   }
   \arguments{
-\item{x}{ marssPredict produced by \code{\link{forecast.marssMLE}} or \code{\link{predict.marssMLE}}. }
+\item{x}{ marssPredict produced by \code{\link{forecast.marssMLE}()} or \code{\link{predict.marssMLE}()}. }
 \item{include}{ number of time step from the training data to include before the forecast. Default is all values.}
 \item{ main }{ Text to add to plot titles. }
 \item{ showgap }{ If showgap=FALSE, the gap between the training data and the forecasts is removed.}
@@ -33,15 +33,7 @@
 \item{flwd}{ Line width for the forecast line. }
 \item{...}{ Other arguments, not used. }
 \item{decorate}{ TRUE/FALSE. Add data points and CIs or PIs to the plots. }
-\item{plot.par}{ A list of plot parameters to adjust the look of the plot.  The default is 
-               list(point.pch = 19, point.col = "blue", point.fill = "blue", point.size = 1,
-                    line.col = "black", line.size = 1, line.type = "solid",
-                    ci.fill = NULL, ci.col = NULL, 
-                    ci.linetype = "blank", 
-                    ci.linesize = 0, ci.alpha = 0.6, 
-                    f.col = "#0000AA", f.linetype = "solid", f.linesize=0.5,
-                    theme = theme_bw()
-                    ). }
+\item{plot.par}{ A list of plot parameters to adjust the look of the plot.  The default is \code{list(point.pch = 19, point.col = "blue", point.fill = "blue", point.size = 1, line.col = "black", line.size = 1, line.type = "solid", ci.fill = NULL, ci.col = NULL, ci.linetype = "blank", ci.linesize = 0, ci.alpha = 0.6, f.col = "#0000AA", f.linetype = "solid", f.linesize=0.5, theme = theme_bw())}. }
   }
 \value{
   None. Plots are plotted
@@ -49,7 +41,7 @@
 \author{ 
   Eli Holmes and based off of \code{plot.forecast} in the forecast package written by Rob J Hyndman & Mitchell O'Hara-Wild.
 }
-\seealso{ \code{\link{predict.marssMLE}} }
+\seealso{ \code{\link{predict.marssMLE}()} }
 \examples{
 data(harborSealWA)
 dat <- t(harborSealWA[, -1])
@@ -58,7 +50,7 @@ fr <- predict(fit, n.ahead=10)
 plot(fr, include=10)
 
 # forecast.marssMLE does the same thing as predict with h
-fr <- forecast.marssMLE(fit, n.ahead=10)
+fr <- forecast(fit, n.ahead=10)
 plot(fr)
 
 # without h, predict will show the prediction intervals
@@ -74,8 +66,5 @@ fr <- predict(fit, newdata=list(y=dat[3:4,]), x0="reestimate")
 plot(fr)
 
 # forecast; note h not n.ahead is used for forecast()
-fr <- forecast.marssMLE(fit, h=10)
-# If you load the forecast package, this will work
-library(forecast)
 fr <- forecast(fit, h=10)
 }

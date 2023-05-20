@@ -1,21 +1,20 @@
 \name{tidy.marssMLE}
+\alias{tidy}
 \alias{tidy.marssMLE}
 \title{Return estimated parameters with summary information}
 \description{
 
-\code{tidy.marssMLE} returns  the parameter estimates and their confidence intervals. 
-
-The tidy function is designed to work with the \code{broom} package and you will need to load that package if you want to call \code{tidy(fit)} instead of \code{tidy.marssMLE(fit)}. 
+\code{tidy.marssMLE} is the method for the tidy generic. It returns  the parameter estimates and their confidence intervals. 
 }
 \usage{
-tidy.marssMLE(x, conf.int = TRUE, conf.level = 0.95, ...)
+\method{tidy}{marssMLE}(x, conf.int = TRUE, conf.level = 0.95, ...)
 }
 \arguments{
   \item{x}{a \code{\link{marssMLE}} object}
   
   \item{conf.int}{ Whether to compute confidence and prediction intervals on the estimates. }
   
-  \item{conf.level}{ Confidence level. alpha=1-conf.level}
+  \item{conf.level}{ Confidence level. \code{alpha=1-conf.level}}
 
   \item{...}{Optional arguments.  If \code{conf.int=TRUE}, then arguments to specify how CIs are computed can be passed in. See details and \code{\link{MARSSparamCIs}}. }
 
@@ -37,11 +36,6 @@ dat <- dat[c(2, 11, 12), ]
 fit <- MARSS(dat)
 
 # A data frame of the estimated parameters
-tidy.marssMLE(fit)
-
-# If broom is used
-
-library(broom)
 tidy(fit)
 
 }

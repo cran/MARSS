@@ -25,11 +25,8 @@ MARSSboot <- function(MLEobj, nboot = 1000, output = "parameters", sim = "parame
   #      hessian  -- get params from estimated hessian matrix
   # control is a list which holds options for the estimation function (see help file)
   # silent controls whether a progress bar is shown
-
-  # load needed package globals
-  kem.methods <- get("kem.methods", envir = pkg_globals)
-  optim.methods <- get("optim.methods", envir = pkg_globals)
-
+  allowed.methods <- get("allowed.methods", envir = pkg_globals)
+  
   ###### Error-checking on the arguments
   msg <- NULL
   if (!is.numeric(nboot)) {
@@ -50,8 +47,8 @@ MARSSboot <- function(MLEobj, nboot = 1000, output = "parameters", sim = "parame
   if (FALSE %in% (silent %in% c(TRUE, FALSE))) {
     msg <- c(msg, " Incorrect function arg. silent must be TRUE or FALSE")
   }
-  if (!(MLEobj$method %in% c(kem.methods, optim.methods))) {
-    msg <- c(msg, " MLE object method must be a kem or optim method.")
+  if (!(MLEobj$method %in% allowed.methods)) {
+    msg <- c(msg, paste0(" MLE object method must be in ", paste0(allowed.methods, collapse = ", "), "."))
   }
   if (!is.null(msg)) {
     cat("\n", "Errors were caught in MARSSboot \n", msg, sep = "")
@@ -179,14 +176,14 @@ MARSSboot <- function(MLEobj, nboot = 1000, output = "parameters", sim = "parame
         newmod <- marss.model # marss form
         newmod[["data"]] <- array(boot.data[, , i], dim = dim(boot.data)[1:2], dimnames = dimnames(marss.model$data))
         mle.object[["marss"]] <- newmod # we are resetting the marss object
-        if (mle.object[["method"]] %in% kem.methods) boot.model <- MARSSkem(mle.object)
-        if (mle.object[["method"]] %in% optim.methods) boot.model <- MARSSoptim(mle.object)
+        # fitting function determined by the MLEobj$method
+        boot.model <- MARSSfit(mle.object)
         boot.params[, i] <- MARSSvectorizeparam(boot.model)
       } # if MLE
 
       if (param.gen == "hessian") {
         if (any(is.na(MLEobj.hessian$parSigma))) stop("Stopped in MARSSboot(): The variance-covariance matrix (parSigma) returned by MARSShessian() has NAs.  See MARSSinfo(\"HessianNA\").\n", call. = FALSE)
-        hess.params <- rmvnorm(1, mean = MLEobj.hessian$parMean, sigma = MLEobj.hessian$parSigma, method = "chol")
+        hess.params <- mvtnorm::rmvnorm(1, mean = MLEobj.hessian$parMean, sigma = MLEobj.hessian$parSigma, method = "chol")
         boot.params[, i] <- hess.params
       } # if hessian
 

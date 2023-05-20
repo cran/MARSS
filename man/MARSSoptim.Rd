@@ -34,11 +34,11 @@ Objects of class \code{\link{marssMLE}} may be built from scratch but are easier
       \item{convergence=10}{ Some of the variance elements appear to be degenerate. } 
       \item{convergence=52}{ The algorithm was abandoned due to errors from the "L-BFGS-B" method.  } 
       \item{convergence=53}{ The algorithm was abandoned due to numerical errors in the likelihood calculation from \code{\link{MARSSkf}}.  If this happens with "BFGS", it can sometimes be helped with a better initial condition.  Try using the EM algorithm first (\code{method="kem"}), and then using the parameter estimates from that to as initial conditions for \code{method="BFGS"}.  } 
-      \item{convergence=54}{ The algorithm successfully fit the model but the Kalman filter/smoother could not be run on the model. Consult MARSSinfo('optimerror54') for insight.  } 
+      \item{convergence=54}{ The algorithm successfully fit the model but the Kalman filter/smoother could not be run on the model. Consult \code{MARSSinfo('optimerror54')} for insight.  } 
       }
   }
   \item{logLik}{Log-likelihood.}
-  \item{states}{State estimates from the Kalman filter.}
+  \item{states}{State estimates from the Kalman smoother.}
   \item{states.se}{Confidence intervals based on state standard errors, see caption of Fig 6.3 (p. 337) in Shumway & Stoffer (2006).}
   \item{errors}{Any error messages.}
 }
@@ -54,7 +54,7 @@ Objects of class \code{\link{marssMLE}} may be built from scratch but are easier
 \author{
   Eli Holmes, NOAA, Seattle, USA.  
 }
-\seealso{  \code{\link{MARSS}}, \code{\link{MARSSkem}},  \code{\link{marssMLE}},  \code{\link{optim}}
+\seealso{  \code{\link{MARSS}()}, \code{\link{MARSSkem}()},  \code{\link{marssMLE}()},  \code{\link{optim}()}
 }
 \examples{
 dat <- t(harborSealWA)
